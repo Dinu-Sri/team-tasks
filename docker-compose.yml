@@ -1,8 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/dinu-sri/team-tasks:latest
     container_name: team-tasks-app
     restart: unless-stopped
     ports:

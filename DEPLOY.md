@@ -50,6 +50,12 @@ cd team-tasks
 
 Use `docker-compose.yml` for the Portainer Git stack. It is the default Compose file and includes both the app and Postgres.
 
+The app image is built in GitHub Actions and published to GitHub Container Registry:
+
+```text
+ghcr.io/dinu-sri/team-tasks:latest
+```
+
 Set these environment variables in Portainer:
 
 | Variable | Example | Notes |
@@ -65,6 +71,14 @@ If Portainer shows only `team-tasks-postgres`, it is using an old/dev compose fi
 
 - `team-tasks-app`
 - `team-tasks-postgres`
+
+If Portainer cannot pull `ghcr.io/dinu-sri/team-tasks:latest`, add a Portainer registry for `ghcr.io`:
+
+- Registry URL: `ghcr.io`
+- Username: your GitHub username
+- Password: a GitHub personal access token with `read:packages`
+
+If you make the GHCR package public, registry login is not needed.
 
 For the first live test without a domain, open:
 
@@ -92,7 +106,8 @@ If you use Cloudflare Tunnel later:
 ```bash
 cd /opt/team-tasks
 git pull origin master
-docker compose up -d --build
+docker compose pull app
+docker compose up -d
 ```
 
 Or in Portainer:

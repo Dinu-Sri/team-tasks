@@ -63,7 +63,7 @@ Set these environment variables in Portainer:
 | `NEXT_PUBLIC_BASE_URL` | `http://YOUR_SERVER_IP:3002` | Use this while there is no domain |
 | `APP_URL` | `http://YOUR_SERVER_IP:3002` | Used for invitation links and session security |
 | `AUTH_SECRET` | long random value | Signs login session cookies |
-| `POSTGRES_PASSWORD` | `long-url-safe-password` | Use letters, numbers, hyphens, or underscores |
+| `POSTGRES_PASSWORD` | `long-random-password` | Used by both PostgreSQL and the app |
 | `CF_TUNNEL_TOKEN` | Cloudflare token | Only needed later when enabling the tunnel profile |
 
 Generate `AUTH_SECRET` with:
@@ -91,14 +91,13 @@ The app publishes direct access on host port `3002`. From the current Portainer 
 
 PostgreSQL only uses `POSTGRES_PASSWORD` when it creates a new database volume. Changing the value later in Portainer does not change the password already stored inside an existing volume.
 
-For a fresh installation with no data to preserve:
+The current Compose file uses the fresh volume name `team-tasks-postgres-v2` and safely URL-encodes the password before Prisma connects. For a fresh installation with no data to preserve:
 
-1. Stop and remove the `team-tasks` stack.
-2. In Portainer, open **Volumes** and remove the volume ending in `team-tasks_pgdata` or `todo_pgdata`.
-3. Set one new `POSTGRES_PASSWORD` value in the stack environment variables. Use only letters, numbers, hyphens, and underscores.
-4. Deploy the stack again.
+1. Set one `POSTGRES_PASSWORD` value in the stack environment variables.
+2. Pull the latest Compose file from GitHub and redeploy the stack.
+3. Confirm Portainer created the volume `team-tasks-postgres-v2`.
 
-This recreates PostgreSQL with the same password used by the app. Do not remove the volume after real user data has been created; change the database role password instead.
+This creates PostgreSQL with the same password used by the app. The former `todo_pgdata` or `team-tasks_pgdata` volume can be deleted after the new stack is healthy because it contains no production user data. Do not delete `team-tasks-postgres-v2` after real user data has been created.
 
 If Portainer shows only `team-tasks-postgres`, it is using an old/dev compose file. After pulling this update, the stack should show:
 

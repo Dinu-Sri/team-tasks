@@ -10,7 +10,7 @@ services:
       - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
       - APP_URL=${APP_URL}
       - AUTH_SECRET=${AUTH_SECRET}
-      - DATABASE_URL=postgresql://teamtasks:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD_is_required}@postgres:5432/teamtasks?schema=public
+      - DB_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD_is_required}
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_SECURE=${SMTP_SECURE}
@@ -32,7 +32,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD_is_required}
       POSTGRES_DB: teamtasks
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data_v2:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U teamtasks"]
       interval: 5s
@@ -42,7 +42,8 @@ services:
       - team-tasks-net
 
 volumes:
-  pgdata:
+  postgres_data_v2:
+    name: team-tasks-postgres-v2
 
 networks:
   team-tasks-net:

@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String
+  memberships  Membership[]
+  createdTasks Task[]       @relation("CreatedTasks")
+  assignments  TaskMember[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  memberships Membership[]
+  tasks       Task[]
+  invites     Invite[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  role      Role     @default(MEMBER)
+  userId    String
+  teamId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, teamId])
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  note        String?
+  status      TaskStatus   @default(OPEN)
+  priority    Priority     @default(NORMAL)
+  dueAt       DateTime?
+  completedAt DateTime?
+  creatorId   String
+  teamId      String
+  creator     User         @relation("CreatedTasks", fields: [creatorId], references: [id])
+  team        Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignees   TaskMember[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([teamId, status, dueAt])
+}
+
+model TaskMember {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+}
+
+model Invite {
+  id        String       @id @default(cuid())
+  email     String
+  status    InviteStatus @default(PENDING)
+  teamId    String
+  team      Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([teamId, status])
+}
+
+enum Role {
+  OWNER
+  MEMBER
+}
+
+enum TaskStatus {
+  OPEN
+  DONE
+}
+
+enum Priority {
+  NORMAL
+  HIGH
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}

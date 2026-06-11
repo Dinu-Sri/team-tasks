@@ -48,7 +48,7 @@ cd team-tasks
 
 ## Portainer stack
 
-Use `docker-compose.prod.yml`.
+Use `docker-compose.yml` for the Portainer Git stack. It is the default Compose file and includes both the app and Postgres.
 
 Set these environment variables in Portainer:
 
@@ -60,6 +60,11 @@ Set these environment variables in Portainer:
 | `CF_TUNNEL_TOKEN` | Cloudflare token | Only needed later when enabling the tunnel profile |
 
 The app publishes direct access on host port `3002`. From the current Portainer screenshots, `3002` appears free while `3000`, `3001`, `8080`, `8081`, `8082`, `8088`, `9443`, `25600`, and `3307` are already used.
+
+If Portainer shows only `team-tasks-postgres`, it is using an old/dev compose file. After pulling this update, the stack should show:
+
+- `team-tasks-app`
+- `team-tasks-postgres`
 
 For the first live test without a domain, open:
 
@@ -87,7 +92,7 @@ If you use Cloudflare Tunnel later:
 ```bash
 cd /opt/team-tasks
 git pull origin master
-docker compose -f docker-compose.prod.yml up -d --build app
+docker compose up -d --build
 ```
 
 Or in Portainer:
@@ -122,7 +127,7 @@ docker exec team-tasks-app npx prisma migrate deploy
 cd /opt/team-tasks
 git log --oneline -5
 git checkout <last-good-commit>
-docker compose -f docker-compose.prod.yml up -d --build app
+docker compose up -d --build
 ```
 
 ## Rules

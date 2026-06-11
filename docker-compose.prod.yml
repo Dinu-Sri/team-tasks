@@ -1,7 +1,7 @@
 services:
   app:
     build:
-      context: /opt/team-tasks
+      context: .
       dockerfile: Dockerfile
     container_name: team-tasks-app
     restart: unless-stopped

@@ -1,16 +1,44 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: team-tasks-app
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+      - APP_ACCESS_PASSWORD=${APP_ACCESS_PASSWORD}
+      - DATABASE_URL=postgresql://teamtasks:${POSTGRES_PASSWORD}@postgres:5432/teamtasks?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - team-tasks-net
+
   postgres:
     image: postgres:16-alpine
     container_name: team-tasks-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: teamtasks
-      POSTGRES_PASSWORD: teamtasks
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: teamtasks
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teamtasks"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - team-tasks-net
 
 volumes:
   pgdata:
+
+networks:
+  team-tasks-net:
+    driver: bridge

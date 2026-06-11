@@ -11,12 +11,14 @@ import {
   ChevronDown,
   Circle,
   Clock3,
+  Flame,
   Mail,
   Moon,
   Plus,
   Search,
   Sparkles,
   Sun,
+  Target,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -202,6 +204,10 @@ function monthKey(date: string) {
   return new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(new Date(date));
 }
 
+function dayKey(date: string) {
+  return new Intl.DateTimeFormat("en", { day: "2-digit", month: "short" }).format(new Date(date));
+}
+
 function plural(count: number, word: string) {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
@@ -252,6 +258,11 @@ export function TaskWorkspace() {
   const todayCount = activeTasks.filter((task) => task.due === "today").length;
   const ownerAssignedCount = tasks.filter((task) => !task.completedAt && task.creatorId === "owner").length;
   const completionRate = Math.round((completedTasks.length / Math.max(tasks.length, 1)) * 100);
+  const completionDays = new Set(completedTasks.map((task) => (task.completedAt ? dayKey(task.completedAt) : ""))).size;
+  const doneThisMonth = completedTasks.filter(
+    (task) => task.completedAt && monthKey(task.completedAt) === monthKey(new Date().toISOString()),
+  ).length;
+  const nextBestTask = activeTasks[0];
 
   const archiveMonths = completedTasks.reduce<Record<string, Task[]>>((groups, task) => {
     if (!task.completedAt) return groups;
@@ -619,6 +630,33 @@ export function TaskWorkspace() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-surface/90 p-4 shadow-soft">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="font-semibold">Momentum</h2>
+                <p className="text-sm text-muted-foreground">Tiny wins that make the team return tomorrow</p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/12 text-success">
+                <Flame className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Metric label="This month" value={doneThisMonth} tone="text-success" />
+              <Metric label="Proof days" value={completionDays} />
+            </div>
+
+            <div className="mt-4 rounded-lg bg-surface-subtle/80 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Target className="h-4 w-4 text-brand" />
+                Next best action
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {nextBestTask ? nextBestTask.title : "Add one useful task and keep today moving."}
+              </p>
             </div>
           </div>
 

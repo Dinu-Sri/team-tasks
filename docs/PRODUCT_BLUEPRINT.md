@@ -31,3 +31,11 @@
 
 5. International SaaS layer
    Add billing, organizations, localization, role permissions, audit logs, and export tools.
+
+## Simplicity rule
+
+Every daily task must be possible without understanding project-management language. The default screen should answer only three questions:
+
+- What should I do?
+- Who is responsible?
+- What is already done?

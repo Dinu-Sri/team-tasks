@@ -54,23 +54,33 @@ Set these environment variables in Portainer:
 
 | Variable | Example | Notes |
 | --- | --- | --- |
-| `NEXT_PUBLIC_BASE_URL` | `https://tasks.example.com` | Public URL |
+| `NEXT_PUBLIC_BASE_URL` | `http://YOUR_SERVER_IP:3002` | Use this while there is no domain |
 | `APP_ACCESS_PASSWORD` | `strong-random-password` | Optional early-access password |
 | `POSTGRES_PASSWORD` | `strong-random-db-password` | PostgreSQL password |
-| `CF_TUNNEL_TOKEN` | Cloudflare token | Required only if using the included tunnel service |
+| `CF_TUNNEL_TOKEN` | Cloudflare token | Only needed later when enabling the tunnel profile |
 
-The app publishes direct debug access on host port `3002`.
+The app publishes direct access on host port `3002`. From the current Portainer screenshots, `3002` appears free while `3000`, `3001`, `8080`, `8081`, `8082`, `8088`, `9443`, `25600`, and `3307` are already used.
+
+For the first live test without a domain, open:
+
+```text
+http://YOUR_SERVER_IP:3002
+```
+
+`APP_ACCESS_PASSWORD` uses browser Basic Auth. This is fine for quick private testing, but use HTTPS before sharing a real password widely.
 
 ## Cloudflare Tunnel
 
-If you use Cloudflare Tunnel:
+The Cloudflare tunnel service is disabled by default through the Compose `tunnel` profile. Leave it disabled while using direct IP access.
+
+If you use Cloudflare Tunnel later:
 
 1. Open Cloudflare Zero Trust.
 2. Create a tunnel and copy the token.
 3. Add a public hostname for your domain.
 4. Point the service URL to `http://app:3000`.
 5. Put the tunnel token in Portainer as `CF_TUNNEL_TOKEN`.
-6. Redeploy the stack.
+6. Enable the `tunnel` profile and redeploy the stack.
 
 ## Updating to a new version
 

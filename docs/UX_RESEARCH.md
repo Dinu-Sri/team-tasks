@@ -27,6 +27,9 @@ The product is for small businesses where the owner or team leader assigns work 
 7. Keep tap targets comfortable.
    Primary controls use rounded 40-48px heights so they work on phones, tablets, and counter-top laptops.
 
+8. Use ethical retention loops.
+   The product should become sticky because people feel daily relief, not because they are trapped. Retention comes from instant completion feedback, visible team progress, automatic archive proof, repeated quick-add defaults, and owner peace of mind.
+
 ## Product decisions
 
 - No kanban columns in the core workflow.
@@ -43,6 +46,16 @@ The product is for small businesses where the owner or team leader assigns work 
 
 - Invite by email stays visible.
   Small teams grow by adding real people. The invite action belongs in the header and daily memory panel.
+
+## Retention tactics
+
+- Daily win: show how many tasks are due today and how many are already done.
+- Relief loop: one tap moves work out of the stressful active list and into a calm archive.
+- Social clarity: the owner sees progress by person, so people know their work is visible without needing meetings.
+- Memory replacement: the app becomes the shared notebook for "what did I ask you to do?"
+- Low-friction repetition: the add box remembers the last team, people, date, and priority.
+- Gentle urgency: "due today" badges create attention without alarm-heavy visuals.
+- Proof of work: month boxes make completed work feel durable and reviewable.
 
 ## Sources used
 

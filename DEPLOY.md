@@ -61,8 +61,29 @@ Set these environment variables in Portainer:
 | Variable | Example | Notes |
 | --- | --- | --- |
 | `NEXT_PUBLIC_BASE_URL` | `http://YOUR_SERVER_IP:3002` | Use this while there is no domain |
+| `APP_URL` | `http://YOUR_SERVER_IP:3002` | Used for invitation links and session security |
+| `AUTH_SECRET` | long random value | Signs login session cookies |
 | `POSTGRES_PASSWORD` | `strong-random-db-password` | PostgreSQL password |
 | `CF_TUNNEL_TOKEN` | Cloudflare token | Only needed later when enabling the tunnel profile |
+
+Generate `AUTH_SECRET` with:
+
+```bash
+openssl rand -base64 48
+```
+
+Optional email invitation variables:
+
+| Variable | Example |
+| --- | --- |
+| `SMTP_HOST` | `smtp.example.com` |
+| `SMTP_PORT` | `587` |
+| `SMTP_SECURE` | `false` |
+| `SMTP_USER` | SMTP username |
+| `SMTP_PASS` | SMTP password |
+| `SMTP_FROM` | `tasks@example.com` |
+
+When SMTP is not configured, registered users still receive invitations inside the dashboard. External invitations are stored and provide a shareable acceptance link.
 
 The app publishes direct access on host port `3002`. From the current Portainer screenshots, `3002` appears free while `3000`, `3001`, `8080`, `8081`, `8082`, `8088`, `9443`, `25600`, and `3307` are already used.
 
@@ -115,24 +136,9 @@ Or in Portainer:
 3. Enable pull/redeploy if using a remote image, or rebuild if using local build context.
 4. Confirm the app is live.
 
-## Future database migration flow
+## Database migrations
 
-The current UI uses browser localStorage for UX validation. The Prisma schema is included for the next backend phase.
-
-When server-side persistence is added:
-
-```bash
-npx prisma migrate dev --name initial
-git add prisma
-git commit -m "Add database migrations"
-git push origin master
-```
-
-Then on the VPS after redeploy:
-
-```bash
-docker exec team-tasks-app npx prisma migrate deploy
-```
+The app container automatically runs `prisma migrate deploy` before starting Next.js. Migrations are committed under `prisma/migrations` and applied during each safe restart.
 
 ## Rollback
 

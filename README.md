@@ -1,6 +1,6 @@
 # Team Tasks
 
-A calm one-screen task app for small teams where one owner assigns daily work and every person sees a simple personal list.
+A calm multi-user task app for small teams where every person sees a simple personal list and owners manage teams from a separate dashboard.
 
 ## What is built now
 
@@ -8,15 +8,20 @@ A calm one-screen task app for small teams where one owner assigns daily work an
 - Tailwind CSS token system using `--background`, `--foreground`, `--surface`, `--surface-subtle`, `--brand`, `--brand-foreground`, `--muted`, `--muted-foreground`, and `--border`
 - shadcn-style local UI components
 - Geist Sans and Geist Mono through `next/font`
-- One-screen task workflow with teams, people chips, fast add, task completion, progress dashboard, dark mode, and monthly archive
+- Minimal personal task homepage
+- Email/password signup and login with signed HTTP-only sessions
+- Team creation, multi-person task assignment, invitations, and in-app notifications
+- Optional SMTP invitation email delivery
+- PostgreSQL persistence through Prisma
 - Docker and Portainer deployment files
 
-The current app is UX-first and stores demo task changes in browser localStorage. `prisma/schema.prisma` documents the production data model for the next backend phase.
+The application stores accounts, teams, invitations, memberships and tasks in PostgreSQL.
 
 ## Local development
 
 ```bash
 npm install
+npx prisma migrate dev
 npm run dev
 ```
 

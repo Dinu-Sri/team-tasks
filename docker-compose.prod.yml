@@ -8,7 +8,15 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+      - APP_URL=${APP_URL}
+      - AUTH_SECRET=${AUTH_SECRET}
       - DATABASE_URL=postgresql://teamtasks:${POSTGRES_PASSWORD}@postgres:5432/teamtasks?schema=public
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
     depends_on:
       postgres:
         condition: service_healthy

@@ -63,7 +63,7 @@ Set these environment variables in Portainer:
 | `NEXT_PUBLIC_BASE_URL` | `http://YOUR_SERVER_IP:3002` | Use this while there is no domain |
 | `APP_URL` | `http://YOUR_SERVER_IP:3002` | Used for invitation links and session security |
 | `AUTH_SECRET` | long random value | Signs login session cookies |
-| `POSTGRES_PASSWORD` | `strong-random-db-password` | PostgreSQL password |
+| `POSTGRES_PASSWORD` | `long-url-safe-password` | Use letters, numbers, hyphens, or underscores |
 | `CF_TUNNEL_TOKEN` | Cloudflare token | Only needed later when enabling the tunnel profile |
 
 Generate `AUTH_SECRET` with:
@@ -86,6 +86,19 @@ Optional email invitation variables:
 When SMTP is not configured, registered users still receive invitations inside the dashboard. External invitations are stored and provide a shareable acceptance link.
 
 The app publishes direct access on host port `3002`. From the current Portainer screenshots, `3002` appears free while `3000`, `3001`, `8080`, `8081`, `8082`, `8088`, `9443`, `25600`, and `3307` are already used.
+
+### Fixing Prisma P1000 after changing the password
+
+PostgreSQL only uses `POSTGRES_PASSWORD` when it creates a new database volume. Changing the value later in Portainer does not change the password already stored inside an existing volume.
+
+For a fresh installation with no data to preserve:
+
+1. Stop and remove the `team-tasks` stack.
+2. In Portainer, open **Volumes** and remove the volume ending in `team-tasks_pgdata` or `todo_pgdata`.
+3. Set one new `POSTGRES_PASSWORD` value in the stack environment variables. Use only letters, numbers, hyphens, and underscores.
+4. Deploy the stack again.
+
+This recreates PostgreSQL with the same password used by the app. Do not remove the volume after real user data has been created; change the database role password instead.
 
 If Portainer shows only `team-tasks-postgres`, it is using an old/dev compose file. After pulling this update, the stack should show:
 

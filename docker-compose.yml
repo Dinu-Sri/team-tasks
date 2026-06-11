@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/dinu-sri/team-tasks:latest
+    image: ghcr.io/dinu-sri/team-tasks-app:latest
     container_name: team-tasks-app
     restart: unless-stopped
     ports:

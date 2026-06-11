@@ -53,7 +53,7 @@ Use `docker-compose.yml` for the Portainer Git stack. It is the default Compose 
 The app image is built in GitHub Actions and published to GitHub Container Registry:
 
 ```text
-ghcr.io/dinu-sri/team-tasks:latest
+ghcr.io/dinu-sri/team-tasks-app:latest
 ```
 
 Set these environment variables in Portainer:

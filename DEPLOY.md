@@ -62,7 +62,7 @@ Set these environment variables in Portainer:
 | --- | --- | --- |
 | `NEXT_PUBLIC_BASE_URL` | `http://YOUR_SERVER_IP:3002` | Use this while there is no domain |
 | `APP_URL` | `http://YOUR_SERVER_IP:3002` | Used for invitation links and session security |
-| `AUTH_SECRET` | long random value | Signs login session cookies |
+| `AUTH_SECRET` | long random value | Signs login cookies; recommended, but a stable value is generated when blank |
 | `POSTGRES_PASSWORD` | `long-random-password` | Used by both PostgreSQL and the app |
 | `CF_TUNNEL_TOKEN` | Cloudflare token | Only needed later when enabling the tunnel profile |
 
@@ -71,6 +71,8 @@ Generate `AUTH_SECRET` with:
 ```bash
 openssl rand -base64 48
 ```
+
+Do not set `AUTH_SECRET` to a short value. If it is left blank, the container derives a stable private value from `POSTGRES_PASSWORD` so account creation cannot crash with a zero-length signing key.
 
 Optional email invitation variables:
 

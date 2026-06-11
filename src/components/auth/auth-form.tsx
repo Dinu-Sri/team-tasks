@@ -33,6 +33,16 @@ export function AuthForm({
         minLength={8}
         required
       />
+      {signup ? (
+        <Input
+          name="confirmPassword"
+          type="password"
+          placeholder="Confirm password"
+          autoComplete="new-password"
+          minLength={8}
+          required
+        />
+      ) : null}
       {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
       <Button className="w-full" size="lg" disabled={pending}>
         {pending ? "Please wait" : signup ? "Create account" : "Log in"}

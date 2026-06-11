@@ -12,10 +12,12 @@ export async function signupAction(_: AuthState, formData: FormData): Promise<Au
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
   if (name.length < 2) return { error: "Enter your name." };
   if (!email.includes("@")) return { error: "Enter a valid email address." };
   if (password.length < 8) return { error: "Use at least 8 characters for your password." };
+  if (password !== confirmPassword) return { error: "Passwords do not match." };
 
   const existing = await db.user.findUnique({ where: { email } });
   if (existing) return { error: "An account already exists for this email." };

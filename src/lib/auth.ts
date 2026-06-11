@@ -5,7 +5,14 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 
 const COOKIE_NAME = "team_tasks_session";
-const secret = new TextEncoder().encode(process.env.AUTH_SECRET ?? "development-secret-change-me");
+
+function sessionSecret() {
+  const value = process.env.AUTH_SECRET?.trim();
+  if (!value) {
+    throw new Error("AUTH_SECRET is required. Set it in Portainer and redeploy the stack.");
+  }
+  return new TextEncoder().encode(value);
+}
 
 type SessionPayload = {
   userId: string;
@@ -16,7 +23,7 @@ export async function createSession(userId: string) {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
-    .sign(secret);
+    .sign(sessionSecret());
 
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
@@ -39,7 +46,7 @@ export async function getSessionUser() {
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, sessionSecret());
     if (typeof payload.userId !== "string") return null;
     return db.user.findUnique({ where: { id: payload.userId } });
   } catch {

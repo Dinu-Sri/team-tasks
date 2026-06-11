@@ -28,7 +28,7 @@ git remote add origin https://github.com/YOUR_USERNAME/team-tasks.git
 git push -u origin master
 ```
 
-If you want password protection for the deployed app, set `APP_ACCESS_PASSWORD` in Portainer. The browser will show a native username/password prompt. The username can be anything; the password must match `APP_ACCESS_PASSWORD`.
+
 
 ## VPS directory
 
@@ -61,7 +61,6 @@ Set these environment variables in Portainer:
 | Variable | Example | Notes |
 | --- | --- | --- |
 | `NEXT_PUBLIC_BASE_URL` | `http://YOUR_SERVER_IP:3002` | Use this while there is no domain |
-| `APP_ACCESS_PASSWORD` | `strong-random-password` | Optional early-access password |
 | `POSTGRES_PASSWORD` | `strong-random-db-password` | PostgreSQL password |
 | `CF_TUNNEL_TOKEN` | Cloudflare token | Only needed later when enabling the tunnel profile |
 
@@ -86,7 +85,6 @@ For the first live test without a domain, open:
 http://YOUR_SERVER_IP:3002
 ```
 
-`APP_ACCESS_PASSWORD` uses browser Basic Auth. This is fine for quick private testing, but use HTTPS before sharing a real password widely.
 
 ## Cloudflare Tunnel
 

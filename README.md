@@ -9,8 +9,7 @@ A calm one-screen task app for small teams where one owner assigns daily work an
 - shadcn-style local UI components
 - Geist Sans and Geist Mono through `next/font`
 - One-screen task workflow with teams, people chips, fast add, task completion, progress dashboard, dark mode, and monthly archive
-- Optional deployment password gate through `APP_ACCESS_PASSWORD`
-- Docker and Portainer deployment files based on the wcwiki workflow
+- Docker and Portainer deployment files
 
 The current app is UX-first and stores demo task changes in browser localStorage. `prisma/schema.prisma` documents the production data model for the next backend phase.
 

@@ -33,9 +33,9 @@ export function PersonalTasks({ tasks, teams }: { tasks: TaskItem[]; teams: Team
   const [showAdd, setShowAdd] = useState(false);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6">
-      <div className="mb-3 flex items-center justify-between">
-        <h1 className="text-base font-semibold">My tasks</h1>
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-lg font-semibold">My tasks</h1>
         <Button size="sm" onClick={() => setShowAdd((value) => !value)}>
           {showAdd ? <X /> : <Plus />}
           {showAdd ? "Close" : "Add"}
@@ -64,17 +64,17 @@ export function PersonalTasks({ tasks, teams }: { tasks: TaskItem[]; teams: Team
             {tasks.map((task) => {
               const due = dueLabel(task.dueAt);
               return (
-                <div key={task.id} className="flex items-center gap-3 px-4 py-3.5">
+                <div key={task.id} className="flex min-h-24 items-center gap-4 px-5 py-5 sm:px-6">
                   <form action={toggleTaskAction.bind(null, task.id)}>
-                    <button className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground hover:border-brand hover:text-brand" aria-label={`Complete ${task.title}`}>
-                      <Circle className="h-4 w-4" />
+                    <button className="flex h-10 w-10 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-brand hover:text-brand" aria-label={`Complete ${task.title}`}>
+                      <Circle className="h-5 w-5" />
                     </button>
                   </form>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{task.title}</p>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                    <p className="text-base font-semibold leading-6 sm:text-lg">{task.title}</p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                       <span>{task.team.name}</span>
-                      {due ? <><span>-</span><span className={due === "Today" ? "text-warning" : ""}><CalendarDays className="mr-1 inline h-3 w-3" />{due}</span></> : null}
+                      {due ? <><span>-</span><span className={due === "Today" ? "text-warning" : ""}><CalendarDays className="mr-1 inline h-4 w-4" />{due}</span></> : null}
                     </div>
                   </div>
                   {task.priority === "HIGH" ? <Badge variant="danger">Important</Badge> : null}

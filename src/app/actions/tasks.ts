@@ -40,6 +40,7 @@ export async function createPersonalTaskAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/dashboard");
+  revalidatePath("/analytics");
 }
 
 export async function createTeamTaskAction(formData: FormData) {
@@ -53,6 +54,7 @@ export async function createTeamTaskAction(formData: FormData) {
 
   const owner = await db.membership.findUnique({
     where: { userId_teamId: { userId: user.id, teamId } },
+    include: { team: { select: { name: true } } },
   });
   if (!owner || owner.role !== "OWNER") return;
 
@@ -73,8 +75,21 @@ export async function createTeamTaskAction(formData: FormData) {
     },
   });
 
+  const notifiedMembers = validMembers.filter(({ userId }) => userId !== user.id);
+  if (notifiedMembers.length) {
+    await db.notification.createMany({
+      data: notifiedMembers.map(({ userId }) => ({
+        recipientId: userId,
+        teamId,
+        title: "New task assigned",
+        message: `${user.name} assigned you "${title}" in ${owner.team.name}.`,
+      })),
+    });
+  }
+
   revalidatePath("/");
   revalidatePath("/dashboard");
+  revalidatePath("/analytics");
 }
 
 export async function toggleTaskAction(taskId: string) {
@@ -91,6 +106,18 @@ export async function toggleTaskAction(taskId: string) {
     data: { status: done ? "OPEN" : "DONE", completedAt: done ? null : new Date() },
   });
 
+  if (!done && assignment.task.creatorId !== user.id) {
+    await db.notification.create({
+      data: {
+        recipientId: assignment.task.creatorId,
+        teamId: assignment.task.teamId,
+        title: "Task completed",
+        message: `${user.name} completed "${assignment.task.title}".`,
+      },
+    });
+  }
+
   revalidatePath("/");
   revalidatePath("/dashboard");
+  revalidatePath("/analytics");
 }

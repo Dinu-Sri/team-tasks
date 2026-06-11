@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getHeaderData } from "@/lib/header-data";
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [memberships, invitations, notificationCount] = await Promise.all([
+  const [memberships, invitations, headerData] = await Promise.all([
     db.membership.findMany({
       where: { userId: user.id },
       include: {
@@ -32,13 +33,13 @@ export default async function DashboardPage() {
       include: { team: true, invitedBy: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
     }),
-    db.notification.count({ where: { recipientId: user.id, readAt: null } }),
+    getHeaderData(user.id),
   ]);
 
   return (
     <main className="min-h-screen bg-background">
-      <AppHeader user={user} notificationCount={notificationCount} />
-      <div className="mx-auto max-w-4xl space-y-5 px-4 py-5 sm:px-6">
+      <AppHeader user={user} {...headerData} />
+      <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:px-6">
         {invitations.length ? (
           <section className="space-y-2">
             {invitations.map((invite) => (

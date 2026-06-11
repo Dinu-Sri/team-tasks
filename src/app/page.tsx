@@ -7,25 +7,26 @@ import { ThemeButton } from "@/components/theme-button";
 import { buttonVariants } from "@/components/ui/button";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getHeaderData } from "@/lib/header-data";
 import { cn } from "@/lib/utils";
 
 export default async function Home() {
   const user = await getSessionUser();
   if (!user) return <PublicHome />;
 
-  const [tasks, memberships, notificationCount] = await Promise.all([
+  const [tasks, memberships, headerData] = await Promise.all([
     db.task.findMany({
       where: { status: "OPEN", assignees: { some: { userId: user.id } } },
       include: { team: { select: { name: true } } },
       orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
     }),
     db.membership.findMany({ where: { userId: user.id }, include: { team: true }, orderBy: { createdAt: "asc" } }),
-    db.notification.count({ where: { recipientId: user.id, readAt: null } }),
+    getHeaderData(user.id),
   ]);
 
   return (
     <main className="min-h-screen bg-background">
-      <AppHeader user={user} notificationCount={notificationCount} />
+      <AppHeader user={user} {...headerData} />
       <PersonalTasks
         tasks={tasks.map((task) => ({
           id: task.id,

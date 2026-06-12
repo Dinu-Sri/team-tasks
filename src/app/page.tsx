@@ -26,11 +26,19 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     },
     attachments: { include: { uploader: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" as const } },
   };
-  const [tasks, memberships, headerData, focusedTask] = await Promise.all([
+  const [tasks, discussionUpdates, memberships, headerData, focusedTask] = await Promise.all([
     db.task.findMany({
       where: { status: "OPEN", assignees: { some: { userId: user.id } } },
       include: taskInclude,
       orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+    }),
+    db.task.findMany({
+      where: {
+        comments: { some: { receipts: { some: { userId: user.id, readAt: null } } } },
+        NOT: { status: "OPEN", assignees: { some: { userId: user.id } } },
+      },
+      include: taskInclude,
+      orderBy: { createdAt: "desc" },
     }),
     db.membership.findMany({ where: { userId: user.id }, include: { team: true }, orderBy: { createdAt: "asc" } }),
     getHeaderData(user.id),
@@ -43,6 +51,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const serializeTask = (task: (typeof tasks)[number]) => ({
     id: task.id,
     title: task.title,
+    status: task.status,
     priority: task.priority,
     note: task.note,
     dueAt: task.dueAt?.toISOString() ?? null,
@@ -70,6 +79,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       <AppHeader user={user} {...headerData} />
       <PersonalTasks
         tasks={tasks.map(serializeTask)}
+        discussionUpdates={discussionUpdates.map(serializeTask)}
         teams={memberships.map(({ team }) => ({ id: team.id, name: team.name }))}
         currentUserId={user.id}
         initialTaskId={query.task}

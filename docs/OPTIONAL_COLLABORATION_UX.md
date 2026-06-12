@@ -53,10 +53,22 @@ OWASP recommends allowlisting types, validating size and authorization, generati
 
 1. A small discussion indicator appears only for teams with comments enabled.
 2. Open the task panel and write a comment.
-3. Type `@` and choose a teammate.
-4. Posting creates quiet unread comment receipts without adding anything to another person's to-do list.
-5. A direct mention adds a slow attention ring to the existing task until the mentioned person opens the discussion.
-6. Opening the discussion records a read receipt and gives the author a compact seen indicator.
+3. A tag is optional. An ordinary reply quietly follows the task creator, current assignees, and people who already joined the discussion.
+4. Type `@` to add a teammate outside that audience, or use `@all` when the whole team genuinely needs the update.
+5. Posting creates unread discussion receipts without adding artificial tasks to task counts, archives, or Momentum.
+6. Assigned recipients see the unread count on their existing task. Non-assigned recipients get a temporary `Discussion updates` row on Home.
+7. A direct mention adds a slow attention ring until the mentioned person opens the discussion.
+8. Opening the discussion records a read receipt, removes the temporary update, and gives the author a compact seen indicator.
+
+### Comment delivery rules
+
+| Comment type | Recipients | Home treatment |
+| --- | --- | --- |
+| No tag | Task creator, current assignees, and earlier commenters | Unread count on an assigned task, otherwise a temporary discussion update |
+| `@person` | Default recipients plus the named team member | Attention ring for the named person until read |
+| `@all` | Every other current team member | Attention ring for every recipient until read |
+
+Comments never require a mention. Requiring one would add friction to ordinary task-owner and assignee conversations, while notifying the whole team by default would create noise. The participant audience is the quiet default; mentions deliberately widen or strengthen delivery.
 
 ### Attach supporting work
 
@@ -79,7 +91,7 @@ OWASP recommends allowlisting types, validating size and authorization, generati
 - No empty collaboration toolbar when both features are off.
 - One task panel contains both optional features; there are no nested cards or separate modal chains.
 - Counts communicate activity without adding explanatory text.
-- Ordinary comments use the discussion count as their notification surface; direct mentions add emphasis without using the global bell.
+- Ordinary comments reach task participants without using the global bell. Non-assignees see a temporary discussion update rather than a synthetic reply task.
 - Destructive membership actions require explicit confirmation.
 - Feature switches use plain language and show their team scope next to the control.
 

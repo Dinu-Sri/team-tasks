@@ -19,6 +19,8 @@ export async function addTaskCommentAction(_: CommentState, formData: FormData):
   const task = await db.task.findUnique({
     where: { id: taskId },
     include: {
+      assignees: { select: { userId: true } },
+      comments: { select: { authorId: true } },
       team: {
         include: {
           featureSettings: true,
@@ -32,15 +34,30 @@ export async function addTaskCommentAction(_: CommentState, formData: FormData):
   if (!currentMembership) return { error: "You no longer belong to this team." };
   if (!task.team.featureSettings?.commentsEnabled) return { error: "Comments are not enabled for this team." };
 
-  const recipients = task.team.memberships.filter(({ userId }) => userId !== user.id);
-  const recipientIds = new Set(recipients.map(({ userId }) => userId));
+  const otherMembers = task.team.memberships.filter(({ userId }) => userId !== user.id);
   const mentionAll = /(^|\s)@all\b/i.test(body);
   const directlyMentioned = new Set(
     requestedMentions.filter((id) => {
-      const member = recipients.find(({ userId }) => userId === id);
+      const member = otherMembers.find(({ userId }) => userId === id);
       return member && body.includes(`@${member.user.name}`);
     }),
   );
+
+  // Ordinary replies follow the people already responsible for or participating in the work.
+  const participantIds = new Set([
+    task.creatorId,
+    ...task.assignees.map(({ userId }) => userId),
+    ...task.comments.map(({ authorId }) => authorId),
+  ]);
+  participantIds.delete(user.id);
+  const currentMemberIds = new Set(otherMembers.map(({ userId }) => userId));
+  for (const participantId of participantIds) {
+    if (!currentMemberIds.has(participantId)) participantIds.delete(participantId);
+  }
+
+  const recipientIds = mentionAll
+    ? new Set(otherMembers.map(({ userId }) => userId))
+    : new Set([...participantIds, ...directlyMentioned]);
 
   const comment = await db.taskComment.create({
     data: {

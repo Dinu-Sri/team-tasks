@@ -1,6 +1,6 @@
 "use client";
 
-import { FileUp, MessageCircleMore } from "lucide-react";
+import { FileUp, MessageCircleMore, UsersRound } from "lucide-react";
 import { useActionState, useState } from "react";
 
 import { updateTeamFeaturesAction } from "@/app/actions/features";
@@ -10,11 +10,13 @@ export function FeatureSettingsForm({
   teamId,
   commentsEnabled: initialComments,
   attachmentsEnabled: initialAttachments,
+  memberTaskViewEnabled: initialMemberTaskView,
   attachmentLimitMb: initialLimit,
 }: {
   teamId: string;
   commentsEnabled: boolean;
   attachmentsEnabled: boolean;
+  memberTaskViewEnabled: boolean;
   attachmentLimitMb: number;
 }) {
   const [state, action, pending] = useActionState(updateTeamFeaturesAction, {});
@@ -29,10 +31,10 @@ export function FeatureSettingsForm({
         <MessageCircleMore className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">Comments and mentions</span>
-          <span className="mt-1 block text-sm leading-5 text-muted-foreground">Discuss a task and create a reply task by mentioning a teammate.</span>
+          <span className="mt-1 block text-sm leading-5 text-muted-foreground">Discuss a task, notify its participants, and request attention with mentions.</span>
         </span>
       </label>
-      <label className="flex cursor-pointer items-start gap-3">
+      <label className="flex cursor-pointer items-start gap-3 border-b border-border pb-4">
         <input name="attachmentsEnabled" type="checkbox" checked={attachmentsEnabled} onChange={(event) => setAttachmentsEnabled(event.target.checked)} className="mt-1 h-4 w-4 accent-[hsl(var(--brand))]" />
         <FileUp className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
         <span className="min-w-0 flex-1">
@@ -50,6 +52,14 @@ export function FeatureSettingsForm({
           <div className="mt-1 flex justify-between text-xs text-muted-foreground"><span>5 MB</span><span>25 MB</span></div>
         </div>
       ) : <input type="hidden" name="attachmentLimitMb" value={limit} />}
+      <label className="flex cursor-pointer items-start gap-3">
+        <input name="memberTaskViewEnabled" type="checkbox" defaultChecked={initialMemberTaskView} className="mt-1 h-4 w-4 accent-[hsl(var(--brand))]" />
+        <UsersRound className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Member task view</span>
+          <span className="mt-1 block text-sm leading-5 text-muted-foreground">Let owners assign from Home and privately review each member's current task list.</span>
+        </span>
+      </label>
       <div className="flex items-center justify-between gap-3">
         <span className={`text-xs ${state.error ? "text-danger" : "text-success"}`}>{state.error ?? state.success}</span>
         <Button type="submit" size="sm" disabled={pending}>{pending ? "Saving..." : "Save"}</Button>

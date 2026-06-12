@@ -85,9 +85,21 @@ Comments never require a mention. Requiring one would add friction to ordinary t
 - Open assignments for the departing member are removed.
 - Both actions generate notifications and realtime updates.
 
+### Review member workloads
+
+1. The owner enables `Member task view` for one team.
+2. Home's compact Add form gains an assignee picker only when that enabled team is selected.
+3. A member-view icon appears in the owner's header only when an enabled team has another member.
+4. Selecting it replaces the owner's list with a read-only member task viewer. Completion controls, discussion actions, and file actions are deliberately absent.
+5. Arrow buttons move between team members on desktop; horizontal swipes use the same navigation on touch screens.
+6. Selecting the header control again returns to `My tasks` and removes the carousel controls.
+
+This feature is team-scoped and off by default. It gives owners quick workload awareness without turning the personal Home screen into a permanent dashboard or letting an owner perform work as another person.
+
 ## Simplicity safeguards
 
 - No comments or files on the task creation form.
+- The Home assignee picker appears only to owners and only for teams with Member task view enabled.
 - No empty collaboration toolbar when both features are off.
 - One task panel contains both optional features; there are no nested cards or separate modal chains.
 - Counts communicate activity without adding explanatory text.

@@ -19,27 +19,46 @@ export async function createPersonalTaskAction(formData: FormData) {
   const user = await requireUser();
   const title = String(formData.get("title") ?? "").trim();
   const teamId = String(formData.get("teamId") ?? "");
+  const requestedAssigneeId = String(formData.get("assigneeId") ?? user.id);
   const due = String(formData.get("due") ?? "today");
   const priority = formData.get("priority") === "HIGH" ? "HIGH" : "NORMAL";
   if (!title || !teamId) return;
 
-  const [membership, profile] = await Promise.all([
-    db.membership.findUnique({ where: { userId_teamId: { userId: user.id, teamId } } }),
+  const [membership, profile, assignee] = await Promise.all([
+    db.membership.findUnique({
+      where: { userId_teamId: { userId: user.id, teamId } },
+      include: { team: { select: { name: true, timeZone: true, featureSettings: true } } },
+    }),
     db.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } }),
+    db.membership.findUnique({ where: { userId_teamId: { userId: requestedAssigneeId, teamId } }, select: { userId: true } }),
   ]);
-  if (!membership) return;
+  if (!membership || !assignee) return;
+  const assigningAnotherPerson = requestedAssigneeId !== user.id;
+  if (assigningAnotherPerson && (membership.role !== "OWNER" || !membership.team.featureSettings?.memberTaskViewEnabled)) return;
 
   await db.task.create({
     data: {
       title,
       teamId,
       creatorId: user.id,
-      dueAt: dueDateForSelection(due, profile?.timeZone ?? "UTC"),
+      dueAt: dueDateForSelection(due, assigningAnotherPerson ? membership.team.timeZone : profile?.timeZone ?? "UTC"),
       priority,
-      assignees: { create: { userId: user.id } },
+      assignees: { create: { userId: requestedAssigneeId } },
     },
   });
-  await publishRealtimeEvent([user.id], "task.created");
+  if (assigningAnotherPerson) {
+    await db.notification.create({
+      data: {
+        recipientId: requestedAssigneeId,
+        teamId,
+        kind: "TASK",
+        href: "/",
+        title: "New task assigned",
+        message: `${user.name} assigned you "${title}" in ${membership.team.name}.`,
+      },
+    });
+  }
+  await publishRealtimeEvent([user.id, requestedAssigneeId], "task.created");
 
   revalidatePath("/");
   revalidatePath("/dashboard");

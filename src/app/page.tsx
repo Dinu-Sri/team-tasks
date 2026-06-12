@@ -17,6 +17,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
 
   const taskInclude = {
     team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },
+    assignees: { select: { userId: true } },
     comments: {
       include: {
         author: { select: { id: true, name: true } },
@@ -40,13 +41,40 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       include: taskInclude,
       orderBy: { createdAt: "desc" },
     }),
-    db.membership.findMany({ where: { userId: user.id }, include: { team: true }, orderBy: { createdAt: "asc" } }),
+    db.membership.findMany({
+      where: { userId: user.id },
+      include: {
+        team: {
+          include: {
+            featureSettings: true,
+            memberships: { include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" as const } },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
     getHeaderData(user.id),
     query.task ? db.task.findFirst({
       where: { id: query.task, team: { memberships: { some: { userId: user.id } } } },
       include: taskInclude,
     }) : null,
   ]);
+
+  const viewerTeams = memberships.filter(({ role, team }) => role === "OWNER" && team.featureSettings?.memberTaskViewEnabled);
+  const viewerTeamIds = viewerTeams.map(({ teamId }) => teamId);
+  const memberTasks = viewerTeamIds.length ? await db.task.findMany({
+    where: { status: "OPEN", teamId: { in: viewerTeamIds } },
+    select: {
+      id: true,
+      title: true,
+      priority: true,
+      dueAt: true,
+      teamId: true,
+      team: { select: { name: true } },
+      assignees: { select: { userId: true } },
+    },
+    orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+  }) : [];
 
   const serializeTask = (task: (typeof tasks)[number]) => ({
     id: task.id,
@@ -74,13 +102,37 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     hasMentionAttention: task.comments.some((comment) => comment.receipts.some((receipt) => receipt.userId === user.id && !receipt.readAt && receipt.requiresAttention)),
   });
 
+  const memberTaskGroups = viewerTeams.flatMap(({ team }) => team.memberships
+    .filter(({ userId }) => userId !== user.id)
+    .map(({ user: member }) => ({
+      id: `${team.id}:${member.id}`,
+      memberName: member.name,
+      teamName: team.name,
+      tasks: memberTasks.filter((task) => task.teamId === team.id && task.assignees.some(({ userId }) => userId === member.id)).map((task) => ({
+        id: task.id,
+        title: task.title,
+        priority: task.priority,
+        dueAt: task.dueAt?.toISOString() ?? null,
+        teamName: task.team.name,
+      })),
+    })));
+
   return (
     <main className="min-h-screen bg-background">
-      <AppHeader user={user} {...headerData} />
+      <AppHeader user={user} {...headerData} memberTaskViewEnabled={memberTaskGroups.length > 0} />
       <PersonalTasks
         tasks={tasks.map(serializeTask)}
         discussionUpdates={discussionUpdates.map(serializeTask)}
-        teams={memberships.map(({ team }) => ({ id: team.id, name: team.name }))}
+        memberTaskGroups={memberTaskGroups}
+        teams={memberships.map(({ team, role }) => {
+          const canAssignMembers = role === "OWNER" && (team.featureSettings?.memberTaskViewEnabled ?? false);
+          return {
+            id: team.id,
+            name: team.name,
+            canAssignMembers,
+            members: canAssignMembers ? team.memberships.map(({ user: member }) => ({ id: member.id, name: member.name })) : [{ id: user.id, name: user.name }],
+          };
+        })}
         currentUserId={user.id}
         initialTaskId={query.task}
         focusedTask={focusedTask ? serializeTask(focusedTask) : undefined}

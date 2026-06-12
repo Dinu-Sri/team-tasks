@@ -1,7 +1,7 @@
 import { ListTodo } from "lucide-react";
 import Link from "next/link";
 
-import { MomentumMenu, NotificationMenu, ProfileMenu } from "@/components/header-menus";
+import { MemberTaskViewToggle, MomentumMenu, NotificationMenu, ProfileMenu } from "@/components/header-menus";
 import { MomentumCelebrationListener } from "@/components/momentum/momentum-celebration";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { ThemeButton } from "@/components/theme-button";
@@ -13,11 +13,13 @@ export function AppHeader({
   notifications,
   notificationCount,
   momentum,
+  memberTaskViewEnabled = false,
 }: {
   user: { name: string; email: string };
   notifications: HeaderNotification[];
   notificationCount: number;
   momentum: MomentumSummary;
+  memberTaskViewEnabled?: boolean;
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur-lg">
@@ -32,6 +34,7 @@ export function AppHeader({
         </Link>
 
         <div className="flex items-center gap-0.5 sm:gap-1">
+          {memberTaskViewEnabled ? <MemberTaskViewToggle /> : null}
           <MomentumMenu momentum={momentum} />
           <NotificationMenu notifications={notifications} notificationCount={notificationCount} />
           <ThemeButton />

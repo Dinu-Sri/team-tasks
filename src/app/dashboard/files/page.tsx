@@ -39,7 +39,7 @@ export default async function FilesPage() {
       {memberships.some(({ role }) => role === "OWNER") ? (
         <section className="grid gap-3 sm:grid-cols-2">
           {memberships.filter(({ role }) => role === "OWNER").map(({ team }) => (
-            <FileSettingsForm key={team.id} teamId={team.id} teamName={team.name} commentsEnabled={team.featureSettings?.commentsEnabled ?? false} initialLimit={team.featureSettings?.attachmentLimitMb ?? 5} />
+            <FileSettingsForm key={team.id} teamId={team.id} teamName={team.name} commentsEnabled={team.featureSettings?.commentsEnabled ?? false} memberTaskViewEnabled={team.featureSettings?.memberTaskViewEnabled ?? false} initialLimit={team.featureSettings?.attachmentLimitMb ?? 5} />
           ))}
         </section>
       ) : null}

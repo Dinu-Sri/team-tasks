@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Bell, Flame, LayoutDashboard, LogOut, ShieldCheck, Sparkles, X } from "lucide-react";
+import { ArrowRight, Bell, Flame, LayoutDashboard, ListTodo, LogOut, ShieldCheck, Sparkles, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
@@ -9,6 +9,7 @@ import { markNotificationsReadAction } from "@/app/actions/notifications";
 import { MomentumBadgeIcon } from "@/components/momentum/momentum-badge";
 import { Avatar } from "@/components/ui/avatar";
 import type { HeaderNotification } from "@/lib/header-data";
+import { MEMBER_TASK_VIEW_EVENT } from "@/lib/member-task-view";
 import { BADGE_DEFINITIONS, type MomentumSummary } from "@/lib/momentum-shared";
 
 const MENU_EVENT = "team-tasks-menu-open";
@@ -79,6 +80,29 @@ const momentumPanelClass = "fixed inset-x-3 bottom-3 z-50 overflow-hidden rounde
 
 function dayInitial(value: string) {
   return new Intl.DateTimeFormat("en", { weekday: "narrow", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
+}
+
+export function MemberTaskViewToggle() {
+  const [active, setActive] = useState(false);
+
+  function toggle() {
+    const next = !active;
+    setActive(next);
+    window.dispatchEvent(new CustomEvent(MEMBER_TASK_VIEW_EVENT, { detail: next }));
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-pressed={active}
+      className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors sm:h-10 sm:w-10 ${active ? "bg-brand text-brand-foreground" : "text-muted-foreground hover:bg-surface-subtle hover:text-foreground"}`}
+      title={active ? "Show my tasks" : "View member tasks"}
+    >
+      {active ? <ListTodo className="h-4 w-4" /> : <UsersRound className="h-4 w-4" />}
+      <span className="sr-only">{active ? "Show my tasks" : "View member tasks"}</span>
+    </button>
+  );
 }
 
 export function MomentumMenu({ momentum }: { momentum: MomentumSummary }) {

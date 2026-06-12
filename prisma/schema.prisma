@@ -90,6 +90,7 @@ model TeamFeatureSettings {
   teamId             String   @id
   commentsEnabled    Boolean  @default(false)
   attachmentsEnabled Boolean  @default(false)
+  memberTaskViewEnabled Boolean @default(false)
   attachmentLimitMb  Int      @default(5)
   team               Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdAt          DateTime @default(now())

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CalendarDays, Check, MessageCircleMore, Paperclip, Plus, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Eye, MessageCircleMore, Paperclip, Plus, UsersRound, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { createPersonalTaskAction } from "@/app/actions/tasks";
@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TaskDetailPanel, type TaskDetail } from "@/components/tasks/task-detail-panel";
+import { MEMBER_TASK_VIEW_EVENT } from "@/lib/member-task-view";
 import { cn } from "@/lib/utils";
 
-type TeamOption = { id: string; name: string };
+type TeamOption = { id: string; name: string; canAssignMembers: boolean; members: Array<{ id: string; name: string }> };
 type TaskItem = {
   id: string;
   title: string;
@@ -20,6 +21,8 @@ type TaskItem = {
   priority: "NORMAL" | "HIGH";
   dueAt: string | null;
 } & TaskDetail;
+type MemberTaskSummary = { id: string; title: string; priority: "NORMAL" | "HIGH"; dueAt: string | null; teamName: string };
+type MemberTaskGroup = { id: string; memberName: string; teamName: string; tasks: MemberTaskSummary[] };
 
 function dueLabel(dueAt: string | null) {
   if (!dueAt) return null;
@@ -33,10 +36,31 @@ function dueLabel(dueAt: string | null) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(due);
 }
 
-export function PersonalTasks({ tasks, discussionUpdates, teams, currentUserId, initialTaskId, focusedTask }: { tasks: TaskItem[]; discussionUpdates: TaskItem[]; teams: TeamOption[]; currentUserId: string; initialTaskId?: string; focusedTask?: TaskItem }) {
+export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, teams, currentUserId, initialTaskId, focusedTask }: { tasks: TaskItem[]; discussionUpdates: TaskItem[]; memberTaskGroups: MemberTaskGroup[]; teams: TeamOption[]; currentUserId: string; initialTaskId?: string; focusedTask?: TaskItem }) {
   const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
+  const [memberView, setMemberView] = useState(false);
+  const [memberIndex, setMemberIndex] = useState(0);
+  const [selectedTeamId, setSelectedTeamId] = useState(teams[0]?.id ?? "");
+  const [assigneeId, setAssigneeId] = useState(currentUserId);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const selectedTeam = teams.find(({ id }) => id === selectedTeamId);
+
+  useEffect(() => {
+    const handleToggle = (event: Event) => {
+      const next = Boolean((event as CustomEvent<boolean>).detail) && memberTaskGroups.length > 0;
+      setMemberView(next);
+      setShowAdd(false);
+      setSelectedTaskId(null);
+    };
+    window.addEventListener(MEMBER_TASK_VIEW_EVENT, handleToggle);
+    return () => window.removeEventListener(MEMBER_TASK_VIEW_EVENT, handleToggle);
+  }, [memberTaskGroups.length]);
+  useEffect(() => { if (!memberTaskGroups.length) setMemberView(false); setMemberIndex((value) => Math.min(value, Math.max(0, memberTaskGroups.length - 1))); }, [memberTaskGroups.length]);
+  useEffect(() => {
+    const members = selectedTeam?.members ?? [];
+    setAssigneeId(members.some(({ id }) => id === currentUserId) ? currentUserId : members[0]?.id ?? "");
+  }, [currentUserId, selectedTeam]);
   useEffect(() => { if (initialTaskId && (tasks.some(({ id }) => id === initialTaskId) || discussionUpdates.some(({ id }) => id === initialTaskId) || focusedTask?.id === initialTaskId)) setSelectedTaskId(initialTaskId); }, [discussionUpdates, focusedTask?.id, initialTaskId, tasks]);
   const selectedTask = tasks.find(({ id }) => id === selectedTaskId) ?? discussionUpdates.find(({ id }) => id === selectedTaskId) ?? (focusedTask?.id === selectedTaskId ? focusedTask : undefined);
 
@@ -53,19 +77,20 @@ export function PersonalTasks({ tasks, discussionUpdates, teams, currentUserId, 
   return (
     <div className="mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-6">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold">My tasks</h1>
-        <Button size="sm" onClick={() => setShowAdd((value) => !value)}>
+        <h1 className="text-lg font-semibold">{memberView ? "Member tasks" : "My tasks"}</h1>
+        {!memberView ? <Button size="sm" onClick={() => setShowAdd((value) => !value)}>
           {showAdd ? <X /> : <Plus />}
           {showAdd ? "Close" : "Add"}
-        </Button>
+        </Button> : null}
       </div>
 
-      {showAdd ? (
-        <form action={createPersonalTaskAction} className="mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 md:grid-cols-[1fr_auto_auto_auto]">
+      {!memberView && showAdd ? (
+        <form action={createPersonalTaskAction} className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
           <Input name="title" placeholder="What needs to be done?" autoFocus required />
-          <select name="teamId" className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" required>
+          <select name="teamId" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Team" required>
             {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
           </select>
+          {selectedTeam?.canAssignMembers ? <select name="assigneeId" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Assign to" required>{selectedTeam.members.map((member) => <option key={member.id} value={member.id}>{member.id === currentUserId ? "Me" : member.name}</option>)}</select> : <input type="hidden" name="assigneeId" value={currentUserId} />}
           <select name="due" className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
             <option value="today">Today</option>
             <option value="tomorrow">Tomorrow</option>
@@ -76,7 +101,7 @@ export function PersonalTasks({ tasks, discussionUpdates, teams, currentUserId, 
         </form>
       ) : null}
 
-      {discussionUpdates.length ? (
+      {memberView ? <div className="task-view-enter"><MemberTaskCarousel groups={memberTaskGroups} index={memberIndex} onIndexChange={setMemberIndex} /></div> : <div className="task-view-enter">{discussionUpdates.length ? (
         <section className="mb-4 overflow-hidden rounded-lg border border-border bg-surface">
           <div className="border-b border-border px-4 py-3 sm:px-6">
             <h2 className="text-sm font-semibold">Discussion updates</h2>
@@ -123,8 +148,35 @@ export function PersonalTasks({ tasks, discussionUpdates, teams, currentUserId, 
         ) : (
           <div className="py-20 text-center text-sm text-muted-foreground">Nothing to do.</div>
         )}
-      </section>
+      </section></div>}
       {selectedTask ? <TaskDetailPanel task={selectedTask} currentUserId={currentUserId} onClose={closeTask} /> : null}
     </div>
+  );
+}
+
+function MemberTaskCarousel({ groups, index, onIndexChange }: { groups: MemberTaskGroup[]; index: number; onIndexChange: (index: number) => void }) {
+  const touchStart = useRef<number | null>(null);
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const group = groups[index];
+
+  function move(offset: number) {
+    if (groups.length < 2) return;
+    setDirection(offset > 0 ? 1 : -1);
+    onIndexChange((index + offset + groups.length) % groups.length);
+  }
+
+  if (!group) return <section className="rounded-lg border border-border bg-surface py-20 text-center text-sm text-muted-foreground">No team members to review.</section>;
+
+  return (
+    <section className="overflow-hidden rounded-lg border border-border bg-surface" aria-label="Member task viewer" onTouchStart={(event) => { touchStart.current = event.touches[0]?.clientX ?? null; }} onTouchEnd={(event) => { if (touchStart.current === null) return; const distance = (event.changedTouches[0]?.clientX ?? touchStart.current) - touchStart.current; if (Math.abs(distance) > 48) move(distance < 0 ? 1 : -1); touchStart.current = null; }}>
+      <header className="flex min-h-16 items-center gap-3 border-b border-border px-3 py-2.5 sm:px-5">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand"><UsersRound className="h-5 w-5" /></span>
+        <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{group.memberName}</p><p className="truncate text-xs text-muted-foreground">{group.teamName} - {group.tasks.length} open</p></div>
+        {groups.length > 1 ? <div className="flex items-center gap-1"><button type="button" onClick={() => move(-1)} className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle hover:text-foreground" aria-label="Previous team member"><ChevronLeft className="h-5 w-5" /></button><span className="min-w-10 text-center text-xs text-muted-foreground">{index + 1}/{groups.length}</span><button type="button" onClick={() => move(1)} className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle hover:text-foreground" aria-label="Next team member"><ChevronRight className="h-5 w-5" /></button></div> : null}
+      </header>
+      <div className="overflow-hidden">
+        <div key={group.id} className={direction > 0 ? "member-slide-next" : "member-slide-previous"}>{group.tasks.length ? <div className="divide-y divide-border">{group.tasks.map((task) => { const due = dueLabel(task.dueAt); return <div key={task.id} className="flex min-h-20 items-center gap-3 px-4 py-4 sm:px-6"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-muted-foreground"><Eye className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="break-words text-base font-semibold leading-6">{task.title}</p><div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span>{task.teamName}</span>{due ? <><span>-</span><span className={due === "Today" ? "text-warning" : ""}><CalendarDays className="mr-1 inline h-4 w-4" />{due}</span></> : null}{task.priority === "HIGH" ? <Badge variant="danger">Important</Badge> : null}</div></div></div>; })}</div> : <div className="py-20 text-center text-sm text-muted-foreground">No open tasks for {group.memberName}.</div>}</div>
+      </div>
+    </section>
   );
 }

@@ -178,6 +178,10 @@ Or in Portainer:
 
 The app container automatically runs `prisma migrate deploy` before starting Next.js. Migrations are committed under `prisma/migrations` and applied during each safe restart.
 
+## Realtime updates
+
+Authenticated pages keep one Server-Sent Events connection open at `/api/realtime`. Task and invitation actions publish through PostgreSQL `LISTEN/NOTIFY`, so assigned tasks and bell notifications appear without a manual refresh. Cloudflare Tunnel supports the same-origin stream; the app sends heartbeats and disables response buffering. Browsers reconnect automatically and run a slow one-minute recovery refresh only if an event was missed.
+
 ## Rollback
 
 ```bash

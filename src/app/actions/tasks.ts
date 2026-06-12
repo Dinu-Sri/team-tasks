@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { publishRealtimeEvent } from "@/lib/realtime";
 
 function dueDate(value: string) {
   if (value === "none") return null;
@@ -37,6 +38,7 @@ export async function createPersonalTaskAction(formData: FormData) {
       assignees: { create: { userId: user.id } },
     },
   });
+  await publishRealtimeEvent([user.id], "task.created");
 
   revalidatePath("/");
   revalidatePath("/dashboard");
@@ -86,6 +88,7 @@ export async function createTeamTaskAction(formData: FormData) {
       })),
     });
   }
+  await publishRealtimeEvent(validMembers.map(({ userId }) => userId), "task.created");
 
   revalidatePath("/");
   revalidatePath("/dashboard");
@@ -96,7 +99,7 @@ export async function toggleTaskAction(taskId: string) {
   const user = await requireUser();
   const assignment = await db.taskMember.findUnique({
     where: { taskId_userId: { taskId, userId: user.id } },
-    include: { task: true },
+    include: { task: { include: { assignees: { select: { userId: true } } } } },
   });
   if (!assignment) return;
 
@@ -116,6 +119,11 @@ export async function toggleTaskAction(taskId: string) {
       },
     });
   }
+
+  await publishRealtimeEvent(
+    [...assignment.task.assignees.map(({ userId }) => userId), assignment.task.creatorId],
+    "task.updated",
+  );
 
   revalidatePath("/");
   revalidatePath("/dashboard");

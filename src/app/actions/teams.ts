@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendInviteEmail } from "@/lib/mail";
+import { publishRealtimeEvent } from "@/lib/realtime";
 
 export type TeamState = { error?: string; success?: string };
 
@@ -21,6 +22,7 @@ export async function createTeamAction(_: TeamState, formData: FormData): Promis
       memberships: { create: { userId: user.id, role: "OWNER" } },
     },
   });
+  await publishRealtimeEvent([user.id], "team.created");
 
   revalidatePath("/dashboard");
   return { success: "Team created." };
@@ -68,6 +70,7 @@ export async function inviteMemberAction(_: TeamState, formData: FormData): Prom
         message: `${user.name} invited you to ${owner.team.name}.`,
       },
     });
+    await publishRealtimeEvent([registered.id], "invite.created");
   }
 
   const baseUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
@@ -107,6 +110,8 @@ export async function acceptInviteAction(formData: FormData) {
     }),
     db.notification.updateMany({ where: { inviteId: invite.id }, data: { readAt: new Date() } }),
   ]);
+
+  await publishRealtimeEvent([user.id, invite.invitedById], "invite.accepted");
 
   redirect("/dashboard");
 }

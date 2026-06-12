@@ -20,16 +20,16 @@ export function AppHeader({
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur-lg">
       <RealtimeRefresh />
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5 font-semibold">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-brand-foreground">
             <ListTodo className="h-4 w-4" />
           </span>
-          Tasks
+          <span className="hidden min-[360px]:inline">Tasks</span>
         </Link>
 
-        <div className="flex items-center gap-1">
-          <Link href="/dashboard" className={cn(buttonVariants({ variant: "quiet", size: "icon" }))} aria-label="Dashboard">
+        <div className="flex items-center gap-0.5 sm:gap-1">
+          <Link href="/dashboard" className={cn(buttonVariants({ variant: "quiet", size: "icon" }), "h-9 w-9 sm:h-10 sm:w-10")} aria-label="Dashboard">
             <LayoutDashboard />
           </Link>
           <NotificationMenu notifications={notifications} notificationCount={notificationCount} />

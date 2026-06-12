@@ -39,18 +39,18 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen bg-background">
       <AppHeader user={user} {...headerData} />
-      <div className="mx-auto max-w-5xl space-y-5 px-4 py-5 sm:px-6">
+      <div className="mx-auto max-w-5xl space-y-5 px-3 py-4 sm:px-6 sm:py-6">
         {invitations.length ? (
           <section className="space-y-2">
             {invitations.map((invite) => (
-              <div key={invite.id} className="flex items-center justify-between gap-3 rounded-lg border border-brand/30 bg-brand/5 p-3">
-                <div>
+              <div key={invite.id} className="flex flex-col gap-3 rounded-lg border border-brand/30 bg-brand/5 p-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+                <div className="min-w-0">
                   <p className="text-sm font-medium">Join {invite.team.name}</p>
                   <p className="text-xs text-muted-foreground">Invited by {invite.invitedBy.name}</p>
                 </div>
                 <form action={acceptInviteAction}>
                   <input type="hidden" name="token" value={invite.token} />
-                  <Button size="sm">Accept</Button>
+                  <Button className="w-full min-[420px]:w-auto" size="sm">Accept</Button>
                 </form>
               </div>
             ))}
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
             <h1 className="text-xl font-semibold">Dashboard</h1>
             <p className="text-sm text-muted-foreground">Teams, people and assignments.</p>
           </div>
-          <div className="sm:w-80"><CreateTeamForm /></div>
+          <div className="w-full sm:w-80"><CreateTeamForm /></div>
         </section>
 
         <section className="space-y-3">
@@ -77,18 +77,18 @@ export default async function DashboardPage() {
             });
             return (
               <details key={team.id} className="group rounded-lg border border-border bg-surface" open={memberships.length === 1}>
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5">
-                  <div className="flex items-center gap-3">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-3.5 sm:gap-3 sm:px-4">
+                  <div className="flex min-w-0 items-center gap-3">
                     <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-subtle"><Users className="h-4 w-4" /></span>
-                    <div>
-                      <p className="text-sm font-semibold">{team.name}</p>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{team.name}</p>
                       <p className="text-xs text-muted-foreground">{members.length} people - {team.tasks.length} open</p>
                     </div>
                   </div>
-                  <Badge variant={owner ? "default" : "secondary"}>{role.toLowerCase()}</Badge>
+                  <Badge className="shrink-0" variant={owner ? "default" : "secondary"}>{role.toLowerCase()}</Badge>
                 </summary>
 
-                <div className="space-y-5 border-t border-border p-4">
+                <div className="space-y-5 border-t border-border p-3 sm:p-4">
                   <div>
                     <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">People</p>
                     <div className="flex flex-wrap gap-2">

@@ -24,7 +24,7 @@ export function ThemeButton() {
   }
 
   return (
-    <Button variant="quiet" size="icon" onClick={toggle} aria-label="Toggle theme">
+    <Button className="h-9 w-9 sm:h-10 sm:w-10" variant="quiet" size="icon" onClick={toggle} aria-label="Toggle theme">
       {dark ? <Sun /> : <Moon />}
     </Button>
   );

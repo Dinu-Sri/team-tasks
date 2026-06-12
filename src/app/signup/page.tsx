@@ -10,7 +10,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   const { email } = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="flex min-h-[100svh] items-center justify-center bg-background px-4 py-8">
       <section className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-brand text-brand-foreground">

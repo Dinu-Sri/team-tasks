@@ -1,17 +1,78 @@
 "use client";
 
-import { BarChart3, Bell, CheckCheck, LogOut } from "lucide-react";
+import { BarChart3, Bell, LogOut, X } from "lucide-react";
 import Link from "next/link";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { logoutAction } from "@/app/actions/auth";
 import { markNotificationsReadAction } from "@/app/actions/notifications";
 import { Avatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import type { HeaderNotification } from "@/lib/header-data";
+
+const MENU_EVENT = "team-tasks-menu-open";
+const IDLE_CLOSE_MS = 7000;
+const LEAVE_CLOSE_MS = 2500;
 
 function shortDate(value: string) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(value));
 }
+
+function useHeaderMenu(id: string) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const cancelClose = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = undefined;
+  }, []);
+
+  const scheduleClose = useCallback((delay = IDLE_CLOSE_MS) => {
+    cancelClose();
+    timerRef.current = setTimeout(() => setOpen(false), delay);
+  }, [cancelClose]);
+
+  const close = useCallback(() => {
+    cancelClose();
+    setOpen(false);
+  }, [cancelClose]);
+
+  const toggle = useCallback(() => {
+    if (open) {
+      close();
+      return;
+    }
+    window.dispatchEvent(new CustomEvent(MENU_EVENT, { detail: id }));
+    setOpen(true);
+    scheduleClose();
+  }, [close, id, open, scheduleClose]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) close();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    const handleOtherMenu = (event: Event) => {
+      if ((event as CustomEvent<string>).detail !== id) close();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener(MENU_EVENT, handleOtherMenu);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener(MENU_EVENT, handleOtherMenu);
+      cancelClose();
+    };
+  }, [cancelClose, close, id]);
+
+  return { open, rootRef, toggle, close, cancelClose, scheduleClose };
+}
+
+const panelClass = "fixed left-3 right-3 top-[4.25rem] z-50 overflow-hidden rounded-lg border border-border bg-surface shadow-soft sm:absolute sm:left-auto sm:right-0 sm:top-12";
 
 export function NotificationMenu({
   notifications,
@@ -20,72 +81,126 @@ export function NotificationMenu({
   notifications: HeaderNotification[];
   notificationCount: number;
 }) {
+  const menu = useHeaderMenu("notifications");
+  const [hasUnread, setHasUnread] = useState(notificationCount > 0);
+  const [, startTransition] = useTransition();
+
+  useEffect(() => setHasUnread(notificationCount > 0), [notificationCount]);
+
+  function toggleNotifications() {
+    const opening = !menu.open;
+    menu.toggle();
+    if (opening && hasUnread) {
+      setHasUnread(false);
+      startTransition(() => {
+        void markNotificationsReadAction().catch(() => setHasUnread(true));
+      });
+    }
+  }
+
   return (
-    <details className="group relative">
-      <summary className="relative flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-subtle hover:text-foreground [&::-webkit-details-marker]:hidden">
+    <div ref={menu.rootRef} className="relative">
+      <button
+        type="button"
+        onClick={toggleNotifications}
+        aria-expanded={menu.open}
+        aria-haspopup="dialog"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-subtle hover:text-foreground sm:h-10 sm:w-10"
+      >
         <Bell className="h-4 w-4" />
         <span className="sr-only">Notifications</span>
-        {notificationCount ? <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-danger" /> : null}
-      </summary>
-      <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-border bg-surface shadow-soft">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold">Notifications</p>
-            <p className="text-xs text-muted-foreground">{notificationCount ? `${notificationCount} need attention` : "You are caught up"}</p>
+        {hasUnread ? <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-danger" /> : null}
+      </button>
+
+      {menu.open ? (
+        <div
+          role="dialog"
+          aria-label="Notifications"
+          className={`${panelClass} sm:w-96`}
+          onMouseEnter={menu.cancelClose}
+          onMouseLeave={() => menu.scheduleClose(LEAVE_CLOSE_MS)}
+          onPointerDown={() => menu.scheduleClose()}
+          onFocusCapture={menu.cancelClose}
+          onBlurCapture={() => menu.scheduleClose()}
+        >
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Notifications</p>
+              <p className="truncate text-xs text-muted-foreground">{hasUnread ? `${notificationCount} new` : "Viewed"}</p>
+            </div>
+            <button type="button" onClick={menu.close} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle" aria-label="Close notifications">
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          {notificationCount > notifications.filter((item) => item.live).length ? (
-            <form action={markNotificationsReadAction}>
-              <Button type="submit" variant="quiet" size="icon" aria-label="Mark notifications read" title="Mark notifications read">
-                <CheckCheck />
-              </Button>
-            </form>
-          ) : null}
-        </div>
-        <div className="max-h-96 overflow-y-auto">
-          {notifications.length ? notifications.map((item) => (
-            <Link key={item.id} href={item.href} className="flex gap-3 border-b border-border px-4 py-3 last:border-0 hover:bg-surface-subtle">
-              <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.unread ? "bg-brand" : "bg-muted"}`} />
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-semibold">{item.title}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{shortDate(item.date)}</span>
+          <div className="max-h-[min(68vh,26rem)] overflow-y-auto overscroll-contain">
+            {notifications.length ? notifications.map((item) => (
+              <Link key={item.id} href={item.href} onClick={menu.close} className="flex gap-3 border-b border-border px-4 py-3 last:border-0 hover:bg-surface-subtle">
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.live ? "bg-warning" : hasUnread && item.unread ? "bg-brand" : "bg-muted"}`} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="text-sm font-semibold leading-5">{item.title}</span>
+                    <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{shortDate(item.date)}</span>
+                  </span>
+                  <span className="mt-0.5 block break-words text-sm leading-5 text-muted-foreground">{item.message}</span>
                 </span>
-                <span className="mt-0.5 block text-sm leading-5 text-muted-foreground">{item.message}</span>
-              </span>
-            </Link>
-          )) : (
-            <p className="px-4 py-10 text-center text-sm text-muted-foreground">No notifications yet.</p>
-          )}
+              </Link>
+            )) : (
+              <p className="px-4 py-10 text-center text-sm text-muted-foreground">No notifications yet.</p>
+            )}
+          </div>
         </div>
-      </div>
-    </details>
+      ) : null}
+    </div>
   );
 }
 
 export function ProfileMenu({ name, email }: { name: string; email: string }) {
+  const menu = useHeaderMenu("profile");
   const initials = name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <details className="group relative">
-      <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+    <div ref={menu.rootRef} className="relative">
+      <button
+        type="button"
+        onClick={menu.toggle}
+        aria-expanded={menu.open}
+        aria-haspopup="menu"
+        className="flex h-9 w-9 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-10 sm:w-10"
+      >
         <Avatar initials={initials} label={`${name} menu`} />
-      </summary>
-      <div className="absolute right-0 top-12 z-50 w-60 overflow-hidden rounded-lg border border-border bg-surface shadow-soft">
-        <div className="border-b border-border px-4 py-3">
-          <p className="truncate text-sm font-semibold">{name}</p>
-          <p className="truncate text-xs text-muted-foreground">{email}</p>
+      </button>
+
+      {menu.open ? (
+        <div
+          role="menu"
+          className={`${panelClass} sm:w-64`}
+          onMouseEnter={menu.cancelClose}
+          onMouseLeave={() => menu.scheduleClose(LEAVE_CLOSE_MS)}
+          onPointerDown={() => menu.scheduleClose()}
+          onFocusCapture={menu.cancelClose}
+          onBlurCapture={() => menu.scheduleClose()}
+        >
+          <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{name}</p>
+              <p className="truncate text-xs text-muted-foreground">{email}</p>
+            </div>
+            <button type="button" onClick={menu.close} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle sm:hidden" aria-label="Close account menu">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <Link role="menuitem" href="/analytics" onClick={menu.close} className="flex min-h-12 items-center gap-3 px-4 py-3 text-sm hover:bg-surface-subtle">
+            <BarChart3 className="h-4 w-4 shrink-0 text-muted-foreground" />
+            Analytics & archive
+          </Link>
+          <form action={logoutAction} className="border-t border-border">
+            <button role="menuitem" type="submit" className="flex min-h-12 w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-surface-subtle">
+              <LogOut className="h-4 w-4 shrink-0 text-muted-foreground" />
+              Log out
+            </button>
+          </form>
         </div>
-        <Link href="/analytics" className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-surface-subtle">
-          <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          Analytics & archive
-        </Link>
-        <form action={logoutAction} className="border-t border-border">
-          <button type="submit" className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-surface-subtle">
-            <LogOut className="h-4 w-4 text-muted-foreground" />
-            Log out
-          </button>
-        </form>
-      </div>
-    </details>
+      ) : null}
+    </div>
   );
 }

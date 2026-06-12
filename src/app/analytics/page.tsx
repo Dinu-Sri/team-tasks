@@ -49,7 +49,7 @@ export default async function AnalyticsPage() {
   return (
     <main className="min-h-screen bg-background">
       <AppHeader user={user} {...headerData} />
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-6">
         <div className="mb-6 flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Analytics & archive</h1>
@@ -66,16 +66,16 @@ export default async function AnalyticsPage() {
           <div className="space-y-5">
             {[...groups.entries()].map(([key, group]) => (
               <section key={key} className="overflow-hidden rounded-lg border border-border bg-surface">
-                <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                  <h2 className="flex items-center gap-2 text-base font-semibold"><Archive className="h-4 w-4 text-brand" />{group.label}</h2>
+                <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
+                  <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold"><Archive className="h-4 w-4 shrink-0 text-brand" /><span className="truncate">{group.label}</span></h2>
                   <span className="text-sm text-muted-foreground">{group.tasks.length} finished</span>
                 </div>
                 <div className="divide-y divide-border">
                   {group.tasks.map((task) => (
-                    <div key={task.id} className="flex min-h-20 items-center gap-4 px-5 py-4">
+                    <div key={task.id} className="flex min-h-20 items-center gap-3 px-4 py-4 sm:gap-4 sm:px-5">
                       <CalendarCheck2 className="h-5 w-5 shrink-0 text-success" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-base font-semibold">{task.title}</p>
+                        <p className="break-words text-base font-semibold">{task.title}</p>
                         <p className="mt-1 text-sm text-muted-foreground">
                           {task.team.name}{task.completedAt ? ` - ${dayLabel(task.completedAt)}` : ""}
                         </p>

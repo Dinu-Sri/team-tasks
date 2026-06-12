@@ -58,6 +58,6 @@ export async function getHeaderData(userId: string) {
 
   return {
     notifications: [...liveNotifications, ...storedNotifications].slice(0, 10),
-    notificationCount: dueTasks.length + storedUnreadCount,
+    notificationCount: storedUnreadCount,
   };
 }

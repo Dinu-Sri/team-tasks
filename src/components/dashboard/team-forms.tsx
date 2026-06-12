@@ -12,9 +12,9 @@ export function CreateTeamForm() {
   const [state, action, pending] = useActionState(createTeamAction, {});
   return (
     <form action={action} className="space-y-2">
-      <div className="flex gap-2">
+      <div className="grid gap-2 min-[420px]:grid-cols-[1fr_auto]">
         <Input name="name" placeholder="New team name" required />
-        <Button disabled={pending}><Plus />Create</Button>
+        <Button className="w-full min-[420px]:w-auto" disabled={pending}><Plus />Create</Button>
       </div>
       <FormMessage state={state} />
     </form>
@@ -26,9 +26,9 @@ export function InviteForm({ teamId }: { teamId: string }) {
   return (
     <form action={action} className="space-y-2">
       <input type="hidden" name="teamId" value={teamId} />
-      <div className="flex gap-2">
+      <div className="grid gap-2 min-[420px]:grid-cols-[1fr_auto]">
         <Input name="email" type="email" placeholder="Email address" required />
-        <Button variant="secondary" disabled={pending}><Send />Invite</Button>
+        <Button className="w-full min-[420px]:w-auto" variant="secondary" disabled={pending}><Send />Invite</Button>
       </div>
       <FormMessage state={state} />
     </form>
@@ -42,23 +42,23 @@ export function AssignTaskForm({ teamId, members }: { teamId: string; members: A
       <Input name="title" placeholder="Assign a task" required />
       <div className="flex flex-wrap gap-2">
         {members.map((member) => (
-          <label key={member.id} className="flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-2 text-sm">
+          <label key={member.id} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-2 text-sm">
             <input type="checkbox" name="assigneeIds" value={member.id} />
             {member.name}
           </label>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2">
-        <select name="due" className="h-10 rounded-full border border-border bg-surface px-3 text-sm">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+        <select name="due" className="h-10 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
           <option value="today">Today</option>
           <option value="tomorrow">Tomorrow</option>
           <option value="week">Next week</option>
           <option value="none">No date</option>
         </select>
-        <label className="flex h-10 items-center gap-2 rounded-full border border-border px-3 text-sm">
+        <label className="flex h-10 min-w-0 items-center gap-2 rounded-full border border-border px-3 text-sm">
           <input type="checkbox" name="priority" value="HIGH" /> Important
         </label>
-        <Button type="submit">Assign</Button>
+        <Button className="col-span-2 w-full sm:w-auto" type="submit">Assign</Button>
       </div>
     </form>
   );

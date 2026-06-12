@@ -60,11 +60,11 @@ Set these environment variables in Portainer:
 
 | Variable | Example | Notes |
 | --- | --- | --- |
-| `NEXT_PUBLIC_BASE_URL` | `http://YOUR_SERVER_IP:3002` | Use this while there is no domain |
-| `APP_URL` | `http://YOUR_SERVER_IP:3002` | Used for invitation links and session security |
+| `NEXT_PUBLIC_BASE_URL` | `https://todo.clossyan.com` | Public URL |
+| `APP_URL` | `https://todo.clossyan.com` | Invitation links and secure session cookies |
 | `AUTH_SECRET` | long random value | Signs login cookies; recommended, but a stable value is generated when blank |
 | `POSTGRES_PASSWORD` | `long-random-password` | Used by both PostgreSQL and the app |
-| `CF_TUNNEL_TOKEN` | Cloudflare token | Only needed later when enabling the tunnel profile |
+| `CF_TUNNEL_TOKEN` | Cloudflare tunnel token | Keep only in Portainer; never commit it |
 
 Generate `AUTH_SECRET` with:
 
@@ -123,16 +123,40 @@ http://YOUR_SERVER_IP:3002
 
 ## Cloudflare Tunnel
 
-The Cloudflare tunnel service is disabled by default through the Compose `tunnel` profile. Leave it disabled while using direct IP access.
+The `team-tasks-tunnel` container follows the same approach as wcwiki: it runs inside the Compose stack and reaches Next.js through the private Docker network. No host IP is used by the tunnel.
 
-If you use Cloudflare Tunnel later:
+### Temporary hostname: todo.clossyan.com
 
-1. Open Cloudflare Zero Trust.
-2. Create a tunnel and copy the token.
-3. Add a public hostname for your domain.
-4. Point the service URL to `http://app:3000`.
-5. Put the tunnel token in Portainer as `CF_TUNNEL_TOKEN`.
-6. Enable the `tunnel` profile and redeploy the stack.
+1. In Cloudflare Zero Trust, open **Networks** -> **Tunnels** and create or open the `todo` tunnel.
+2. Rotate the tunnel token if it has been exposed, then copy the new token.
+3. Under the tunnel's **Public Hostnames** or **Published application routes**, add:
+   - Subdomain: `todo`
+   - Domain: `clossyan.com`
+   - Type: `HTTP`
+   - Service URL: `http://app:3000`
+4. In the Portainer `todo` stack environment variables, set:
+
+```text
+CF_TUNNEL_TOKEN=<new tunnel token>
+APP_URL=https://todo.clossyan.com
+NEXT_PUBLIC_BASE_URL=https://todo.clossyan.com
+```
+
+5. Pull and redeploy the stack. Portainer should create `team-tasks-tunnel` alongside the app and database.
+6. In the tunnel log, look for `Registered tunnel connection`. Then open `https://todo.clossyan.com`.
+
+Do not paste the full `docker run ... --token ...` command into Portainer. Copy only the token value after `--token` into `CF_TUNNEL_TOKEN`.
+
+### Changing to a new domain later
+
+If the new domain is in the same Cloudflare account, edit or add a published application route on this tunnel and point it to the same service URL, `http://app:3000`. Then change only these Portainer values and redeploy:
+
+```text
+APP_URL=https://NEW-DOMAIN
+NEXT_PUBLIC_BASE_URL=https://NEW-DOMAIN
+```
+
+If you create a completely new tunnel, also replace `CF_TUNNEL_TOKEN` with that new tunnel's token. Existing tasks and accounts remain in PostgreSQL and are unaffected by the domain change.
 
 ## Updating to a new version
 

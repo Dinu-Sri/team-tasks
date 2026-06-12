@@ -44,11 +44,9 @@ services:
   tunnel:
     image: cloudflare/cloudflared:latest
     container_name: team-tasks-tunnel
-    profiles:
-      - tunnel
     command: tunnel run
     environment:
-      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN:?CF_TUNNEL_TOKEN_is_required}
     depends_on:
       - app
     restart: unless-stopped

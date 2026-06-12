@@ -41,6 +41,18 @@ services:
     networks:
       - team-tasks-net
 
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: team-tasks-tunnel
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN:?CF_TUNNEL_TOKEN_is_required}
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - team-tasks-net
+
 volumes:
   postgres_data_v2:
     name: team-tasks-postgres-v2

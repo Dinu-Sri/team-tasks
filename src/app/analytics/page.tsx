@@ -1,7 +1,7 @@
 import { Archive, CalendarCheck2, Flame, RotateCcw, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
-import { toggleTaskAction } from "@/app/actions/tasks";
+import { reopenTaskAction } from "@/app/actions/tasks";
 import { AppHeader } from "@/components/app-header";
 import { MomentumBadgeIcon } from "@/components/momentum/momentum-badge";
 import { Button } from "@/components/ui/button";
@@ -92,7 +92,7 @@ export default async function AnalyticsPage() {
                           {task.team.name}{task.completedAt ? ` - ${dayLabel(task.completedAt)}` : ""}
                         </p>
                       </div>
-                      <form action={toggleTaskAction.bind(null, task.id)}>
+                      <form action={reopenTaskAction.bind(null, task.id)}>
                         <Button type="submit" variant="quiet" size="icon" aria-label={`Reopen ${task.title}`} title="Reopen task">
                           <RotateCcw />
                         </Button>

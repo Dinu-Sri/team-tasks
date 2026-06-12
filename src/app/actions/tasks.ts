@@ -174,3 +174,7 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
   revalidatePath("/momentum");
   return result;
 }
+
+export async function reopenTaskAction(taskId: string): Promise<void> {
+  await toggleTaskAction(taskId);
+}

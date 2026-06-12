@@ -1,7 +1,9 @@
-import { Archive, CalendarCheck2, RotateCcw } from "lucide-react";
+import { Archive, CalendarCheck2, Flame, RotateCcw, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 
 import { toggleTaskAction } from "@/app/actions/tasks";
 import { AppHeader } from "@/components/app-header";
+import { MomentumBadgeIcon } from "@/components/momentum/momentum-badge";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -50,6 +52,16 @@ export default async function AnalyticsPage() {
     <main className="min-h-screen bg-background">
       <AppHeader user={user} {...headerData} />
       <div className="mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-6">
+        <section className="mb-6 flex flex-col gap-4 rounded-lg border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            {headerData.momentum.currentBadge ? <MomentumBadgeIcon tier={headerData.momentum.currentBadge} /> : <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-subtle text-amber-600"><Flame className="h-5 w-5" /></span>}
+            <div><p className="text-sm font-semibold">{headerData.momentum.currentStreak} day Momentum</p><p className="text-xs text-muted-foreground">{headerData.momentum.totalWins} Daily Wins</p></div>
+          </div>
+          <div className="flex items-center justify-between gap-4 sm:justify-end">
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground"><ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-300" />{headerData.momentum.shieldCount} Shields</span>
+            <Link href="/momentum" className="text-sm font-medium text-brand hover:underline">View progress</Link>
+          </div>
+        </section>
         <div className="mb-6 flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Analytics & archive</h1>

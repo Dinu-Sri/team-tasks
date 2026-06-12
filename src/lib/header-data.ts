@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getMomentumSummary } from "@/lib/momentum";
 
 export type HeaderNotification = {
   id: string;
@@ -17,7 +18,7 @@ export async function getHeaderData(userId: string) {
   const endOfToday = new Date(now);
   endOfToday.setHours(23, 59, 59, 999);
 
-  const [stored, storedUnreadCount, dueTasks] = await Promise.all([
+  const [stored, storedUnreadCount, dueTasks, momentum] = await Promise.all([
     db.notification.findMany({
       where: { recipientId: userId },
       orderBy: { createdAt: "desc" },
@@ -34,6 +35,7 @@ export async function getHeaderData(userId: string) {
       orderBy: { dueAt: "asc" },
       take: 5,
     }),
+    getMomentumSummary(userId),
   ]);
 
   const liveNotifications: HeaderNotification[] = dueTasks.map((task) => ({
@@ -51,7 +53,7 @@ export async function getHeaderData(userId: string) {
     title: notification.title,
     message: notification.message,
     date: notification.createdAt.toISOString(),
-    href: notification.inviteId ? "/dashboard" : "/",
+    href: notification.href ?? (notification.inviteId ? "/dashboard" : "/"),
     unread: notification.readAt === null,
     live: false,
   }));
@@ -59,5 +61,6 @@ export async function getHeaderData(userId: string) {
   return {
     notifications: [...liveNotifications, ...storedNotifications].slice(0, 10),
     notificationCount: storedUnreadCount,
+    momentum,
   };
 }

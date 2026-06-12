@@ -28,6 +28,7 @@ export async function signupAction(_: AuthState, formData: FormData): Promise<Au
       name,
       email,
       passwordHash,
+      momentumProfile: { create: {} },
       memberships: {
         create: {
           role: "OWNER",

@@ -4,16 +4,14 @@ import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { awardTaskMomentum, dueDateForSelection, type MomentumAward } from "@/lib/momentum";
 import { publishRealtimeEvent } from "@/lib/realtime";
 
-function dueDate(value: string) {
-  if (value === "none") return null;
-  const date = new Date();
-  date.setHours(17, 0, 0, 0);
-  if (value === "tomorrow") date.setDate(date.getDate() + 1);
-  if (value === "week") date.setDate(date.getDate() + 7);
-  return date;
-}
+export type TaskToggleResult = {
+  completed: boolean;
+  momentum: MomentumAward | null;
+  questCompleted: boolean;
+};
 
 export async function createPersonalTaskAction(formData: FormData) {
   const user = await requireUser();
@@ -23,9 +21,10 @@ export async function createPersonalTaskAction(formData: FormData) {
   const priority = formData.get("priority") === "HIGH" ? "HIGH" : "NORMAL";
   if (!title || !teamId) return;
 
-  const membership = await db.membership.findUnique({
-    where: { userId_teamId: { userId: user.id, teamId } },
-  });
+  const [membership, profile] = await Promise.all([
+    db.membership.findUnique({ where: { userId_teamId: { userId: user.id, teamId } } }),
+    db.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } }),
+  ]);
   if (!membership) return;
 
   await db.task.create({
@@ -33,7 +32,7 @@ export async function createPersonalTaskAction(formData: FormData) {
       title,
       teamId,
       creatorId: user.id,
-      dueAt: dueDate(due),
+      dueAt: dueDateForSelection(due, profile?.timeZone ?? "UTC"),
       priority,
       assignees: { create: { userId: user.id } },
     },
@@ -56,7 +55,7 @@ export async function createTeamTaskAction(formData: FormData) {
 
   const owner = await db.membership.findUnique({
     where: { userId_teamId: { userId: user.id, teamId } },
-    include: { team: { select: { name: true } } },
+    include: { team: { select: { name: true, timeZone: true } } },
   });
   if (!owner || owner.role !== "OWNER") return;
 
@@ -71,7 +70,7 @@ export async function createTeamTaskAction(formData: FormData) {
       title,
       teamId,
       creatorId: user.id,
-      dueAt: dueDate(due),
+      dueAt: dueDateForSelection(due, owner.team.timeZone),
       priority,
       assignees: { create: validMembers.map(({ userId }) => ({ userId })) },
     },
@@ -83,6 +82,8 @@ export async function createTeamTaskAction(formData: FormData) {
       data: notifiedMembers.map(({ userId }) => ({
         recipientId: userId,
         teamId,
+        kind: "TASK",
+        href: "/",
         title: "New task assigned",
         message: `${user.name} assigned you "${title}" in ${owner.team.name}.`,
       })),
@@ -95,37 +96,81 @@ export async function createTeamTaskAction(formData: FormData) {
   revalidatePath("/analytics");
 }
 
-export async function toggleTaskAction(taskId: string) {
+export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult> {
   const user = await requireUser();
   const assignment = await db.taskMember.findUnique({
     where: { taskId_userId: { taskId, userId: user.id } },
     include: { task: { include: { assignees: { select: { userId: true } } } } },
   });
-  if (!assignment) return;
+  if (!assignment) return { completed: false, momentum: null, questCompleted: false };
 
   const done = assignment.task.status === "DONE";
-  await db.task.update({
-    where: { id: taskId },
-    data: { status: done ? "OPEN" : "DONE", completedAt: done ? null : new Date() },
-  });
+  const completedAt = new Date();
+  const result = await db.$transaction(async (tx) => {
+    if (done) {
+      const changed = await tx.task.updateMany({
+        where: { id: taskId, status: "DONE" },
+        data: { status: "OPEN", completedAt: null, completedById: null },
+      });
+      return { completed: false, momentum: null, questCompleted: false };
+    }
 
-  if (!done && assignment.task.creatorId !== user.id) {
-    await db.notification.create({
+    const firstMomentumAward = assignment.task.momentumAwardedAt === null;
+    const changed = await tx.task.updateMany({
+      where: { id: taskId, status: "OPEN" },
       data: {
-        recipientId: assignment.task.creatorId,
-        teamId: assignment.task.teamId,
-        title: "Task completed",
-        message: `${user.name} completed "${assignment.task.title}".`,
+        status: "DONE",
+        completedAt,
+        completedById: user.id,
+        momentumAwardedAt: assignment.task.momentumAwardedAt ?? completedAt,
       },
     });
-  }
+    if (!changed.count) return { completed: true, momentum: null, questCompleted: false };
 
-  await publishRealtimeEvent(
-    [...assignment.task.assignees.map(({ userId }) => userId), assignment.task.creatorId],
-    "task.updated",
-  );
+    let momentum: MomentumAward | null = null;
+    let questCompleted = false;
+    if (firstMomentumAward) {
+      const award = await awardTaskMomentum(tx, {
+        taskId,
+        teamId: assignment.task.teamId,
+        assigneeIds: assignment.task.assignees.map(({ userId }) => userId),
+        actorId: user.id,
+        completedAt,
+      });
+      momentum = award.actorAward;
+      questCompleted = award.questCompleted;
+    }
+
+    if (assignment.task.creatorId !== user.id) {
+      await tx.notification.createMany({
+        data: [{
+          recipientId: assignment.task.creatorId,
+          teamId: assignment.task.teamId,
+          kind: "TASK",
+          href: "/analytics",
+          dedupeKey: `task-completed:${taskId}`,
+          title: "Task completed",
+          message: `${user.name} completed "${assignment.task.title}".`,
+        }],
+        skipDuplicates: true,
+      });
+    }
+    return { completed: true, momentum, questCompleted };
+  });
+
+  const realtimeRecipients = new Set([
+    ...assignment.task.assignees.map(({ userId }) => userId),
+    assignment.task.creatorId,
+  ]);
+  if (result.questCompleted) {
+    const teamMembers = await db.membership.findMany({ where: { teamId: assignment.task.teamId }, select: { userId: true } });
+    teamMembers.forEach(({ userId }) => realtimeRecipients.add(userId));
+  }
+  await publishRealtimeEvent([...realtimeRecipients], result.questCompleted ? "quest.updated" : "task.updated");
 
   revalidatePath("/");
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
+  revalidatePath("/momentum");
+  return result;
 }

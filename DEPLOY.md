@@ -63,6 +63,7 @@ Set these environment variables in Portainer:
 | `NEXT_PUBLIC_BASE_URL` | `https://todo.clossyan.com` | Public URL |
 | `APP_URL` | `https://todo.clossyan.com` | Invitation links and secure session cookies |
 | `AUTH_SECRET` | long random value | Signs login cookies; recommended, but a stable value is generated when blank |
+| `MOMENTUM_CRON_SECRET` | long random value | Protects the internal Momentum maintenance endpoint; optional when a stable value is derived from the database password |
 | `POSTGRES_PASSWORD` | `long-random-password` | Used by both PostgreSQL and the app |
 | `CF_TUNNEL_TOKEN` | Cloudflare tunnel token | Keep only in Portainer; never commit it |
 
@@ -105,6 +106,7 @@ If Portainer shows only `team-tasks-postgres`, it is using an old/dev compose fi
 
 - `team-tasks-app`
 - `team-tasks-postgres`
+- `team-tasks-momentum-scheduler`
 
 If Portainer cannot pull `ghcr.io/dinu-sri/team-tasks:latest`, add a Portainer registry for `ghcr.io`:
 
@@ -181,6 +183,19 @@ The app container automatically runs `prisma migrate deploy` before starting Nex
 ## Realtime updates
 
 Authenticated pages keep one Server-Sent Events connection open at `/api/realtime`. Task and invitation actions publish through PostgreSQL `LISTEN/NOTIFY`, so assigned tasks and bell notifications appear without a manual refresh. Cloudflare Tunnel supports the same-origin stream; the app sends heartbeats and disables response buffering. Browsers reconnect automatically and run a slow one-minute recovery refresh only if an event was missed.
+
+## Momentum scheduler
+
+The stack includes `team-tasks-momentum-scheduler`, which uses the same GitHub-built app image and calls the protected internal endpoint every 15 minutes. It creates eligible workdays, resolves missed days through Shields, sends one deduplicated reminder at the user's configured local hour, and creates or expires weekly Team Quests.
+
+Set `MOMENTUM_CRON_SECRET` to a long random value in Portainer when possible. If it is blank, both the app and scheduler derive the same stable secret from `POSTGRES_PASSWORD`. The endpoint is not intended for browser use.
+
+After this feature is deployed, the normal stack contains four containers:
+
+- `team-tasks-app`
+- `team-tasks-postgres`
+- `team-tasks-momentum-scheduler`
+- `team-tasks-tunnel`
 
 ## Rollback
 

@@ -17,4 +17,5 @@ export async function markNotificationsReadAction() {
   revalidatePath("/");
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
+  revalidatePath("/momentum");
 }

@@ -19,6 +19,7 @@ export async function createTeamAction(_: TeamState, formData: FormData): Promis
   await db.team.create({
     data: {
       name,
+      timeZone: (await db.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } }))?.timeZone ?? "UTC",
       memberships: { create: { userId: user.id, role: "OWNER" } },
     },
   });
@@ -66,6 +67,8 @@ export async function inviteMemberAction(_: TeamState, formData: FormData): Prom
         recipientId: registered.id,
         inviteId: invite.id,
         teamId,
+        kind: "INVITE",
+        href: "/dashboard",
         title: "Team invitation",
         message: `${user.name} invited you to ${owner.team.name}.`,
       },

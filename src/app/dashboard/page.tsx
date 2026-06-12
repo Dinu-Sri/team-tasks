@@ -1,4 +1,4 @@
-import { CheckCircle2, Users } from "lucide-react";
+import { CheckCircle2, Trophy, Users } from "lucide-react";
 
 import { acceptInviteAction } from "@/app/actions/teams";
 import { AppHeader } from "@/components/app-header";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
+import { getTeamQuestSummaries } from "@/lib/momentum";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -35,6 +36,7 @@ export default async function DashboardPage() {
     }),
     getHeaderData(user.id),
   ]);
+  const questMap = await getTeamQuestSummaries(memberships.map(({ teamId }) => teamId));
 
   return (
     <main className="min-h-screen bg-background">
@@ -68,6 +70,7 @@ export default async function DashboardPage() {
         <section className="space-y-3">
           {memberships.map(({ team, role }) => {
             const owner = role === "OWNER";
+            const quest = questMap.get(team.id);
             const members = team.memberships.map(({ user: member }) => member);
             const openByMember = new Map<string, number>();
             team.tasks.forEach((task) => {
@@ -89,6 +92,12 @@ export default async function DashboardPage() {
                 </summary>
 
                 <div className="space-y-5 border-t border-border p-3 sm:p-4">
+                  {quest ? (
+                    <div className="rounded-lg bg-surface-subtle p-3">
+                      <div className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2 font-medium"><Trophy className="h-4 w-4 text-amber-600 dark:text-amber-300" />Team Quest</span><span className="text-xs text-muted-foreground">{quest.progress}/{quest.target}</span></div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-amber-500" style={{ width: `${Math.min(100, (quest.progress / quest.target) * 100)}%` }} /></div>
+                    </div>
+                  ) : null}
                   <div>
                     <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">People</p>
                     <div className="flex flex-wrap gap-2">

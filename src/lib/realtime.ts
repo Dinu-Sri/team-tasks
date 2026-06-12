@@ -15,7 +15,9 @@ export type RealtimeEvent = {
     | "invite.created"
     | "invite.accepted"
     | "team.created"
-    | "notification.updated";
+    | "notification.updated"
+    | "momentum.updated"
+    | "quest.updated";
   sentAt: string;
 };
 

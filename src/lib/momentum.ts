@@ -173,9 +173,6 @@ async function resolvePendingDays(tx: Tx, userId: string, beforeDate: string) {
     data: { shieldCount, currentStreak },
   });
 
-  await tx.productEvent.create({
-    data: { name: "momentum_daily_win_earned", userId, properties: { localDate, taskId, currentStreak } },
-  });
   if (notifications.length) await tx.notification.createMany({ data: notifications, skipDuplicates: true });
   return { profile, changed: true };
 }
@@ -228,6 +225,9 @@ async function recordDailyWin(tx: Tx, userId: string, taskId: string, completedA
       shieldsEarned: profile.shieldsEarned + newShieldGrants,
       lastWinDate: localDate,
     },
+  });
+  await tx.productEvent.create({
+    data: { name: "momentum_daily_win_earned", userId, properties: { localDate, taskId, currentStreak } },
   });
 
   const badgeUnlocked = newlyUnlocked.at(-1) ?? null;

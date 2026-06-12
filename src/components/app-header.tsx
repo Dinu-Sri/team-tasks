@@ -1,14 +1,12 @@
-import { LayoutDashboard, ListTodo } from "lucide-react";
+import { ListTodo } from "lucide-react";
 import Link from "next/link";
 
 import { MomentumMenu, NotificationMenu, ProfileMenu } from "@/components/header-menus";
 import { MomentumCelebrationListener } from "@/components/momentum/momentum-celebration";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
-import { buttonVariants } from "@/components/ui/button";
 import { ThemeButton } from "@/components/theme-button";
 import type { HeaderNotification } from "@/lib/header-data";
 import type { MomentumSummary } from "@/lib/momentum-shared";
-import { cn } from "@/lib/utils";
 
 export function AppHeader({
   user,
@@ -34,9 +32,6 @@ export function AppHeader({
         </Link>
 
         <div className="flex items-center gap-0.5 sm:gap-1">
-          <Link href="/dashboard" className={cn(buttonVariants({ variant: "quiet", size: "icon" }), "h-9 w-9 sm:h-10 sm:w-10")} aria-label="Dashboard">
-            <LayoutDashboard />
-          </Link>
           <MomentumMenu momentum={momentum} />
           <NotificationMenu notifications={notifications} notificationCount={notificationCount} />
           <ThemeButton />

@@ -18,6 +18,9 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - SMTP_FROM=${SMTP_FROM}
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - task_uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,6 +73,8 @@ services:
 volumes:
   postgres_data_v2:
     name: team-tasks-postgres-v2
+  task_uploads:
+    name: team-tasks-uploads
 
 networks:
   team-tasks-net:

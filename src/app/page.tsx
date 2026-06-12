@@ -10,32 +10,58 @@ import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { cn } from "@/lib/utils";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string }> }) {
   const user = await getSessionUser();
   if (!user) return <PublicHome />;
+  const query = await searchParams;
 
-  const [tasks, memberships, headerData] = await Promise.all([
+  const taskInclude = {
+    team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },
+    comments: { include: { author: { select: { id: true, name: true } }, mentions: { include: { user: { select: { id: true, name: true } } } } }, orderBy: { createdAt: "asc" as const } },
+    attachments: { include: { uploader: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" as const } },
+  };
+  const [tasks, memberships, headerData, focusedTask] = await Promise.all([
     db.task.findMany({
       where: { status: "OPEN", assignees: { some: { userId: user.id } } },
-      include: { team: { select: { name: true } } },
+      include: taskInclude,
       orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
     }),
     db.membership.findMany({ where: { userId: user.id }, include: { team: true }, orderBy: { createdAt: "asc" } }),
     getHeaderData(user.id),
+    query.task ? db.task.findFirst({
+      where: { id: query.task, team: { memberships: { some: { userId: user.id } } } },
+      include: taskInclude,
+    }) : null,
   ]);
+
+  const serializeTask = (task: (typeof tasks)[number]) => ({
+    id: task.id,
+    title: task.title,
+    priority: task.priority,
+    note: task.note,
+    dueAt: task.dueAt?.toISOString() ?? null,
+    team: {
+      id: task.team.id,
+      name: task.team.name,
+      commentsEnabled: task.team.featureSettings?.commentsEnabled ?? false,
+      attachmentsEnabled: task.team.featureSettings?.attachmentsEnabled ?? false,
+      attachmentLimitMb: task.team.featureSettings?.attachmentLimitMb ?? 5,
+      currentUserRole: task.team.memberships.find(({ userId }) => userId === user.id)?.role ?? "MEMBER" as const,
+      members: task.team.memberships.map(({ user: member }) => member),
+    },
+    comments: task.comments.map((comment) => ({ ...comment, createdAt: comment.createdAt.toISOString() })),
+    attachments: task.attachments,
+  });
 
   return (
     <main className="min-h-screen bg-background">
       <AppHeader user={user} {...headerData} />
       <PersonalTasks
-        tasks={tasks.map((task) => ({
-          id: task.id,
-          title: task.title,
-          priority: task.priority,
-          dueAt: task.dueAt?.toISOString() ?? null,
-          team: task.team,
-        }))}
+        tasks={tasks.map(serializeTask)}
         teams={memberships.map(({ team }) => ({ id: team.id, name: team.name }))}
+        currentUserId={user.id}
+        initialTaskId={query.task}
+        focusedTask={focusedTask ? serializeTask(focusedTask) : undefined}
       />
     </main>
   );

@@ -21,6 +21,7 @@ export async function createTeamAction(_: TeamState, formData: FormData): Promis
       name,
       timeZone: (await db.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } }))?.timeZone ?? "UTC",
       memberships: { create: { userId: user.id, role: "OWNER" } },
+      featureSettings: { create: {} },
     },
   });
   await publishRealtimeEvent([user.id], "team.created");
@@ -117,4 +118,64 @@ export async function acceptInviteAction(formData: FormData) {
   await publishRealtimeEvent([user.id, invite.invitedById], "invite.accepted");
 
   redirect("/dashboard");
+}
+
+export async function removeMemberAction(formData: FormData) {
+  const user = await requireUser();
+  const teamId = String(formData.get("teamId") ?? "");
+  const memberId = String(formData.get("memberId") ?? "");
+  const [owner, member] = await Promise.all([
+    db.membership.findUnique({ where: { userId_teamId: { userId: user.id, teamId } }, include: { team: true } }),
+    db.membership.findUnique({ where: { userId_teamId: { userId: memberId, teamId } }, include: { user: true } }),
+  ]);
+  if (!owner || owner.role !== "OWNER" || !member || member.role === "OWNER" || member.userId === user.id) return;
+
+  await db.$transaction([
+    db.taskMember.deleteMany({ where: { userId: memberId, task: { teamId } } }),
+    db.membership.delete({ where: { userId_teamId: { userId: memberId, teamId } } }),
+    db.notification.create({
+      data: {
+        recipientId: memberId,
+        teamId,
+        kind: "TEAM",
+        href: "/",
+        title: "Team access removed",
+        message: `${user.name} removed you from ${owner.team.name}.`,
+      },
+    }),
+  ]);
+  await publishRealtimeEvent([user.id, memberId], "membership.updated");
+  revalidatePath("/");
+  revalidatePath("/dashboard", "layout");
+}
+
+export async function leaveTeamAction(formData: FormData) {
+  const user = await requireUser();
+  const teamId = String(formData.get("teamId") ?? "");
+  const membership = await db.membership.findUnique({
+    where: { userId_teamId: { userId: user.id, teamId } },
+    include: { team: { include: { memberships: { where: { role: "OWNER" }, select: { userId: true } } } } },
+  });
+  if (!membership || membership.role === "OWNER") return;
+  const owners = membership.team.memberships.map(({ userId }) => userId);
+
+  await db.$transaction(async (tx) => {
+    await tx.taskMember.deleteMany({ where: { userId: user.id, task: { teamId } } });
+    await tx.membership.delete({ where: { userId_teamId: { userId: user.id, teamId } } });
+    if (owners.length) {
+      await tx.notification.createMany({
+        data: owners.map((recipientId) => ({
+          recipientId,
+          teamId,
+          kind: "TEAM" as const,
+          href: "/dashboard/teams",
+          title: "A member left the team",
+          message: `${user.name} left ${membership.team.name}.`,
+        })),
+      });
+    }
+  });
+  await publishRealtimeEvent([user.id, ...owners], "membership.updated");
+  revalidatePath("/");
+  revalidatePath("/dashboard", "layout");
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BarChart3, Bell, Flame, LogOut, ShieldCheck, Sparkles, X } from "lucide-react";
+import { ArrowRight, Bell, Flame, LayoutDashboard, LogOut, ShieldCheck, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
@@ -271,13 +271,9 @@ export function ProfileMenu({ name, email }: { name: string; email: string }) {
               <X className="h-4 w-4" />
             </button>
           </div>
-          <Link role="menuitem" href="/analytics" onClick={menu.close} className="flex min-h-12 items-center gap-3 px-4 py-3 text-sm hover:bg-surface-subtle">
-            <BarChart3 className="h-4 w-4 shrink-0 text-muted-foreground" />
-            Analytics & archive
-          </Link>
-          <Link role="menuitem" href="/momentum" onClick={menu.close} className="flex min-h-12 items-center gap-3 border-t border-border px-4 py-3 text-sm hover:bg-surface-subtle">
-            <Flame className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
-            Momentum & badges
+          <Link role="menuitem" href="/dashboard/teams" onClick={menu.close} className="flex min-h-12 items-center gap-3 px-4 py-3 text-sm hover:bg-surface-subtle">
+            <LayoutDashboard className="h-4 w-4 shrink-0 text-muted-foreground" />
+            Dashboard
           </Link>
           <form action={logoutAction} className="border-t border-border">
             <button role="menuitem" type="submit" className="flex min-h-12 w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-surface-subtle">

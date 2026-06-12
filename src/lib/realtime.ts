@@ -17,7 +17,12 @@ export type RealtimeEvent = {
     | "team.created"
     | "notification.updated"
     | "momentum.updated"
-    | "quest.updated";
+    | "quest.updated"
+    | "feature.updated"
+    | "comment.created"
+    | "attachment.created"
+    | "attachment.deleted"
+    | "membership.updated";
   sentAt: string;
 };
 

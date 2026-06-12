@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { CalendarDays, Check, Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarDays, Check, MessageCircleMore, Paperclip, Plus, X } from "lucide-react";
 
 import { createPersonalTaskAction } from "@/app/actions/tasks";
 import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TaskDetailPanel, type TaskDetail } from "@/components/tasks/task-detail-panel";
 
 type TeamOption = { id: string; name: string };
 type TaskItem = {
@@ -15,8 +16,7 @@ type TaskItem = {
   title: string;
   priority: "NORMAL" | "HIGH";
   dueAt: string | null;
-  team: { name: string };
-};
+} & TaskDetail;
 
 function dueLabel(dueAt: string | null) {
   if (!dueAt) return null;
@@ -30,8 +30,11 @@ function dueLabel(dueAt: string | null) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(due);
 }
 
-export function PersonalTasks({ tasks, teams }: { tasks: TaskItem[]; teams: TeamOption[] }) {
+export function PersonalTasks({ tasks, teams, currentUserId, initialTaskId, focusedTask }: { tasks: TaskItem[]; teams: TeamOption[]; currentUserId: string; initialTaskId?: string; focusedTask?: TaskItem }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  useEffect(() => { if (initialTaskId && (tasks.some(({ id }) => id === initialTaskId) || focusedTask?.id === initialTaskId)) setSelectedTaskId(initialTaskId); }, [focusedTask?.id, initialTaskId, tasks]);
+  const selectedTask = tasks.find(({ id }) => id === selectedTaskId) ?? (focusedTask?.id === selectedTaskId ? focusedTask : undefined);
 
   return (
     <div className="mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-6">
@@ -75,6 +78,7 @@ export function PersonalTasks({ tasks, teams }: { tasks: TaskItem[]; teams: Team
                       {task.priority === "HIGH" ? <Badge className="sm:hidden" variant="danger">Important</Badge> : null}
                     </div>
                   </div>
+                  {task.team.commentsEnabled || task.team.attachmentsEnabled ? <button type="button" onClick={() => setSelectedTaskId(task.id)} className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm text-muted-foreground hover:bg-surface-subtle hover:text-foreground" aria-label={`Open details for ${task.title}`}>{task.team.commentsEnabled ? <><MessageCircleMore className="h-4 w-4" /><span>{task.comments.length || ""}</span></> : null}{task.team.attachmentsEnabled ? <><Paperclip className="h-4 w-4" /><span>{task.attachments.length || ""}</span></> : null}</button> : null}
                   {task.priority === "HIGH" ? <Badge className="hidden shrink-0 sm:inline-flex" variant="danger">Important</Badge> : null}
                 </div>
               );
@@ -84,6 +88,7 @@ export function PersonalTasks({ tasks, teams }: { tasks: TaskItem[]; teams: Team
           <div className="py-20 text-center text-sm text-muted-foreground">Nothing to do.</div>
         )}
       </section>
+      {selectedTask ? <TaskDetailPanel task={selectedTask} currentUserId={currentUserId} onClose={() => setSelectedTaskId(null)} /> : null}
     </div>
   );
 }

@@ -197,6 +197,12 @@ After this feature is deployed, the normal stack contains four containers:
 - `team-tasks-momentum-scheduler`
 - `team-tasks-tunnel`
 
+## Persistent task files
+
+Optional task attachments are stored in the Docker volume `team-tasks-uploads` and mounted at `/app/uploads`. Portainer creates it automatically. Keep this volume when recreating the stack and back it up alongside `team-tasks-postgres-v2`.
+
+Downloads are served only through authenticated application routes that verify current team membership. Do not expose the upload directory through a public web server path.
+
 ## Rollback
 
 ```bash

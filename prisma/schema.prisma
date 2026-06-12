@@ -26,6 +26,7 @@ model User {
   productEvents      ProductEvent[]
   comments           TaskComment[]
   commentMentions    CommentMention[]
+  commentReceipts    CommentReceipt[]
   uploadedAttachments TaskAttachment[]
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
@@ -103,10 +104,25 @@ model TaskComment {
   task      Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
   author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
   mentions  CommentMention[]
+  receipts  CommentReceipt[]
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
   @@index([taskId, createdAt])
+}
+
+model CommentReceipt {
+  id                String      @id @default(cuid())
+  commentId         String
+  userId            String
+  requiresAttention Boolean     @default(false)
+  readAt            DateTime?
+  comment           TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime    @default(now())
+
+  @@unique([commentId, userId])
+  @@index([userId, readAt, createdAt])
 }
 
 model CommentMention {

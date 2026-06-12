@@ -18,7 +18,7 @@ export default async function DiscussionsPage() {
     include: {
       author: { select: { name: true } },
       task: { include: { team: { select: { name: true } } } },
-      mentions: { include: { user: { select: { name: true } } } },
+      receipts: { where: { requiresAttention: true }, include: { user: { select: { name: true } } } },
     },
     orderBy: { createdAt: "desc" },
     take: 50,
@@ -40,7 +40,7 @@ export default async function DiscussionsPage() {
                   <span className="shrink-0 text-xs text-muted-foreground">{new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(comment.createdAt)}</span>
                 </div>
                 <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{comment.body}</p>
-                <p className="mt-2 text-xs text-muted-foreground">{comment.task.team.name}{comment.mentions.length ? ` - mentioned ${comment.mentions.map(({ user: mentioned }) => mentioned.name).join(", ")}` : ""}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{comment.task.team.name}{comment.receipts.length ? ` - mentioned ${comment.receipts.map(({ user: mentioned }) => mentioned.name).join(", ")}` : ""}</p>
               </Link>
             ))}
           </div>

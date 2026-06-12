@@ -24,19 +24,20 @@ async function accessibleAttachment(attachmentId: string, userId: string) {
   return membership ? { attachment, membership } : null;
 }
 
-export async function GET(_: Request, { params }: { params: Promise<{ attachmentId: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ attachmentId: string }> }) {
   const user = await getSessionUser();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
   const { attachmentId } = await params;
   const access = await accessibleAttachment(attachmentId, user.id);
   if (!access) return new NextResponse("Not found", { status: 404 });
+  const preview = new URL(request.url).searchParams.get("preview") === "1" && access.attachment.mimeType.startsWith("image/");
   try {
     const bytes = await readFile(storedAttachmentPath(access.attachment.storedName));
     return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "Content-Type": access.attachment.mimeType,
         "Content-Length": String(access.attachment.size),
-        "Content-Disposition": `attachment; filename="${downloadName(access.attachment.originalName)}"; filename*=UTF-8''${encodeURIComponent(access.attachment.originalName)}`,
+        "Content-Disposition": `${preview ? "inline" : "attachment"}; filename="${downloadName(access.attachment.originalName)}"; filename*=UTF-8''${encodeURIComponent(access.attachment.originalName)}`,
         "X-Content-Type-Options": "nosniff",
         "Cache-Control": "private, no-store",
       },

@@ -20,6 +20,7 @@ export type RealtimeEvent = {
     | "quest.updated"
     | "feature.updated"
     | "comment.created"
+    | "comment.read"
     | "attachment.created"
     | "attachment.deleted"
     | "membership.updated";

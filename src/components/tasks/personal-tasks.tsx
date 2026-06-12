@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TaskDetailPanel, type TaskDetail } from "@/components/tasks/task-detail-panel";
+import { cn } from "@/lib/utils";
 
 type TeamOption = { id: string; name: string };
 type TaskItem = {
@@ -68,7 +69,7 @@ export function PersonalTasks({ tasks, teams, currentUserId, initialTaskId, focu
             {tasks.map((task) => {
               const due = dueLabel(task.dueAt);
               return (
-                <div key={task.id} className="flex min-h-24 items-start gap-3 px-4 py-5 sm:items-center sm:gap-4 sm:px-6">
+                <div key={task.id} className={cn("relative flex min-h-24 items-start gap-3 px-4 py-5 sm:items-center sm:gap-4 sm:px-6", task.hasMentionAttention && "task-mention-attention")}>
                   <CompleteTaskButton taskId={task.id} title={task.title} />
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-base font-semibold leading-6 sm:text-lg">{task.title}</p>
@@ -78,7 +79,7 @@ export function PersonalTasks({ tasks, teams, currentUserId, initialTaskId, focu
                       {task.priority === "HIGH" ? <Badge className="sm:hidden" variant="danger">Important</Badge> : null}
                     </div>
                   </div>
-                  {task.team.commentsEnabled || task.team.attachmentsEnabled ? <button type="button" onClick={() => setSelectedTaskId(task.id)} className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm text-muted-foreground hover:bg-surface-subtle hover:text-foreground" aria-label={`Open details for ${task.title}`}>{task.team.commentsEnabled ? <><MessageCircleMore className="h-4 w-4" /><span>{task.comments.length || ""}</span></> : null}{task.team.attachmentsEnabled ? <><Paperclip className="h-4 w-4" /><span>{task.attachments.length || ""}</span></> : null}</button> : null}
+                  {task.team.commentsEnabled || task.team.attachmentsEnabled ? <button type="button" onClick={() => setSelectedTaskId(task.id)} className="flex min-h-10 shrink-0 items-center gap-2 rounded-full px-2.5 text-sm text-muted-foreground hover:bg-surface-subtle hover:text-foreground" aria-label={`Open details for ${task.title}`}>{task.team.commentsEnabled ? <span className="relative flex items-center gap-1"><MessageCircleMore className={cn("h-4 w-4", task.unreadCommentCount > 0 && "text-brand")} /><span>{task.comments.length || ""}</span>{task.unreadCommentCount ? <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-semibold text-white">{task.unreadCommentCount}</span> : null}</span> : null}{task.team.attachmentsEnabled ? <span className="flex items-center gap-1"><Paperclip className="h-4 w-4" /><span>{task.attachments.length || ""}</span></span> : null}</button> : null}
                   {task.priority === "HIGH" ? <Badge className="hidden shrink-0 sm:inline-flex" variant="danger">Important</Badge> : null}
                 </div>
               );

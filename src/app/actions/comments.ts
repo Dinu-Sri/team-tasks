@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { dueDateForSelection } from "@/lib/momentum";
 import { publishRealtimeEvent } from "@/lib/realtime";
 
 export type CommentState = { error?: string; success?: string };
@@ -20,71 +19,69 @@ export async function addTaskCommentAction(_: CommentState, formData: FormData):
   const task = await db.task.findUnique({
     where: { id: taskId },
     include: {
-      team: { include: { featureSettings: true } },
-      assignees: { select: { userId: true } },
+      team: {
+        include: {
+          featureSettings: true,
+          memberships: { include: { user: { select: { id: true, name: true } } } },
+        },
+      },
     },
   });
   if (!task) return { error: "Task not found." };
-  const membership = await db.membership.findUnique({ where: { userId_teamId: { userId: user.id, teamId: task.teamId } } });
-  if (!membership) return { error: "You no longer belong to this team." };
+  const currentMembership = task.team.memberships.find(({ userId }) => userId === user.id);
+  if (!currentMembership) return { error: "You no longer belong to this team." };
   if (!task.team.featureSettings?.commentsEnabled) return { error: "Comments are not enabled for this team." };
 
-  const validMentions = requestedMentions.length ? await db.membership.findMany({
-    where: { teamId: task.teamId, userId: { in: requestedMentions, not: user.id } },
-    include: { user: { select: { id: true, name: true } } },
-  }) : [];
+  const recipients = task.team.memberships.filter(({ userId }) => userId !== user.id);
+  const recipientIds = new Set(recipients.map(({ userId }) => userId));
+  const mentionAll = /(^|\s)@all\b/i.test(body);
+  const directlyMentioned = new Set(
+    requestedMentions.filter((id) => {
+      const member = recipients.find(({ userId }) => userId === id);
+      return member && body.includes(`@${member.user.name}`);
+    }),
+  );
 
-  const created = await db.$transaction(async (tx) => {
-    const comment = await tx.taskComment.create({ data: { taskId, authorId: user.id, body } });
-    const replyTaskIds: string[] = [];
-    for (const mention of validMentions) {
-      const replyTask = await tx.task.create({
-        data: {
-          title: `Reply to ${user.name} on "${task.title}"`,
-          note: body,
-          teamId: task.teamId,
-          creatorId: user.id,
-          dueAt: dueDateForSelection("today", task.team.timeZone),
-          assignees: { create: { userId: mention.userId } },
-        },
-      });
-      replyTaskIds.push(replyTask.id);
-      await tx.commentMention.create({
-        data: { commentId: comment.id, userId: mention.userId, replyTaskId: replyTask.id },
-      });
-      await tx.notification.create({
-        data: {
-          recipientId: mention.userId,
-          teamId: task.teamId,
-          kind: "COMMENT",
-          href: `/?task=${task.id}`,
-          dedupeKey: `comment-mention:${comment.id}:${mention.userId}`,
-          title: `${user.name} mentioned you`,
-          message: `"${body.slice(0, 120)}${body.length > 120 ? "..." : ""}"`,
-        },
-      });
-    }
-
-    const interested = new Set([...task.assignees.map(({ userId }) => userId), task.creatorId]);
-    interested.delete(user.id);
-    validMentions.forEach(({ userId }) => interested.delete(userId));
-    if (interested.size) {
-      await tx.notification.createMany({
-        data: [...interested].map((recipientId) => ({
-          recipientId,
-          teamId: task.teamId,
-          kind: "COMMENT" as const,
-          href: `/?task=${task.id}`,
-          title: "New task comment",
-          message: `${user.name} commented on "${task.title}".`,
+  const comment = await db.taskComment.create({
+    data: {
+      taskId,
+      authorId: user.id,
+      body,
+      receipts: {
+        create: [...recipientIds].map((userId) => ({
+          userId,
+          requiresAttention: mentionAll || directlyMentioned.has(userId),
         })),
-      });
-    }
-    return { commentId: comment.id, replyTaskIds, recipientIds: [...interested, ...validMentions.map(({ userId }) => userId)] };
+      },
+    },
   });
 
-  await publishRealtimeEvent([...new Set([user.id, ...created.recipientIds])], "comment.created");
+  await publishRealtimeEvent([user.id, ...recipientIds], "comment.created");
   revalidatePath("/");
   revalidatePath("/dashboard/discussions");
-  return { success: "Comment added." };
+  return { success: comment.id };
+}
+
+export async function markTaskCommentsReadAction(taskId: string) {
+  const user = await requireUser();
+  const membership = await db.membership.findFirst({
+    where: { userId: user.id, team: { tasks: { some: { id: taskId } } } },
+  });
+  if (!membership) return;
+
+  const unread = await db.commentReceipt.findMany({
+    where: { userId: user.id, readAt: null, comment: { taskId } },
+    select: { id: true, comment: { select: { authorId: true } } },
+  });
+  if (!unread.length) return;
+
+  await db.commentReceipt.updateMany({
+    where: { id: { in: unread.map(({ id }) => id) } },
+    data: { readAt: new Date() },
+  });
+
+  const authors = [...new Set(unread.map(({ comment }) => comment.authorId))];
+  await publishRealtimeEvent([user.id, ...authors], "comment.read");
+  revalidatePath("/");
+  revalidatePath("/dashboard/discussions");
 }

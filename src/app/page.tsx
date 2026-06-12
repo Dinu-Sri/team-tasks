@@ -17,7 +17,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
 
   const taskInclude = {
     team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },
-    comments: { include: { author: { select: { id: true, name: true } }, mentions: { include: { user: { select: { id: true, name: true } } } } }, orderBy: { createdAt: "asc" as const } },
+    comments: {
+      include: {
+        author: { select: { id: true, name: true } },
+        receipts: { include: { user: { select: { id: true, name: true } } }, orderBy: { createdAt: "asc" as const } },
+      },
+      orderBy: { createdAt: "asc" as const },
+    },
     attachments: { include: { uploader: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" as const } },
   };
   const [tasks, memberships, headerData, focusedTask] = await Promise.all([
@@ -49,8 +55,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       currentUserRole: task.team.memberships.find(({ userId }) => userId === user.id)?.role ?? "MEMBER" as const,
       members: task.team.memberships.map(({ user: member }) => member),
     },
-    comments: task.comments.map((comment) => ({ ...comment, createdAt: comment.createdAt.toISOString() })),
+    comments: task.comments.map((comment) => ({
+      ...comment,
+      createdAt: comment.createdAt.toISOString(),
+      receipts: comment.receipts.map((receipt) => ({ ...receipt, readAt: receipt.readAt?.toISOString() ?? null })),
+    })),
     attachments: task.attachments,
+    unreadCommentCount: task.comments.filter((comment) => comment.receipts.some((receipt) => receipt.userId === user.id && !receipt.readAt)).length,
+    hasMentionAttention: task.comments.some((comment) => comment.receipts.some((receipt) => receipt.userId === user.id && !receipt.readAt && receipt.requiresAttention)),
   });
 
   return (

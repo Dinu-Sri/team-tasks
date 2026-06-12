@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Check, Circle, Plus, X } from "lucide-react";
+import { CalendarDays, Check, Plus, X } from "lucide-react";
 
-import { createPersonalTaskAction, toggleTaskAction } from "@/app/actions/tasks";
+import { createPersonalTaskAction } from "@/app/actions/tasks";
+import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,11 +66,7 @@ export function PersonalTasks({ tasks, teams }: { tasks: TaskItem[]; teams: Team
               const due = dueLabel(task.dueAt);
               return (
                 <div key={task.id} className="flex min-h-24 items-start gap-3 px-4 py-5 sm:items-center sm:gap-4 sm:px-6">
-                  <form action={toggleTaskAction.bind(null, task.id)}>
-                    <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-brand hover:text-brand" aria-label={`Complete ${task.title}`}>
-                      <Circle className="h-5 w-5" />
-                    </button>
-                  </form>
+                  <CompleteTaskButton taskId={task.id} title={task.title} />
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-base font-semibold leading-6 sm:text-lg">{task.title}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">

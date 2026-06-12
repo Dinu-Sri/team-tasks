@@ -4,13 +4,15 @@ import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { awardTaskMomentum, dueDateForSelection, type MomentumAward } from "@/lib/momentum";
+import { awardTaskMomentum, dueDateForSelection, revokeTaskMomentum, type MomentumAward } from "@/lib/momentum";
 import { publishRealtimeEvent } from "@/lib/realtime";
 
 export type TaskToggleResult = {
   completed: boolean;
   momentum: MomentumAward | null;
   questCompleted: boolean;
+  adjustedUserIds: string[];
+  adjustedTeamIds: string[];
 };
 
 export async function createPersonalTaskAction(formData: FormData) {
@@ -102,7 +104,7 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
     where: { taskId_userId: { taskId, userId: user.id } },
     include: { task: { include: { assignees: { select: { userId: true } } } } },
   });
-  if (!assignment) return { completed: false, momentum: null, questCompleted: false };
+  if (!assignment) return { completed: false, momentum: null, questCompleted: false, adjustedUserIds: [], adjustedTeamIds: [] };
 
   const done = assignment.task.status === "DONE";
   const completedAt = new Date();
@@ -112,7 +114,14 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
         where: { id: taskId, status: "DONE" },
         data: { status: "OPEN", completedAt: null, completedById: null },
       });
-      return { completed: false, momentum: null, questCompleted: false };
+      if (!changed.count) return { completed: false, momentum: null, questCompleted: false, adjustedUserIds: [], adjustedTeamIds: [] };
+      const adjusted = await revokeTaskMomentum(tx, {
+        taskId,
+        teamId: assignment.task.teamId,
+        assigneeIds: assignment.task.assignees.map(({ userId }) => userId),
+        reopenedAt: completedAt,
+      });
+      return { completed: false, momentum: null, questCompleted: false, ...adjusted };
     }
 
     const firstMomentumAward = assignment.task.momentumAwardedAt === null;
@@ -125,7 +134,7 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
         momentumAwardedAt: assignment.task.momentumAwardedAt ?? completedAt,
       },
     });
-    if (!changed.count) return { completed: true, momentum: null, questCompleted: false };
+    if (!changed.count) return { completed: true, momentum: null, questCompleted: false, adjustedUserIds: [], adjustedTeamIds: [] };
 
     let momentum: MomentumAward | null = null;
     let questCompleted = false;
@@ -155,7 +164,7 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
         skipDuplicates: true,
       });
     }
-    return { completed: true, momentum, questCompleted };
+    return { completed: true, momentum, questCompleted, adjustedUserIds: [], adjustedTeamIds: [] };
   });
 
   const realtimeRecipients = new Set([
@@ -165,6 +174,14 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
   if (result.questCompleted) {
     const teamMembers = await db.membership.findMany({ where: { teamId: assignment.task.teamId }, select: { userId: true } });
     teamMembers.forEach(({ userId }) => realtimeRecipients.add(userId));
+  }
+  result.adjustedUserIds.forEach((userId) => realtimeRecipients.add(userId));
+  if (result.adjustedTeamIds.length) {
+    const adjustedTeamMembers = await db.membership.findMany({
+      where: { teamId: { in: result.adjustedTeamIds } },
+      select: { userId: true },
+    });
+    adjustedTeamMembers.forEach(({ userId }) => realtimeRecipients.add(userId));
   }
   await publishRealtimeEvent([...realtimeRecipients], result.questCompleted ? "quest.updated" : "task.updated");
 

@@ -186,6 +186,10 @@ per local day. There is no individual leaderboard.
 3. A shared task grants a Daily Win independently to each assigned member when the
    task is first completed.
 4. Reopening and completing the same task never grants Momentum twice.
+   If a credited task is reopened, its Daily Win and Team Quest contribution are
+   transferred to another legitimately completed task from that same local day when
+   one exists. Otherwise the credit is revoked and all derived streak, Shield, badge,
+   and quest state is recalculated.
 5. A neutral day preserves the current streak.
 6. A missed eligible day consumes one Shield automatically when available.
 7. A missed eligible day with no Shield resets the active streak to zero.

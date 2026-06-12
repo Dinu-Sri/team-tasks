@@ -2,6 +2,7 @@
 
 import { Flame, ShieldCheck, Trophy, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { MomentumBadgeIcon } from "@/components/momentum/momentum-badge";
 import type { MomentumAward } from "@/lib/momentum-shared";
@@ -32,8 +33,8 @@ export function MomentumCelebrationListener() {
   if (!detail) return null;
   const award = detail.momentum;
 
-  return (
-    <div className="momentum-celebration fixed inset-x-3 bottom-4 z-[80] mx-auto max-w-sm overflow-hidden rounded-lg border border-border bg-surface shadow-soft sm:bottom-6">
+  return createPortal(
+    <div className="momentum-celebration fixed inset-x-3 top-20 z-[100] mx-auto max-w-sm overflow-hidden rounded-lg border border-border bg-surface shadow-soft sm:left-auto sm:right-6 sm:mx-0 sm:w-96">
       <button type="button" onClick={() => setDetail(null)} className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle" aria-label="Close celebration">
         <X className="h-4 w-4" />
       </button>
@@ -59,6 +60,7 @@ export function MomentumCelebrationListener() {
           {award?.shieldsEarned ? <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-300"><ShieldCheck className="h-4 w-4" />Shield earned</p> : null}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

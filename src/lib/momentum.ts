@@ -82,6 +82,13 @@ function zonedDateTimeToUtc(dateKey: string, hour: number, minute: number, timeZ
   return new Date(guess);
 }
 
+function localDayRange(dateKey: string, timeZone: string) {
+  return {
+    start: zonedDateTimeToUtc(dateKey, 0, 0, timeZone),
+    end: zonedDateTimeToUtc(shiftDateKey(dateKey, 1), 0, 0, timeZone),
+  };
+}
+
 export function dueDateForSelection(value: string, timeZone: string) {
   if (value === "none") return null;
   const offset = value === "tomorrow" ? 1 : value === "week" ? 7 : 0;
@@ -363,6 +370,185 @@ export async function awardTaskMomentum(
     input.completedAt,
   );
   return { actorAward, questCompleted };
+}
+
+async function rebuildMomentumProfile(tx: Tx, userId: string) {
+  const days = await tx.momentumDay.findMany({
+    where: { userId },
+    orderBy: { localDate: "asc" },
+  });
+  let currentStreak = 0;
+  let longestStreak = 0;
+  let totalWins = 0;
+  let shieldsUsed = 0;
+  let lastWinDate: string | null = null;
+
+  for (const day of days) {
+    if (day.status === "WIN") {
+      currentStreak += 1;
+      totalWins += 1;
+      longestStreak = Math.max(longestStreak, currentStreak);
+      lastWinDate = day.localDate;
+    } else if (day.status === "MISSED") {
+      currentStreak = 0;
+    } else if (day.status === "SHIELDED") {
+      shieldsUsed += 1;
+    }
+  }
+
+  const shieldsEarned = (longestStreak >= 3 ? 1 : 0) + Math.floor(totalWins / 7);
+  const shieldCount = Math.max(0, Math.min(2, shieldsEarned - shieldsUsed));
+  const validBadges = BADGE_DEFINITIONS.filter((badge) => badge.streak <= longestStreak).map((badge) => badge.tier);
+  const invalidAchievements = await tx.momentumAchievement.findMany({
+    where: validBadges.length ? { userId, badge: { notIn: validBadges } } : { userId },
+    select: { badge: true },
+  });
+
+  if (invalidAchievements.length) {
+    await tx.momentumAchievement.deleteMany({
+      where: { userId, badge: { in: invalidAchievements.map(({ badge }) => badge) } },
+    });
+    await tx.notification.deleteMany({
+      where: {
+        dedupeKey: {
+          in: invalidAchievements.map(({ badge }) => `momentum-badge:${userId}:${badge}`),
+        },
+      },
+    });
+  }
+
+  return tx.momentumProfile.update({
+    where: { userId },
+    data: {
+      currentStreak,
+      longestStreak,
+      totalWins,
+      shieldCount,
+      shieldsEarned,
+      lastWinDate,
+    },
+  });
+}
+
+export async function revokeTaskMomentum(
+  tx: Tx,
+  input: { taskId: string; teamId: string; assigneeIds: string[]; reopenedAt: Date },
+) {
+  const adjustedUserIds = new Set<string>();
+  const impactedDays = await tx.momentumDay.findMany({
+    where: { sourceTaskId: input.taskId, userId: { in: input.assigneeIds } },
+  });
+
+  for (const day of impactedDays) {
+    const profile = await ensureProfile(tx, day.userId);
+    const range = localDayRange(day.localDate, profile.timeZone);
+    const replacement = await tx.task.findFirst({
+      where: {
+        id: { not: input.taskId },
+        status: "DONE",
+        momentumAwardedAt: { not: null },
+        completedAt: { gte: range.start, lt: range.end },
+        assignees: { some: { userId: day.userId } },
+      },
+      orderBy: { completedAt: "asc" },
+      select: { id: true },
+    });
+
+    if (replacement) {
+      await tx.momentumDay.update({
+        where: { id: day.id },
+        data: { sourceTaskId: replacement.id },
+      });
+      continue;
+    }
+
+    const today = localDateKey(input.reopenedAt, profile.timeZone);
+    const pastDay = day.localDate < today;
+    const replacementStatus: MomentumDayStatus = pastDay
+      ? profile.shieldCount > 0 && profile.currentStreak > 0 ? "SHIELDED" : "MISSED"
+      : "PENDING";
+    await tx.momentumDay.update({
+      where: { id: day.id },
+      data: {
+        status: replacementStatus,
+        sourceTaskId: null,
+        resolvedAt: pastDay ? input.reopenedAt : null,
+      },
+    });
+    await rebuildMomentumProfile(tx, day.userId);
+    await tx.productEvent.create({
+      data: {
+        name: "momentum_daily_win_revoked",
+        userId: day.userId,
+        teamId: input.teamId,
+        properties: { localDate: day.localDate, taskId: input.taskId, replacementStatus },
+      },
+    });
+    adjustedUserIds.add(day.userId);
+  }
+
+  const contributions = await tx.questContribution.findMany({
+    where: { sourceTaskId: input.taskId },
+    include: { quest: { select: { id: true, teamId: true, targetWins: true, status: true, endAt: true } } },
+  });
+  const impactedQuestIds = new Set<string>();
+
+  for (const contribution of contributions) {
+    const profile = await ensureProfile(tx, contribution.userId);
+    const range = localDayRange(contribution.localDate, profile.timeZone);
+    const replacement = await tx.task.findFirst({
+      where: {
+        id: { not: input.taskId },
+        teamId: contribution.quest.teamId,
+        status: "DONE",
+        momentumAwardedAt: { not: null },
+        completedAt: { gte: range.start, lt: range.end },
+        assignees: { some: { userId: contribution.userId } },
+      },
+      orderBy: { completedAt: "asc" },
+      select: { id: true },
+    });
+
+    if (replacement) {
+      await tx.questContribution.update({
+        where: { id: contribution.id },
+        data: { sourceTaskId: replacement.id },
+      });
+    } else {
+      await tx.questContribution.delete({ where: { id: contribution.id } });
+      impactedQuestIds.add(contribution.quest.id);
+      await tx.productEvent.create({
+        data: {
+          name: "team_quest_contribution_revoked",
+          userId: contribution.userId,
+          teamId: contribution.quest.teamId,
+          properties: { questId: contribution.quest.id, taskId: input.taskId, localDate: contribution.localDate },
+        },
+      });
+    }
+  }
+
+  const adjustedTeamIds = new Set<string>();
+  for (const questId of impactedQuestIds) {
+    const quest = await tx.teamQuest.findUnique({ where: { id: questId } });
+    if (!quest) continue;
+    const progress = await tx.questContribution.count({ where: { questId } });
+    if (quest.status === "COMPLETED" && progress < quest.targetWins) {
+      await tx.teamQuest.update({
+        where: { id: questId },
+        data: {
+          status: quest.endAt > input.reopenedAt ? "ACTIVE" : "EXPIRED",
+          completedAt: null,
+        },
+      });
+      await tx.notification.deleteMany({
+        where: { dedupeKey: { startsWith: `quest-complete:${questId}:` } },
+      });
+    }
+    adjustedTeamIds.add(quest.teamId);
+  }
+
+  return { adjustedUserIds: [...adjustedUserIds], adjustedTeamIds: [...adjustedTeamIds] };
 }
 
 export async function getMomentumSummary(userId: string): Promise<MomentumSummary> {

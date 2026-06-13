@@ -28,11 +28,13 @@ function dueLabel(dueAt: string | null) {
   if (!dueAt) return null;
   const due = new Date(dueAt);
   const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
-  const key = due.toDateString();
-  if (key === today.toDateString()) return "Today";
-  if (key === tomorrow.toDateString()) return "Tomorrow";
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const startOfDue = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  const dayDiff = Math.round((startOfDue.getTime() - startOfToday.getTime()) / 86400000);
+  if (dayDiff === 0) return "Today";
+  if (dayDiff === 1) return "Tomorrow";
+  if (dayDiff === -1) return "Yesterday";
+  if (dayDiff === -2) return "Day before yesterday";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(due);
 }
 

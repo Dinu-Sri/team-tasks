@@ -10,18 +10,28 @@ import { teamTourSteps } from "@/lib/onboarding-tours";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
-  const [headerData, capabilities] = await Promise.all([
+  const [headerData, capabilities, teamTourCompleted] = await Promise.all([
     getHeaderData(user.id),
     db.membership.findMany({
       where: { userId: user.id },
       select: { team: { select: { featureSettings: true } } },
+    }),
+    db.onboardingProgress.findFirst({
+      where: { userId: user.id, tourName: { in: ["team-tour", "team-owner-tour", "team-member-tour"] } },
+      select: { id: true },
     }),
   ]);
   const commentsEnabled = capabilities.some(({ team }) => team.featureSettings?.commentsEnabled);
   const attachmentsEnabled = capabilities.some(({ team }) => team.featureSettings?.attachmentsEnabled);
 
   return (
-    <OnboardingProvider steps={teamTourSteps} tourName="team-tour">
+    <OnboardingProvider
+      steps={teamTourSteps}
+      tourName="team-tour"
+      userId={user.id}
+      seenAliases={["team-owner-tour", "team-member-tour"]}
+      completedInDb={Boolean(teamTourCompleted)}
+    >
       <main className="min-h-screen bg-background">
         <AppHeader user={user} {...headerData} />
         <DashboardShell commentsEnabled={commentsEnabled} attachmentsEnabled={attachmentsEnabled}>

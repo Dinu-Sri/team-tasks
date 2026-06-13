@@ -7,9 +7,24 @@ import { markTourSeen } from "@/components/auto-start-onboarding";
 export function OnbordaCard({ step, currentStep, totalSteps, nextStep, prevStep, arrow }: CardComponentProps) {
   const { closeOnborda, currentTour } = useOnborda();
 
+  async function persistTourCompletion(tourName: string) {
+    try {
+      await fetch("/api/onboarding/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tourName }),
+      });
+    } catch {
+      // Local completion still prevents repeated prompts in this browser.
+    }
+  }
+
   function handleDone() {
     // Mark as seen so it doesn't auto-trigger again
-    if (currentTour) markTourSeen(currentTour);
+    if (currentTour) {
+      markTourSeen(currentTour);
+      void persistTourCompletion(currentTour);
+    }
     closeOnborda();
   }
 

@@ -61,6 +61,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       include: taskInclude,
     }) : null,
   ]);
+  const personalTourCompleted = await db.onboardingProgress.findUnique({
+    where: { userId_tourName: { userId: user.id, tourName: "personal-tour" } },
+    select: { id: true },
+  });
 
   const viewerTeams = memberships.filter(({ role, team }) => role === "OWNER" && team.featureSettings?.memberTaskViewEnabled);
   const viewerTeamIds = viewerTeams.map(({ teamId }) => teamId);
@@ -122,7 +126,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     })));
 
   return (
-    <OnboardingProvider steps={personalTourSteps} tourName="personal-tour">
+    <OnboardingProvider
+      steps={personalTourSteps}
+      tourName="personal-tour"
+      userId={user.id}
+      completedInDb={Boolean(personalTourCompleted)}
+    >
       <main className="min-h-screen bg-background">
         <AppHeader user={user} {...headerData} memberTaskViewEnabled={memberTaskGroups.length > 0} />
         <PersonalTasks

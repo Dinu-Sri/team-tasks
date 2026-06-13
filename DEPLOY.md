@@ -1,220 +1,217 @@
-# Team Tasks deployment guide
+# Team Tasks Deployment Runbook
 
-## Overview
+This document is the source of truth for production deployments.
 
-Local development -> GitHub -> Portainer on the VPS.
+## 1) Golden Path Workflow (Always Follow)
 
-This follows the same deployment style as the wcwiki project: push tested code to GitHub, pull it on the VPS, and redeploy the Docker Compose stack from Portainer.
+Use this exact sequence:
 
-## First-time local setup
+1. Develop locally.
+2. Run local checks.
+3. Push to `master`.
+4. Wait for GitHub Actions image build to finish.
+5. Update/redeploy Portainer stack.
+6. Run production smoke checks.
+
+Do not skip steps.
+
+## 2) Local Pre-Deploy Checks
+
+Run from repo root:
 
 ```bash
 npm install
 npm run build
 ```
 
-Do not commit `.env.local` or real secrets.
-
-## GitHub
-
-Create a private GitHub repository, then connect this local project:
+Optional sanity check:
 
 ```bash
-git init
-git add .
-git commit -m "Initial Team Tasks app"
-git branch -M master
-git remote add origin https://github.com/YOUR_USERNAME/team-tasks.git
-git push -u origin master
+npx tsc --noEmit
 ```
 
+Notes:
 
+- `npx tsc --noEmit` may report extra type errors in some environments.
+- Production Docker build currently allows type errors via `next.config.ts` (`typescript.ignoreBuildErrors: true`) to keep deployment unblocked.
 
-## VPS directory
+## 3) GitHub Build and Image Publish
 
-Recommended path:
+Workflow file: `.github/workflows/docker.yml`
 
-```bash
-/opt/team-tasks
-```
+On every push to `master`, GitHub builds and pushes:
 
-Clone the repository on the VPS:
+- `ghcr.io/dinu-sri/team-tasks-app:latest`
+- `ghcr.io/dinu-sri/team-tasks:latest`
+- `ghcr.io/dinu-sri/team-tasks:<commit-sha>`
 
-```bash
-cd /opt
-git clone https://github.com/YOUR_USERNAME/team-tasks.git
-cd team-tasks
-```
+Portainer should use `ghcr.io/dinu-sri/team-tasks-app:latest`.
 
-## Portainer stack
+## 4) Portainer Stack (Production)
 
-Use `docker-compose.yml` for the Portainer Git stack. It is the default Compose file and includes both the app and Postgres.
+Compose source: `docker-compose.yml`
 
-The app image is built in GitHub Actions and published to GitHub Container Registry:
-
-```text
-ghcr.io/dinu-sri/team-tasks-app:latest
-```
-
-Set these environment variables in Portainer:
-
-| Variable | Example | Notes |
-| --- | --- | --- |
-| `NEXT_PUBLIC_BASE_URL` | `https://todo.clossyan.com` | Public URL |
-| `APP_URL` | `https://todo.clossyan.com` | Invitation links and secure session cookies |
-| `AUTH_SECRET` | long random value | Signs login cookies; recommended, but a stable value is generated when blank |
-| `MOMENTUM_CRON_SECRET` | long random value | Protects the internal Momentum maintenance endpoint; optional when a stable value is derived from the database password |
-| `POSTGRES_PASSWORD` | `long-random-password` | Used by both PostgreSQL and the app |
-| `CF_TUNNEL_TOKEN` | Cloudflare tunnel token | Keep only in Portainer; never commit it |
-
-Generate `AUTH_SECRET` with:
-
-```bash
-openssl rand -base64 48
-```
-
-Do not set `AUTH_SECRET` to a short value. If it is left blank, the container derives a stable private value from `POSTGRES_PASSWORD` so account creation cannot crash with a zero-length signing key.
-
-Optional email invitation variables:
-
-| Variable | Example |
-| --- | --- |
-| `SMTP_HOST` | `smtp.example.com` |
-| `SMTP_PORT` | `587` |
-| `SMTP_SECURE` | `false` |
-| `SMTP_USER` | SMTP username |
-| `SMTP_PASS` | SMTP password |
-| `SMTP_FROM` | `tasks@example.com` |
-
-When SMTP is not configured, registered users still receive invitations inside the dashboard. External invitations are stored and provide a shareable acceptance link.
-
-The app publishes direct access on host port `3002`. From the current Portainer screenshots, `3002` appears free while `3000`, `3001`, `8080`, `8081`, `8082`, `8088`, `9443`, `25600`, and `3307` are already used.
-
-### Fixing Prisma P1000 after changing the password
-
-PostgreSQL only uses `POSTGRES_PASSWORD` when it creates a new database volume. Changing the value later in Portainer does not change the password already stored inside an existing volume.
-
-The current Compose file uses the fresh volume name `team-tasks-postgres-v2` and safely URL-encodes the password before Prisma connects. For a fresh installation with no data to preserve:
-
-1. Set one `POSTGRES_PASSWORD` value in the stack environment variables.
-2. Pull the latest Compose file from GitHub and redeploy the stack.
-3. Confirm Portainer created the volume `team-tasks-postgres-v2`.
-
-This creates PostgreSQL with the same password used by the app. The former `todo_pgdata` or `team-tasks_pgdata` volume can be deleted after the new stack is healthy because it contains no production user data. Do not delete `team-tasks-postgres-v2` after real user data has been created.
-
-If Portainer shows only `team-tasks-postgres`, it is using an old/dev compose file. After pulling this update, the stack should show:
-
-- `team-tasks-app`
-- `team-tasks-postgres`
-- `team-tasks-momentum-scheduler`
-
-If Portainer cannot pull `ghcr.io/dinu-sri/team-tasks:latest`, add a Portainer registry for `ghcr.io`:
-
-- Registry URL: `ghcr.io`
-- Username: your GitHub username
-- Password: a GitHub personal access token with `read:packages`
-
-If you make the GHCR package public, registry login is not needed.
-
-For the first live test without a domain, open:
-
-```text
-http://YOUR_SERVER_IP:3002
-```
-
-
-## Cloudflare Tunnel
-
-The `team-tasks-tunnel` container follows the same approach as wcwiki: it runs inside the Compose stack and reaches Next.js through the private Docker network. No host IP is used by the tunnel.
-
-### Temporary hostname: todo.clossyan.com
-
-1. In Cloudflare Zero Trust, open **Networks** -> **Tunnels** and create or open the `todo` tunnel.
-2. Rotate the tunnel token if it has been exposed, then copy the new token.
-3. Under the tunnel's **Public Hostnames** or **Published application routes**, add:
-   - Subdomain: `todo`
-   - Domain: `clossyan.com`
-   - Type: `HTTP`
-   - Service URL: `http://app:3000`
-4. In the Portainer `todo` stack environment variables, set:
-
-```text
-CF_TUNNEL_TOKEN=<new tunnel token>
-APP_URL=https://todo.clossyan.com
-NEXT_PUBLIC_BASE_URL=https://todo.clossyan.com
-```
-
-5. Pull and redeploy the stack. Portainer should create `team-tasks-tunnel` alongside the app and database.
-6. In the tunnel log, look for `Registered tunnel connection`. Then open `https://todo.clossyan.com`.
-
-Do not paste the full `docker run ... --token ...` command into Portainer. Copy only the token value after `--token` into `CF_TUNNEL_TOKEN`.
-
-### Changing to a new domain later
-
-If the new domain is in the same Cloudflare account, edit or add a published application route on this tunnel and point it to the same service URL, `http://app:3000`. Then change only these Portainer values and redeploy:
-
-```text
-APP_URL=https://NEW-DOMAIN
-NEXT_PUBLIC_BASE_URL=https://NEW-DOMAIN
-```
-
-If you create a completely new tunnel, also replace `CF_TUNNEL_TOKEN` with that new tunnel's token. Existing tasks and accounts remain in PostgreSQL and are unaffected by the domain change.
-
-## Updating to a new version
-
-```bash
-cd /opt/team-tasks
-git pull origin master
-docker compose pull app
-docker compose up -d
-```
-
-Or in Portainer:
-
-1. Open the `team-tasks` stack.
-2. Click **Update the stack**.
-3. Enable pull/redeploy if using a remote image, or rebuild if using local build context.
-4. Confirm the app is live.
-
-## Database migrations
-
-The app container automatically runs `prisma migrate deploy` before starting Next.js. Migrations are committed under `prisma/migrations` and applied during each safe restart.
-
-## Realtime updates
-
-Authenticated pages keep one Server-Sent Events connection open at `/api/realtime`. Task and invitation actions publish through PostgreSQL `LISTEN/NOTIFY`, so assigned tasks and bell notifications appear without a manual refresh. Cloudflare Tunnel supports the same-origin stream; the app sends heartbeats and disables response buffering. Browsers reconnect automatically and run a slow one-minute recovery refresh only if an event was missed.
-
-## Momentum scheduler
-
-The stack includes `team-tasks-momentum-scheduler`, which uses the same GitHub-built app image and calls the protected internal endpoint every 15 minutes. It creates eligible workdays, resolves missed days through Shields, sends one deduplicated reminder at the user's configured local hour, and creates or expires weekly Team Quests.
-
-Set `MOMENTUM_CRON_SECRET` to a long random value in Portainer when possible. If it is blank, both the app and scheduler derive the same stable secret from `POSTGRES_PASSWORD`. The endpoint is not intended for browser use.
-
-After this feature is deployed, the normal stack contains four containers:
+Expected containers:
 
 - `team-tasks-app`
 - `team-tasks-postgres`
 - `team-tasks-momentum-scheduler`
 - `team-tasks-tunnel`
 
-## Persistent task files
+Expected persistent volumes:
 
-Optional task attachments are stored in the Docker volume `team-tasks-uploads` and mounted at `/app/uploads`. Portainer creates it automatically. Keep this volume when recreating the stack and back it up alongside `team-tasks-postgres-v2`.
+- `team-tasks-postgres-v2`
+- `team-tasks-uploads`
 
-Downloads are served only through authenticated application routes that verify current team membership. Do not expose the upload directory through a public web server path.
+## 5) Required Environment Variables
 
-## Rollback
+Set these in Portainer stack env vars:
 
-```bash
-cd /opt/team-tasks
-git log --oneline -5
-git checkout <last-good-commit>
-docker compose up -d --build
-```
+- `POSTGRES_PASSWORD`
+- `APP_URL`
+- `NEXT_PUBLIC_BASE_URL`
+- `CF_TUNNEL_TOKEN`
 
-## Rules
+Recommended:
 
-- Push only locally verified code.
-- Keep production secrets in Portainer, not in Git.
-- Do not edit code directly on the VPS.
-- Use the GitHub -> VPS -> Portainer path for repeatable deployment.
+- `AUTH_SECRET`
+- `MOMENTUM_CRON_SECRET`
+
+Optional email:
+
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_SECURE`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `SMTP_FROM`
+
+Sentry:
+
+- `NEXT_PUBLIC_SENTRY_DSN`
+- `SENTRY_DSN`
+
+Important env format rule:
+
+- In Portainer, paste raw values only. Do not wrap values in quotes.
+
+## 6) Post-Deploy Smoke Checklist
+
+After stack redeploy:
+
+1. Confirm app opens at production URL.
+2. Login works.
+3. Create task works.
+4. Team page opens.
+5. Attachments upload works.
+6. Notifications/realtime updates work.
+7. Sentry receives a test event (triggered from app action or known error path).
+
+## 7) Known Errors and Fixes
+
+### A) GitHub build fails during image build
+
+Symptoms:
+
+- Workflow fails in Build and push step.
+
+Most common causes:
+
+- Dockerfile/package-manager mismatch.
+- Unexpected lockfile changes.
+
+Fix:
+
+1. Keep Docker path npm-based unless full migration is planned.
+2. Keep `pnpm-lock.yaml` out of git for this repo.
+3. Re-run local `npm install` and `npm run build`.
+4. Push again and re-check action logs.
+
+### B) Type errors block build unexpectedly
+
+Symptoms:
+
+- `npm run build` fails with TypeScript errors.
+
+Fix:
+
+1. Verify `next.config.ts` still includes:
+   - `typescript.ignoreBuildErrors: true`
+2. If intentionally removed, be ready to fully resolve all TypeScript errors before deploy.
+
+### C) Prisma auth/database errors after changing DB password
+
+Symptoms:
+
+- Prisma connection/auth failures (for example P1000).
+
+Cause:
+
+- Existing Postgres volume still has old password.
+
+Fix:
+
+1. For fresh install only: recreate DB volume with final password.
+2. Keep app and DB password in sync through `POSTGRES_PASSWORD`.
+3. Do not delete production data volume once real data exists.
+
+### D) Sentry not receiving events
+
+Symptoms:
+
+- No events in Sentry dashboard.
+
+Fix:
+
+1. Confirm both DSN vars are set (`NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN`).
+2. Ensure values are not quoted in Portainer.
+3. Redeploy app so runtime and build-time values are applied.
+4. Trigger a known error and verify ingestion.
+
+### E) GHCR image pull errors in Portainer
+
+Symptoms:
+
+- Portainer cannot pull `ghcr.io` image.
+
+Fix:
+
+1. Add GHCR registry credentials in Portainer.
+2. Use GitHub token with `read:packages`.
+3. Or make package public.
+
+## 8) Do Not Touch List (Without Explicit Review)
+
+These files are deployment-critical and must not be changed casually:
+
+- `.github/workflows/docker.yml`
+- `Dockerfile`
+- `docker-compose.yml`
+- `entrypoint.sh`
+- `next.config.ts`
+- `prisma/migrations/*`
+
+Any change to these requires:
+
+1. Local build verification.
+2. Short rationale in PR/commit message.
+3. Explicit deploy smoke test after release.
+
+## 9) Operational Rules
+
+1. Use one package manager strategy for deploy path (current: npm in Docker build).
+2. Keep secrets only in Portainer or GitHub Secrets, never in git.
+3. Never edit production code directly on VPS.
+4. Always deploy through GitHub -> GHCR -> Portainer.
+5. Do not rename service names, volume names, or container names without migration planning.
+6. Keep database and uploads volumes persistent across updates.
+
+## 10) Rollback Procedure
+
+If production breaks after deploy:
+
+1. In Portainer, redeploy previous known-good image tag (`ghcr.io/dinu-sri/team-tasks:<sha>`).
+2. If needed, checkout the last good commit locally and push a revert commit.
+3. Redeploy stack and rerun smoke checklist.
+
+Never delete production volumes as part of rollback unless this is a deliberate data reset.

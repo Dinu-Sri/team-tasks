@@ -43,7 +43,7 @@ export const personalTourSteps: Step[] = [
   },
 ];
 
-export const teamTourSteps: Step[] = [
+export const teamOwnerTourSteps: Step[] = [
   {
     icon: "👥",
     title: "Teams Dashboard",
@@ -88,6 +88,102 @@ export const teamTourSteps: Step[] = [
     icon: "🎯",
     title: "You're All Set!",
     content: "Jump back to your personal tasks anytime, or explore your team's workspace.",
+    selector: "#onborda-header",
+    side: "bottom",
+    showControls: false,
+    pointerPadding: 8,
+    pointerRadius: 10,
+  },
+];
+
+export const teamMemberTourSteps: Step[] = [
+  {
+    icon: "👥",
+    title: "Teams Dashboard",
+    content: "This is your team workspace. Shared tasks, discussions, and files are organized here.",
+    selector: "#onborda-dashboard-nav",
+    side: "right",
+    showControls: false,
+    pointerPadding: 8,
+    pointerRadius: 10,
+  },
+  {
+    icon: "📊",
+    title: "Team Board",
+    content: "Open the Teams Board to view assigned tasks, due dates, and progress updates.",
+    selector: "#onborda-dashboard-dashboard-teams",
+    side: "bottom",
+    showControls: false,
+    pointerPadding: 8,
+    pointerRadius: 10,
+  },
+  {
+    icon: "📈",
+    title: "Track Team Progress",
+    content: "Check Analytics to understand completion trends and team momentum over time.",
+    selector: "#onborda-dashboard-dashboard-analytics",
+    side: "bottom",
+    showControls: false,
+    pointerPadding: 8,
+    pointerRadius: 10,
+  },
+  {
+    icon: "🎯",
+    title: "Done",
+    content: "You are ready to work with your team tasks. Return to personal tasks anytime from the header.",
+    selector: "#onborda-header",
+    side: "bottom",
+    showControls: false,
+    pointerPadding: 8,
+    pointerRadius: 10,
+  },
+];
+
+export const teamTourSteps: Step[] = [
+  {
+    icon: "👥",
+    title: "Teams Workspace",
+    content: "This area is for shared team workspaces. Use the left navigation to move across team features.",
+    selector: "#onborda-dashboard-nav",
+    side: "right",
+    showControls: false,
+    pointerPadding: 8,
+    pointerRadius: 10,
+  },
+  {
+    icon: "📊",
+    title: "Teams Board",
+    content: "View assigned work and progress. If you own a team, you can also create tasks and assign members here.",
+    selector: "#onborda-dashboard-dashboard-teams",
+    side: "bottom",
+    showControls: false,
+    pointerPadding: 8,
+    pointerRadius: 10,
+  },
+  {
+    icon: "📈",
+    title: "Analytics",
+    content: "Check completion trends and team momentum to understand delivery health.",
+    selector: "#onborda-dashboard-dashboard-analytics",
+    side: "bottom",
+    showControls: false,
+    pointerPadding: 8,
+    pointerRadius: 10,
+  },
+  {
+    icon: "⚙️",
+    title: "Feature Controls",
+    content: "Owners can tune team settings like comments and attachments in Features.",
+    selector: "#onborda-dashboard-dashboard-features",
+    side: "right",
+    showControls: false,
+    pointerPadding: 8,
+    pointerRadius: 10,
+  },
+  {
+    icon: "🎯",
+    title: "You Are Ready",
+    content: "Use personal tasks for your own workflow and dashboard sections for team collaboration.",
     selector: "#onborda-header",
     side: "bottom",
     showControls: false,

@@ -1,0 +1,26 @@
+# Tuduvia
+
+> The simple way from to-do to done.
+
+Tuduvia is a simple task app for personal life, temporary projects, and small teams. The product is designed for people who want a clear to-do list without boards, training, or project-management complexity.
+
+Legal operator: Clossyan Technologies Pvt Ltd.
+
+Important public pages:
+- Home: /
+- Use cases: /use-cases
+- Pricing: /pricing
+- Contact: /contact
+- Privacy Policy: /privacy
+- Terms of Use: /terms
+- Cookie Policy: /cookies
+
+Core positioning:
+- No Boards. No Training.
+- Start alone with personal tasks.
+- Invite people when a task becomes a temporary project or small-team workflow.
+- Useful for personal to-do lists, school projects, home tasks, senior-friendly reminders, Gen Z simple workflows, neighborhood projects, friend trips, small businesses, non-IT teams, local shops, freelancers, creators, events, and volunteer groups.
+
+Private or authenticated areas such as /dashboard, /api, /momentum, invite links, and task-specific URLs should not be treated as public documentation.
+
+Contact: support@tuduvia.com

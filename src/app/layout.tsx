@@ -24,8 +24,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Team Tasks",
-  description: "A calm one-screen task app for small teams.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://tuduvia.com"),
+  title: {
+    default: "Tuduvia - Simple to-do lists for personal life and small teams",
+    template: "%s | Tuduvia",
+  },
+  description: "The simple way from to-do to done. Tuduvia is a simple task app for personal life, temporary projects, and small teams. No Boards. No Training.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
+  openGraph: {
+    title: "Tuduvia - The simple way from to-do to done",
+    description: "A simple task app for personal life, temporary projects, and small teams. No Boards. No Training.",
+    url: "/",
+    siteName: "Tuduvia",
+    images: [{ url: "/tuduvia-logo.webp", width: 512, height: 512, alt: "Tuduvia" }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Tuduvia - The simple way from to-do to done",
+    description: "A simple task app for personal life, temporary projects, and small teams. No Boards. No Training.",
+    images: ["/tuduvia-logo.webp"],
+  },
 };
 
 export default function RootLayout({

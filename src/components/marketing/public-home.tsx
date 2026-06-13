@@ -75,7 +75,7 @@ export function PublicHome() {
               </p>
             </div>
           </div>
-          <ProductPreview />
+          <AnimatedProductPreview />
         </div>
         <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-brand/50 via-brand/20 to-transparent" />
       </section>
@@ -236,35 +236,134 @@ export function PublicHome() {
   );
 }
 
-function ProductPreview() {
-  const tasks = [
-    { title: "Pay electricity bill", owner: "You", tag: "Personal", done: false },
-    { title: "Finish school slides", owner: "Maya", tag: "School", done: false },
-    { title: "Call supplier", owner: "Sam", tag: "Shop", done: true },
-  ];
-
+function AnimatedProductPreview() {
   return (
-    <div className="mx-auto mt-10 w-full max-w-md rounded-xl border border-border/70 bg-background p-4 text-left shadow-soft lg:mt-2">
+    <div className="relative mx-auto mt-10 w-full max-w-md rounded-xl border border-border/70 bg-background p-4 text-left shadow-soft lg:mt-2">
       <div className="flex items-center justify-between border-b border-border/60 px-1 pb-3">
         <div>
           <p className="text-sm font-semibold">Today in Tuduvia</p>
           <p className="text-xs text-muted-foreground">Personal &amp; team tasks, one list.</p>
         </div>
-        <Badge variant="success" className="text-xs">2 open</Badge>
+        <Badge variant="success" className="text-xs">3 open</Badge>
       </div>
-      <div className="mt-2 grid gap-1.5">
-        {tasks.map((task) => (
-          <div key={task.title} className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5">
-            <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full border", task.done ? "border-success bg-success text-white" : "border-border bg-background text-muted-foreground")}>
-              {task.done ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
+
+      <style>{`
+        @keyframes tuduvia-scene-cycle {
+          0%,  29%  { transform: translateY(0);    opacity: 1; }
+          32%, 100% { transform: translateY(-6px);  opacity: 0; pointer-events: none; }
+        }
+        @keyframes tuduvia-scene-enter {
+          0%,  31%  { transform: translateY(6px); opacity: 0; }
+          33%, 100% { transform: translateY(0);    opacity: 1; }
+        }
+        @keyframes tuduvia-tick {
+          0%,  8%   { border-color: hsl(var(--border)); background: hsl(var(--background)); color: transparent; }
+          11%, 100% { border-color: hsl(var(--success)); background: hsl(var(--success)); color: white; }
+        }
+        @keyframes tuduvia-strike {
+          0%,  8%   { text-decoration-color: transparent; opacity: 1; }
+          11%, 100% { text-decoration: line-through; text-decoration-color: hsl(var(--muted-foreground)); opacity: 0.55; }
+        }
+        @keyframes tuduvia-tick-stagger1 { 0% { opacity: 0; } 3%, 100% { opacity: 1; } }
+        @keyframes tuduvia-tick-stagger2 { 0%, 12% { opacity: 0; } 15%, 100% { opacity: 1; } }
+        @keyframes tuduvia-tick-stagger3 { 0%, 24% { opacity: 0; } 27%, 100% { opacity: 1; } }
+
+        @keyframes tuduvia-undo-flash {
+          0%,  50%  { border-color: hsl(var(--success)); background: hsl(var(--success)); color: white; }
+          50.1%, 65% { border-color: hsl(var(--success)); background: hsl(var(--background)); color: hsl(var(--success)); }
+          66%,  100% { border-color: hsl(var(--border));  background: hsl(var(--background)); color: hsl(var(--muted-foreground)); }
+        }
+        @keyframes tuduvia-undo-strike-out {
+          0%,  50%  { text-decoration: line-through; text-decoration-color: hsl(var(--muted-foreground)); opacity: 0.55; }
+          66%,  100% { text-decoration: none; opacity: 1; }
+        }
+
+        .animate-cycle { animation: tuduvia-scene-cycle 14s ease-in-out infinite; }
+        .animate-cycle-enter { animation: tuduvia-scene-enter 14s ease-in-out infinite; }
+        .animate-tick-s1 { animation: tuduvia-tick 14s ease-in-out infinite, tuduvia-tick-stagger1 14s ease-in-out infinite; }
+        .animate-tick-s2 { animation: tuduvia-tick 14s ease-in-out infinite, tuduvia-tick-stagger2 14s ease-in-out infinite; }
+        .animate-tick-s3 { animation: tuduvia-tick 14s ease-in-out infinite, tuduvia-tick-stagger3 14s ease-in-out infinite; }
+        .animate-strike-s1 { animation: tuduvia-strike 14s ease-in-out infinite, tuduvia-tick-stagger1 14s ease-in-out infinite; }
+        .animate-strike-s2 { animation: tuduvia-strike 14s ease-in-out infinite, tuduvia-tick-stagger2 14s ease-in-out infinite; }
+        .animate-strike-s3 { animation: tuduvia-strike 14s ease-in-out infinite, tuduvia-tick-stagger3 14s ease-in-out infinite; }
+        .animate-undo-circle { animation: tuduvia-undo-flash 14s ease-in-out infinite; }
+        .animate-undo-strike { animation: tuduvia-undo-strike-out 14s ease-in-out infinite; }
+      `}</style>
+
+      {/* ── Scene 1: Personal tasks ── */}
+      <div className="animate-cycle">
+        <div className="mt-2 grid gap-1.5">
+          {[
+            { title: "Pay electricity bill", owner: "You" },
+            { title: "Finish school slides", owner: "Maya" },
+            { title: "Call supplier", owner: "Sam" },
+          ].map((task, idx) => {
+            const staggerClass = idx === 0 ? "animate-tick-s1" : idx === 1 ? "animate-tick-s2" : "animate-tick-s3";
+            const strikeClass = idx === 0 ? "animate-strike-s1" : idx === 1 ? "animate-strike-s2" : "animate-strike-s3";
+            return (
+              <div key={idx} className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5">
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground ${staggerClass}`}>
+                  <CheckCircle2 className={`h-3.5 w-3.5 ${staggerClass}`} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate text-sm font-medium text-foreground ${strikeClass}`}>{task.title}</p>
+                  <p className="text-xs text-muted-foreground">{task.owner}</p>
+                </div>
+                <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">Personal</Badge>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Scene 2: Team management ── */}
+      <div className="animate-cycle-enter" style={{ animationDelay: "-4.66s", position: "absolute", left: 0, right: 0, top: 0, padding: "16px" }}>
+        <div className="grid gap-1.5" style={{ marginTop: "44px" }}>
+          {[
+            { title: "Assign onboarding buddy", owner: "Liam", tag: "HR" },
+            { title: "Review Q3 report draft", owner: "Priya", tag: "Team" },
+            { title: "Book venue for offsite", owner: "Carlos", tag: "Events" },
+          ].map((task, idx) => {
+            const staggerClass = idx === 0 ? "animate-tick-s1" : idx === 1 ? "animate-tick-s2" : "animate-tick-s3";
+            const strikeClass = idx === 0 ? "animate-strike-s1" : idx === 1 ? "animate-strike-s2" : "animate-strike-s3";
+            return (
+              <div key={idx} className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5">
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground ${staggerClass}`}>
+                  <CheckCircle2 className={`h-3.5 w-3.5 ${staggerClass}`} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate text-sm font-medium text-foreground ${strikeClass}`}>{task.title}</p>
+                  <p className="text-xs text-muted-foreground">{task.owner}</p>
+                </div>
+                <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">{task.tag}</Badge>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Scene 3: Undo moment ── */}
+      <div className="animate-cycle-enter" style={{ animationDelay: "-9.33s", position: "absolute", left: 0, right: 0, top: 0, padding: "16px" }}>
+        <div className="grid gap-1.5" style={{ marginTop: "44px" }}>
+          <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5 opacity-55">
+            <svg className="h-6 w-6 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm line-through text-muted-foreground">Ship v2 landing page</p>
+              <p className="text-xs text-muted-foreground">You</p>
+            </div>
+            <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">Launch</Badge>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5">
+            <span className="animate-undo-circle flex h-6 w-6 shrink-0 items-center justify-center rounded-full border">
+              <Undo2 className="h-3.5 w-3.5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className={cn("truncate text-sm font-medium", task.done ? "text-muted-foreground line-through" : "text-foreground")}>{task.title}</p>
-              <p className="text-xs text-muted-foreground">{task.owner}</p>
+              <p className="animate-undo-strike truncate text-sm font-medium text-foreground">Ship v2 landing page</p>
+              <p className="text-xs text-muted-foreground">You</p>
             </div>
-            <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">{task.tag}</Badge>
+            <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">Launch</Badge>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );

@@ -238,11 +238,12 @@ export function PublicHome() {
 
 function AnimatedProductPreview() {
   return (
-    <div className="relative mx-auto mt-10 w-full max-w-md rounded-xl border border-border/70 bg-background p-4 text-left shadow-soft lg:mt-2">
-      <div className="flex items-center justify-between border-b border-border/60 px-1 pb-3">
+    <div className="relative mx-auto mt-10 w-full max-w-md rounded-xl border border-border/70 bg-background text-left shadow-soft lg:mt-2" style={{ minHeight: "240px" }}>
+      {/* Static header — always visible */}
+      <div className="flex items-center justify-between border-b border-border/60 px-4 pb-3 pt-4">
         <div>
           <p className="text-sm font-semibold">Today in Tuduvia</p>
-          <p className="animate-subtitle text-xs text-muted-foreground">Personal &amp; team tasks, one list.</p>
+          <p className="animate-subtitle text-xs text-muted-foreground">Personal tasks, one simple list.</p>
         </div>
         <Badge variant="success" className="text-xs">3 open</Badge>
       </div>
@@ -291,7 +292,6 @@ function AnimatedProductPreview() {
         .animate-undo-circle { animation: tuduvia-undo-flash 14s ease-in-out infinite; }
         .animate-undo-strike { animation: tuduvia-undo-strike-out 14s ease-in-out infinite; }
 
-        /* Subtitle rotation */
         .animate-subtitle::after {
           animation: subtitle-cycle 14s ease-in-out infinite;
           content: "";
@@ -306,9 +306,9 @@ function AnimatedProductPreview() {
         }
       `}</style>
 
-      {/* ── Scene 1: Personal tasks ── */}
-      <div className="animate-cycle">
-        <div className="mt-2 grid gap-1.5">
+      {/* ── Scene 1: Personal tasks (simple, no extra icons) ── */}
+      <div className="animate-cycle px-4 pb-4 pt-2">
+        <div className="grid gap-1.5">
           {[
             { title: "Pay electricity bill", owner: "You" },
             { title: "Finish school slides", owner: "Maya" },
@@ -332,13 +332,13 @@ function AnimatedProductPreview() {
         </div>
       </div>
 
-      {/* ── Scene 2: Team management ── */}
-      <div className="animate-cycle-enter bg-background" style={{ animationDelay: "-4.66s", position: "absolute", left: 0, right: 0, top: 0, padding: "16px", borderRadius: "12px" }}>
-        <div className="grid gap-1.5" style={{ marginTop: "44px" }}>
+      {/* ── Scene 2: Team management with comment/attachment/notification icons like real app ── */}
+      <div className="animate-cycle-enter bg-background" style={{ animationDelay: "-4.66s", position: "absolute", left: 0, right: 0, top: 0, paddingTop: "52px", borderRadius: "12px" }}>
+        <div className="grid gap-1.5 px-4 pb-4">
           {[
-            { title: "Assign onboarding buddy", owner: "Liam", tag: "HR" },
-            { title: "Review Q3 report draft", owner: "Priya", tag: "Team" },
-            { title: "Book venue for offsite", owner: "Carlos", tag: "Events" },
+            { title: "Assign onboarding buddy", owner: "Liam", tag: "HR", comments: 2, unread: 1, files: 1 },
+            { title: "Review Q3 report draft", owner: "Priya", tag: "Team", comments: 0, unread: 0, files: 0 },
+            { title: "Book venue for offsite", owner: "Carlos", tag: "Events", comments: 3, unread: 2, files: 0 },
           ].map((task, idx) => {
             const staggerClass = idx === 0 ? "animate-tick-s1" : idx === 1 ? "animate-tick-s2" : "animate-tick-s3";
             const strikeClass = idx === 0 ? "animate-strike-s1" : idx === 1 ? "animate-strike-s2" : "animate-strike-s3";
@@ -351,6 +351,20 @@ function AnimatedProductPreview() {
                   <p className={`truncate text-sm font-medium text-foreground ${strikeClass}`}>{task.title}</p>
                   <p className="text-xs text-muted-foreground">{task.owner}</p>
                 </div>
+                {/* Comment + file icons like real app */}
+                <span className="relative flex items-center gap-1 text-xs text-muted-foreground">
+                  <MessageCircleMore className="h-3.5 w-3.5" />
+                  {task.comments > 0 ? <span>{task.comments}</span> : null}
+                  {task.unread > 0 ? (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-danger px-1 text-[8px] font-semibold text-white">{task.unread}</span>
+                  ) : null}
+                </span>
+                {task.files > 0 ? (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Paperclip className="h-3.5 w-3.5" />
+                    <span>{task.files}</span>
+                  </span>
+                ) : null}
                 <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">{task.tag}</Badge>
               </div>
             );
@@ -359,8 +373,8 @@ function AnimatedProductPreview() {
       </div>
 
       {/* ── Scene 3: Undo moment ── */}
-      <div className="animate-cycle-enter bg-background" style={{ animationDelay: "-9.33s", position: "absolute", left: 0, right: 0, top: 0, padding: "16px", borderRadius: "12px" }}>
-        <div className="grid gap-1.5" style={{ marginTop: "44px" }}>
+      <div className="animate-cycle-enter bg-background" style={{ animationDelay: "-9.33s", position: "absolute", left: 0, right: 0, top: 0, paddingTop: "52px", borderRadius: "12px" }}>
+        <div className="grid gap-1.5 px-4 pb-4">
           <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5 opacity-55">
             <svg className="h-6 w-6 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <div className="min-w-0 flex-1">

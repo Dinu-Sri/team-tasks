@@ -15,9 +15,9 @@ export function MarketingHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-surface/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
+      <div className="mx-auto flex h-24 w-full max-w-6xl items-center justify-between px-5 sm:px-8">
         <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="Tuduvia home">
-          <Image src="/tuduvia-logo.webp" alt="Tuduvia" width={84} height={84} className="h-[84px] w-[84px] rounded-2xl object-contain" priority />
+          <Image src="/tuduvia-logo.webp" alt="Tuduvia" width={120} height={120} className="h-[120px] w-[120px] rounded-2xl object-contain" priority />
         </Link>
         {/* Desktop nav */}
         <nav className="hidden items-center gap-2.5 sm:flex" aria-label="Marketing navigation">

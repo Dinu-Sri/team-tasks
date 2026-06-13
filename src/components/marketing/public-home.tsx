@@ -1,4 +1,4 @@
-import { ArrowRight, Ban, Bell, CheckCircle2, ClipboardList, CreditCard, MessageCircle, Paperclip, ShieldCheck, Smartphone, Undo2, UserRound, Users } from "lucide-react";
+import { ArrowRight, Ban, Bell, CheckCircle2, ClipboardList, CreditCard, MessageCircle, MessageCircleMore, Paperclip, ShieldCheck, Smartphone, Undo2, UserRound, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 

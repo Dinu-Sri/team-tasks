@@ -8,3 +8,6 @@ Dockerfile
 docker-compose*.yml
 README.md
 docs
+# Docker uses npm — ignore pnpm lockfile to prevent cache invalidation
+pnpm-lock.yaml
+tests

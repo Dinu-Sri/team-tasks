@@ -98,19 +98,7 @@ export function useKeyboardShortcuts({
           break;
         case "?":
           event.preventDefault();
-          alert(
-            "Keyboard shortcuts:\n\n" +
-              "n – New task (home)\n" +
-              "1 – Personal tasks\n" +
-              "2 – Dashboard\n" +
-              "3 – Momentum\n" +
-              "t – Teams board\n" +
-              "a – Analytics\n" +
-              "f – Features\n" +
-              "/ – Quick add task\n" +
-              "Esc – Close panels\n" +
-              "Ctrl+Enter – Submit form"
-          );
+          toggleShortcutsModal();
           break;
       }
     }
@@ -118,4 +106,57 @@ export function useKeyboardShortcuts({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [router, pathname, onAddTask, canAddTask]);
+}
+
+const SHORTCUTS = [
+  ["n", "New task (home page)"],
+  ["1", "Personal tasks"],
+  ["2", "Dashboard"],
+  ["3", "Momentum"],
+  ["t", "Teams board"],
+  ["a", "Analytics"],
+  ["f", "Features"],
+  ["/", "Quick-add task"],
+  ["Esc", "Close panel / cancel"],
+  ["Ctrl+Enter", "Submit form"],
+  ["?", "Toggle this help"],
+];
+
+function toggleShortcutsModal() {
+  const existing = document.getElementById("shortcuts-modal");
+  if (existing) {
+    existing.remove();
+    return;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = "shortcuts-modal";
+  overlay.className = "fixed inset-0 z-[200] flex items-center justify-center bg-foreground/30 backdrop-blur-[1px] p-4";
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+  const card = document.createElement("div");
+  card.className = "w-full max-w-xs rounded-xl border border-border bg-surface p-5 shadow-soft";
+
+  card.innerHTML = `
+    <div class="mb-3 flex items-center justify-between">
+      <h2 class="text-sm font-semibold">Keyboard shortcuts</h2>
+      <button class="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle" aria-label="Close">✕</button>
+    </div>
+    <div class="space-y-1.5 text-sm">
+      ${SHORTCUTS.map(([key, label]) => `
+        <div class="flex items-center justify-between">
+          <span class="text-muted-foreground">${label}</span>
+          <kbd class="rounded border border-border bg-surface-subtle px-1.5 py-0.5 font-mono text-xs leading-none">${key}</kbd>
+        </div>
+      `).join("")}
+    </div>
+  `;
+
+  card.querySelector("button")!.onclick = () => overlay.remove();
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  document.addEventListener("keydown", function closeOnEsc(e) {
+    if (e.key === "Escape") { overlay.remove(); document.removeEventListener("keydown", closeOnEsc); }
+  });
 }

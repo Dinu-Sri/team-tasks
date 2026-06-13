@@ -12,34 +12,35 @@ const legalLinks = [
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-border bg-surface/70">
-      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
+    <footer className="border-t border-border/60 bg-surface/80">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_0.9fr_0.9fr]">
         <div>
-          <Link href="/" className="flex items-center gap-2.5 text-sm font-semibold" aria-label="Tuduvia home">
-            <Image src="/tuduvia-logo.webp" alt="" width={36} height={36} className="h-9 w-9 rounded-lg object-contain" />
-            <span>{siteConfig.name}</span>
+          <Link href="/" className="inline-flex items-center gap-2.5 shrink-0" aria-label="Tuduvia home">
+            <Image src="/tuduvia-logo.webp" alt="Tuduvia" width={30} height={30} className="h-7 w-7 rounded-lg object-contain" />
           </Link>
-          <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-            {siteConfig.tagline} A simple task app for personal life, temporary projects, and small teams.
+          <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
+            {siteConfig.tagline} Simple task app for personal life, temporary projects, and small teams.
           </p>
-          <p className="mt-4 text-xs text-muted-foreground">Operated by {siteConfig.company}.</p>
+          <p className="mt-4 text-xs text-muted-foreground">
+            &copy; {new Date().getFullYear()} {siteConfig.company}.
+          </p>
         </div>
         <div>
-          <h2 className="text-sm font-semibold">Website</h2>
-          <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Website</h2>
+          <div className="mt-3 grid gap-2.5 text-sm">
             {marketingNav.map((item) => (
-              <Link key={item.href} href={item.href} className="hover:text-foreground">
+              <Link key={item.href} href={item.href} className="text-muted-foreground hover:text-foreground transition-colors">
                 {item.label}
               </Link>
             ))}
-            <Link href="/signup" className="hover:text-foreground">Start free</Link>
+            <Link href="/signup" className="text-brand font-medium hover:underline">Start free</Link>
           </div>
         </div>
         <div>
-          <h2 className="text-sm font-semibold">Legal</h2>
-          <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Legal</h2>
+          <div className="mt-3 grid gap-2.5 text-sm">
             {legalLinks.map((item) => (
-              <Link key={item.href} href={item.href} className="hover:text-foreground">
+              <Link key={item.href} href={item.href} className="text-muted-foreground hover:text-foreground transition-colors">
                 {item.label}
               </Link>
             ))}

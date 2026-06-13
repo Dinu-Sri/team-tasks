@@ -53,169 +53,178 @@ export function PublicHome() {
   return (
     <main className="min-h-screen bg-background">
       <MarketingHeader />
-      <section className="border-b border-border bg-surface/55">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-4 py-14 text-center sm:px-6 sm:py-20">
-          <Image src="/tuduvia-logo.webp" alt="Tuduvia" width={86} height={86} className="h-20 w-20 rounded-2xl object-contain shadow-soft" priority />
-          <Badge className="mt-6">No Boards. No Training.</Badge>
-          <h1 className="mt-5 max-w-4xl text-4xl font-semibold leading-tight sm:text-6xl">
-            Tuduvia is the simple way from to-do to done.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-xl">
-            A damn simple to-do list for personal life, temporary projects, and small teams. Start alone, invite people when needed, and finish work without learning a system.
-          </p>
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
-            <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "px-7")}>
-              Start free <ArrowRight />
-            </Link>
-            <Link href="/use-cases/simple-personal-todo-list" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "px-7")}>
-              See personal workflow
-            </Link>
+
+      {/* ── Hero ── */}
+      <section className="relative overflow-hidden border-b border-border/50 bg-surface/60">
+        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+          <div className="text-center lg:text-left">
+            <Badge className="inline-flex">For personal life &amp; small teams</Badge>
+            <h1 className="mx-auto mt-4 max-w-xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl lg:mx-0">
+              To-do <span className="text-brand">&rarr;</span> Done
+            </h1>
+            <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg lg:mx-0">
+              One simple list. Start alone, invite people when it becomes a project. No boards. No training.
+            </p>
+            <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row lg:items-start">
+              <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "px-7 font-semibold")}>
+                Start free <ArrowRight />
+              </Link>
+              <Link href="/use-cases" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "px-7")}>
+                See use cases
+              </Link>
+            </div>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">Free while we grow Tuduvia with people and teams who love simple things.</p>
           <ProductPreview />
         </div>
+        {/* subtle gradient bar */}
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-brand/40 via-brand/15 to-transparent" />
       </section>
 
+      {/* ── Pain ── */}
       <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-        <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">The pain</p>
-          <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Most task apps become the new task.</h2>
-          <p className="mt-4 text-base leading-7 text-muted-foreground">
-            Tuduvia is built for the moment when you do not want a methodology. You just want the work visible enough to finish.
-          </p>
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-warning">The problem</p>
+          <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">Most task apps become the task.</h2>
         </div>
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {pains.map((pain) => (
-            <div key={pain} className="rounded-lg border border-border bg-surface/75 p-5">
+          {pains.map((pain, i) => (
+            <div key={i} className="rounded-lg border border-border/80 bg-surface/80 p-5 transition-colors hover:border-warning/30 hover:bg-surface">
               <Sparkles className="h-5 w-5 text-warning" />
-              <p className="mt-4 text-sm leading-6 text-muted-foreground">{pain}</p>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{pain}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="border-y border-border bg-surface/50">
+      {/* ── Flow ── */}
+      <section className="border-y border-border/50 bg-surface/60">
         <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">The Tuduvia flow</p>
-              <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">From personal list to temporary team in three moves.</h2>
-              <p className="mt-4 text-base leading-7 text-muted-foreground">
-                One person can start with a private task. If it turns into school, home, business, neighbor, friend, or volunteer work, invite the people involved.
-              </p>
-            </div>
-            <div className="grid gap-3">
-              {workflow.map((step, index) => (
-                <div key={step.title} className="flex gap-4 rounded-lg border border-border bg-background p-5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-semibold text-brand-foreground">{index + 1}</div>
-                  <div>
-                    <h3 className="font-semibold">{step.title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{step.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">How it works</p>
+            <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">From personal to-do to team project in three moves.</h2>
           </div>
-        </div>
-      </section>
-
-      <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-        <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Who it is for</p>
-          <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Simple enough for personal life. Strong enough for real coordination.</h2>
-        </div>
-        <div className="mt-8 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {personas.map((persona) => (
-            <div key={persona.title} className="rounded-lg border border-border bg-surface/75 p-5">
-              <h3 className="font-semibold">{persona.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{persona.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="border-y border-border bg-surface/50">
-        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Features</p>
-              <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Everything points toward one result: done.</h2>
-            </div>
-            <Link href="/pricing" className={cn(buttonVariants({ variant: "secondary" }))}>View free plan</Link>
-          </div>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {features.map(({ icon: Icon, title, text }) => (
-              <div key={title} className="rounded-lg border border-border bg-background p-5">
-                <Icon className="h-5 w-5 text-brand" />
-                <h3 className="mt-4 font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{text}</p>
+          <div className="mt-10 grid gap-4 sm:grid-cols-3 sm:gap-5">
+            {workflow.map((step, index) => (
+              <div key={step.title} className="flex flex-col items-center rounded-lg border border-border/80 bg-background p-6 text-center">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-brand-foreground">{index + 1}</div>
+                <h3 className="mt-4 font-semibold">{step.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.text}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* ── Personas ── */}
       <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Use cases</p>
-            <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Start from the page that sounds like your life.</h2>
-            <p className="mt-4 text-base leading-7 text-muted-foreground">
-              Each guide turns a real situation into a simple Tuduvia workflow, from one-person tasks to temporary teams.
-            </p>
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Who it is for</p>
+          <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">Simple enough for anyone. Useful enough for real work.</h2>
+        </div>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {personas.map((persona) => (
+            <div key={persona.title} className="rounded-lg border border-border/80 bg-surface/80 p-5 transition-colors hover:border-brand/30 hover:bg-surface">
+              <h3 className="font-semibold">{persona.title}</h3>
+              <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{persona.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Features ── */}
+      <section className="border-y border-border/50 bg-surface/60">
+        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Features</p>
+              <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">Everything points to done.</h2>
+            </div>
+            <Link href="/pricing" className={cn(buttonVariants({ variant: "secondary" }))}>Free plan &rarr;</Link>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {highPriorityUseCases.map((useCase) => (
-              <Link key={useCase.slug} href={`/use-cases/${useCase.slug}`} className="rounded-lg border border-border bg-surface/75 p-5 transition-colors hover:border-brand/60 hover:bg-surface">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">{useCase.audience}</p>
-                <h3 className="mt-2 font-semibold">{useCase.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{useCase.description}</p>
-              </Link>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {features.map(({ icon: Icon, title, text }) => (
+              <div key={title} className="flex gap-3 rounded-lg border border-border/80 bg-background p-5 transition-colors hover:border-brand/30 hover:bg-surface">
+                <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+                <div>
+                  <h3 className="text-sm font-semibold">{title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{text}</p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="border-y border-border bg-surface/50">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-2">
-          <div className="rounded-lg border border-border bg-background p-6">
-            <ShieldCheck className="h-6 w-6 text-brand" />
-            <h2 className="mt-4 text-2xl font-semibold">Free first, honest later.</h2>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              Tuduvia is free to use now because adoption matters first. Later, paid or credit-based plans may support higher usage and advanced capabilities. The promise today is clear: start free and keep the workflow simple.
-            </p>
+      {/* ── Use cases ── */}
+      <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Use cases</p>
+            <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">Start from the page that sounds like your life.</h2>
           </div>
-          <div className="rounded-lg border border-border bg-background p-6">
-            <CheckCircle2 className="h-6 w-6 text-success" />
-            <h2 className="mt-4 text-2xl font-semibold">No fake proof.</h2>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              Tuduvia will earn real testimonials, usage numbers, and customer stories over time. Until then, the website focuses on the product, the workflow, and the specific problems it solves.
-            </p>
+          <Link href="/use-cases" className={cn(buttonVariants({ variant: "secondary" }))}>All 20 workflows</Link>
+        </div>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {highPriorityUseCases.map((useCase) => (
+            <Link key={useCase.slug} href={`/use-cases/${useCase.slug}`} className="rounded-lg border border-border/80 bg-surface/80 p-5 transition-colors hover:border-brand/40 hover:bg-surface">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">{useCase.audience}</p>
+              <h3 className="mt-2 font-semibold leading-snug">{useCase.title}</h3>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Trust ── */}
+      <section className="border-y border-border/50 bg-surface/60">
+        <div className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-14 sm:px-6 sm:py-20 md:grid-cols-3">
+          <div className="flex gap-3 rounded-lg border border-border/80 bg-background p-5">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+            <div>
+              <h3 className="text-sm font-semibold">Free now, honest later.</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Free while we grow. Paid or credit-based plans come later for advanced usage.</p>
+            </div>
+          </div>
+          <div className="flex gap-3 rounded-lg border border-border/80 bg-background p-5">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" />
+            <div>
+              <h3 className="text-sm font-semibold">No fake proof.</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">We earn trust through the product, not invented testimonials.</p>
+            </div>
+          </div>
+          <div className="flex gap-3 rounded-lg border border-border/80 bg-background p-5">
+            <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+            <div>
+              <h3 className="text-sm font-semibold">Works on your phone.</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Open, read, assign, finish. Clean on mobile browsers.</p>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* ── FAQ ── */}
       <section className="mx-auto w-full max-w-4xl px-4 py-14 sm:px-6 sm:py-20">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">FAQ</p>
-          <h2 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">Simple answers before you start.</h2>
+          <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">Simple answers.</h2>
         </div>
         <div className="mt-8 grid gap-3">
           {faqs.map((faq) => (
-            <div key={faq.question} className="rounded-lg border border-border bg-surface/75 p-5">
+            <div key={faq.question} className="rounded-lg border border-border/80 bg-surface/80 p-5">
               <h3 className="font-semibold">{faq.question}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
+              <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
             </div>
           ))}
         </div>
-        <div className="mt-10 rounded-lg border border-border bg-surface p-6 text-center">
-          <h2 className="text-2xl font-semibold">Make the next task visible.</h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">Start with one task. Invite people only when the work becomes shared.</p>
-          <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "mt-6 px-7")}>
+        {/* ── bottom CTA ── */}
+        <div className="mt-10 rounded-xl border border-brand/25 bg-surface p-6 text-center shadow-soft">
+          <h2 className="text-2xl font-bold">Make the next task visible.</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">Start with one task. Invite people only when the work becomes shared.</p>
+          <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "mt-5 px-7 font-semibold")}>
             Start free <ArrowRight />
           </Link>
         </div>
       </section>
+
       <MarketingFooter />
     </main>
   );
@@ -224,30 +233,30 @@ export function PublicHome() {
 function ProductPreview() {
   const tasks = [
     { title: "Pay electricity bill", owner: "You", tag: "Personal", done: false },
-    { title: "Finish school presentation slides", owner: "Maya", tag: "School", done: false },
-    { title: "Call supplier about delivery", owner: "Sam", tag: "Shop", done: true },
+    { title: "Finish school slides", owner: "Maya", tag: "School", done: false },
+    { title: "Call supplier", owner: "Sam", tag: "Shop", done: true },
   ];
 
   return (
-    <div className="mt-12 w-full max-w-3xl rounded-lg border border-border bg-background p-3 text-left shadow-soft">
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+    <div className="mx-auto mt-10 w-full max-w-md rounded-xl border border-border/70 bg-background p-4 text-left shadow-soft lg:mt-2">
+      <div className="flex items-center justify-between border-b border-border/60 px-1 pb-3">
         <div>
           <p className="text-sm font-semibold">Today in Tuduvia</p>
-          <p className="text-xs text-muted-foreground">Personal tasks and temporary teams in one simple list.</p>
+          <p className="text-xs text-muted-foreground">Personal &amp; team tasks, one list.</p>
         </div>
-        <Badge variant="success">3 open</Badge>
+        <Badge variant="success" className="text-xs">2 open</Badge>
       </div>
-      <div className="grid gap-2 p-3">
+      <div className="mt-2 grid gap-1.5">
         {tasks.map((task) => (
-          <div key={task.title} className="flex items-center gap-3 rounded-lg border border-border bg-surface/70 p-3">
-            <span className={cn("flex h-7 w-7 items-center justify-center rounded-full border", task.done ? "border-success bg-success text-white" : "border-border bg-background text-muted-foreground")}>
-              {task.done ? <CheckCircle2 className="h-4 w-4" /> : null}
+          <div key={task.title} className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5">
+            <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full border", task.done ? "border-success bg-success text-white" : "border-border bg-background text-muted-foreground")}>
+              {task.done ? <CheckCircle2 className="h-3.5 w-3.5" /> : null}
             </span>
             <div className="min-w-0 flex-1">
               <p className={cn("truncate text-sm font-medium", task.done ? "text-muted-foreground line-through" : "text-foreground")}>{task.title}</p>
-              <p className="text-xs text-muted-foreground">Owner: {task.owner}</p>
+              <p className="text-xs text-muted-foreground">{task.owner}</p>
             </div>
-            <Badge variant="secondary">{task.tag}</Badge>
+            <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">{task.tag}</Badge>
           </div>
         ))}
       </div>

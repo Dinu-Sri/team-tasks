@@ -10,6 +10,10 @@ FROM base AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# NEXT_PUBLIC_* vars must be set at build time for Next.js to inline them
+ENV NEXT_PUBLIC_SENTRY_DSN="https://ff926f340bbf35161b3672e0d2074c5a@o4511556643323904.ingest.us.sentry.io/4511556652236800"
+ENV SENTRY_DSN="https://ff926f340bbf35161b3672e0d2074c5a@o4511556643323904.ingest.us.sentry.io/4511556652236800"
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate

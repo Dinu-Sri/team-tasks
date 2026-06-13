@@ -14,7 +14,7 @@ export const personalTourSteps: Step[] = [
   {
     icon: "✅",
     title: "Add a Task",
-    content: "Type a task title here, pick a due date and priority, then press Enter. Your first task appears instantly.",
+    content: "Click the Add button to open the task form. Type a title, pick a due date, then submit.",
     selector: "#onborda-add-task",
     side: "bottom",
     showControls: false,
@@ -34,7 +34,7 @@ export const personalTourSteps: Step[] = [
   {
     icon: "🔔",
     title: "Notifications & More",
-    content: "Check notifications, your momentum score, and switch themes from the top-right icons.",
+    content: "Check notifications, your momentum score, and switch themes from the top-right icons. When you're ready, head to the Dashboard for team features.",
     selector: "#onborda-header-actions",
     side: "bottom",
     showControls: false,

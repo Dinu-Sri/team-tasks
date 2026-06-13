@@ -56,8 +56,20 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, team
       setSelectedTaskId(null);
     };
     window.addEventListener(MEMBER_TASK_VIEW_EVENT, handleToggle);
-    return () => window.removeEventListener(MEMBER_TASK_VIEW_EVENT, handleToggle);
-  }, [memberTaskGroups.length]);
+
+    // Open add form when Onborda "Add a Task" step starts
+    const handleOnbordaAddStep = () => {
+      if (!memberView) {
+        setShowAdd(true);
+      }
+    };
+    window.addEventListener("onborda-add-step-open", handleOnbordaAddStep);
+
+    return () => {
+      window.removeEventListener(MEMBER_TASK_VIEW_EVENT, handleToggle);
+      window.removeEventListener("onborda-add-step-open", handleOnbordaAddStep);
+    };
+  }, [memberTaskGroups.length, memberView]);
   useEffect(() => { if (!memberTaskGroups.length) setMemberView(false); setMemberIndex((value) => Math.min(value, Math.max(0, memberTaskGroups.length - 1))); }, [memberTaskGroups.length]);
   useEffect(() => {
     const members = selectedTeam?.members ?? [];
@@ -80,14 +92,14 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, team
     <div className="mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold">{memberView ? "Member tasks" : "My tasks"}</h1>
-        {!memberView ? <Button size="sm" onClick={() => setShowAdd((value) => !value)}>
+        {!memberView ? <Button size="sm" id="onborda-add-task" onClick={() => setShowAdd((value) => !value)}>
           {showAdd ? <X /> : <Plus />}
           {showAdd ? "Close" : "Add"}
         </Button> : null}
       </div>
 
       {!memberView && showAdd ? (
-        <form action={createPersonalTaskAction} id="onborda-add-task" className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
+        <form action={createPersonalTaskAction} id="onborda-add-task-form" className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
           <Input name="title" placeholder="What needs to be done?" autoFocus required />
           <select name="teamId" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Team" required>
             {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}

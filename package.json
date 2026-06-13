@@ -6,8 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
-  },
+    "typecheck": "tsc --noEmit"    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",  },
   "dependencies": {
     "@prisma/client": "^6.10.1",
     "@sentry/nextjs": "^9",
@@ -26,6 +27,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.17",
     "@types/pg": "^8.15.5",

@@ -242,19 +242,21 @@ function AnimatedProductPreview() {
       <div className="flex items-center justify-between border-b border-border/60 px-1 pb-3">
         <div>
           <p className="text-sm font-semibold">Today in Tuduvia</p>
-          <p className="text-xs text-muted-foreground">Personal &amp; team tasks, one list.</p>
+          <p className="animate-subtitle text-xs text-muted-foreground">Personal &amp; team tasks, one list.</p>
         </div>
         <Badge variant="success" className="text-xs">3 open</Badge>
       </div>
 
       <style>{`
         @keyframes tuduvia-scene-cycle {
-          0%,  29%  { transform: translateY(0);    opacity: 1; }
-          32%, 100% { transform: translateY(-6px);  opacity: 0; pointer-events: none; }
+          0%,  28%  { transform: translateY(0); opacity: 1; visibility: visible; }
+          29%, 31%  { opacity: 0; }
+          32%, 100% { visibility: hidden; opacity: 0; }
         }
         @keyframes tuduvia-scene-enter {
-          0%,  31%  { transform: translateY(6px); opacity: 0; }
-          33%, 100% { transform: translateY(0);    opacity: 1; }
+          0%,  31%  { visibility: hidden; opacity: 0; }
+          32%, 34%  { opacity: 1; visibility: visible; }
+          35%, 100% { transform: translateY(0); opacity: 1; visibility: visible; }
         }
         @keyframes tuduvia-tick {
           0%,  8%   { border-color: hsl(var(--border)); background: hsl(var(--background)); color: transparent; }
@@ -288,6 +290,20 @@ function AnimatedProductPreview() {
         .animate-strike-s3 { animation: tuduvia-strike 14s ease-in-out infinite, tuduvia-tick-stagger3 14s ease-in-out infinite; }
         .animate-undo-circle { animation: tuduvia-undo-flash 14s ease-in-out infinite; }
         .animate-undo-strike { animation: tuduvia-undo-strike-out 14s ease-in-out infinite; }
+
+        /* Subtitle rotation */
+        .animate-subtitle::after {
+          animation: subtitle-cycle 14s ease-in-out infinite;
+          content: "";
+        }
+        @keyframes subtitle-cycle {
+          0%,  29%  { content: "Personal tasks, one simple list."; }
+          30%, 32%  { opacity: 0; }
+          33%, 62%  { content: "Team tasks, clear ownership."; opacity: 1; }
+          63%, 65%  { opacity: 0; }
+          66%, 95%  { content: "Undo mistakes instantly."; opacity: 1; }
+          96%, 100% { opacity: 0; }
+        }
       `}</style>
 
       {/* ── Scene 1: Personal tasks ── */}
@@ -317,7 +333,7 @@ function AnimatedProductPreview() {
       </div>
 
       {/* ── Scene 2: Team management ── */}
-      <div className="animate-cycle-enter" style={{ animationDelay: "-4.66s", position: "absolute", left: 0, right: 0, top: 0, padding: "16px" }}>
+      <div className="animate-cycle-enter bg-background" style={{ animationDelay: "-4.66s", position: "absolute", left: 0, right: 0, top: 0, padding: "16px", borderRadius: "12px" }}>
         <div className="grid gap-1.5" style={{ marginTop: "44px" }}>
           {[
             { title: "Assign onboarding buddy", owner: "Liam", tag: "HR" },
@@ -343,7 +359,7 @@ function AnimatedProductPreview() {
       </div>
 
       {/* ── Scene 3: Undo moment ── */}
-      <div className="animate-cycle-enter" style={{ animationDelay: "-9.33s", position: "absolute", left: 0, right: 0, top: 0, padding: "16px" }}>
+      <div className="animate-cycle-enter bg-background" style={{ animationDelay: "-9.33s", position: "absolute", left: 0, right: 0, top: 0, padding: "16px", borderRadius: "12px" }}>
         <div className="grid gap-1.5" style={{ marginTop: "44px" }}>
           <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5 opacity-55">
             <svg className="h-6 w-6 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>

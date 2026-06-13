@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { AppHeader } from "@/components/app-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { OnboardingProvider } from "@/components/onboarding-provider";
-import { requireUser } from "@/lib/auth";
+import { isSuperAdmin, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { teamTourSteps } from "@/lib/onboarding-tours";
@@ -34,7 +34,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     >
       <main className="min-h-screen bg-background">
         <AppHeader user={user} {...headerData} />
-        <DashboardShell commentsEnabled={commentsEnabled} attachmentsEnabled={attachmentsEnabled}>
+        <DashboardShell
+          commentsEnabled={commentsEnabled}
+          attachmentsEnabled={attachmentsEnabled}
+          isSuperAdmin={isSuperAdmin(user.email)}
+        >
           {children}
         </DashboardShell>
       </main>

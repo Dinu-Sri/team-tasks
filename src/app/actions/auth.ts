@@ -71,6 +71,15 @@ export async function loginAction(_: AuthState, formData: FormData): Promise<Aut
     return { error: "Email or password is incorrect." };
   }
 
+  // Block suspended users
+  if (user.passwordHash.startsWith("__SUSPENDED__")) {
+    return { error: "This account has been suspended. Contact support for assistance." };
+  }
+
+  if (user.passwordHash.startsWith("__REINSTATED__")) {
+    return { error: "This account has been reinstated but requires a password reset. Contact support." };
+  }
+
   await createSession(user.id);
   redirect("/");
 }

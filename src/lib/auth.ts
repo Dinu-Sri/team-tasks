@@ -5,6 +5,11 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 
 const COOKIE_NAME = "team_tasks_session";
+export const SUPER_ADMIN_EMAIL = "dinu.sri.m@gmail.com";
+
+export function isSuperAdmin(email: string) {
+  return email.toLowerCase() === SUPER_ADMIN_EMAIL;
+}
 
 function sessionSecret() {
   const value = process.env.AUTH_SECRET?.trim();
@@ -57,5 +62,13 @@ export async function getSessionUser() {
 export async function requireUser() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  return user;
+}
+
+export async function requireSuperAdmin() {
+  const user = await requireUser();
+  if (!isSuperAdmin(user.email)) {
+    redirect("/dashboard");
+  }
   return user;
 }

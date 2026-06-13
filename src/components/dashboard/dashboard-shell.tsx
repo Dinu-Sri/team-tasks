@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, BarChart3, Files, MessageCircleMore, SlidersHorizontal, Users } from "lucide-react";
+import { Archive, BarChart3, Files, MessageCircleMore, Shield, SlidersHorizontal, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -18,16 +18,19 @@ export function DashboardShell({
   children,
   commentsEnabled,
   attachmentsEnabled,
+  isSuperAdmin = false,
 }: {
   children: ReactNode;
   commentsEnabled: boolean;
   attachmentsEnabled: boolean;
+  isSuperAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const items = [
     ...coreItems,
     ...(commentsEnabled ? [{ href: "/dashboard/discussions", label: "Discussions", icon: MessageCircleMore }] : []),
     ...(attachmentsEnabled ? [{ href: "/dashboard/files", label: "Files", icon: Files }] : []),
+    ...(isSuperAdmin ? [{ href: "/dashboard/admin", label: "Admin", icon: Shield }] : []),
   ];
 
   return (

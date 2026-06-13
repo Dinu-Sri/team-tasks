@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TaskDetailPanel, type TaskDetail } from "@/components/tasks/task-detail-panel";
+import { useKeyboardShortcuts } from "@/lib/keyboard-shortcuts";
 import { MEMBER_TASK_VIEW_EVENT } from "@/lib/member-task-view";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +78,11 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, team
   }, [currentUserId, selectedTeam]);
   useEffect(() => { if (initialTaskId && (tasks.some(({ id }) => id === initialTaskId) || discussionUpdates.some(({ id }) => id === initialTaskId) || focusedTask?.id === initialTaskId)) setSelectedTaskId(initialTaskId); }, [discussionUpdates, focusedTask?.id, initialTaskId, tasks]);
   const selectedTask = tasks.find(({ id }) => id === selectedTaskId) ?? discussionUpdates.find(({ id }) => id === selectedTaskId) ?? (focusedTask?.id === selectedTaskId ? focusedTask : undefined);
+
+  useKeyboardShortcuts({
+    onAddTask: () => { if (!memberView) setShowAdd(true); },
+    canAddTask: !memberView,
+  });
 
   function openTask(task: TaskItem) {
     setSelectedTaskId(task.id);

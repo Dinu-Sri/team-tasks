@@ -214,3 +214,98 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
 export async function reopenTaskAction(taskId: string): Promise<void> {
   await toggleTaskAction(taskId);
 }
+
+export async function updateTaskAction(_: unknown, formData: FormData) {
+  const user = await requireUser();
+  const taskId = String(formData.get("taskId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const due = String(formData.get("due") ?? "");
+  const priority = String(formData.get("priority") ?? "NORMAL");
+
+  if (!title) return;
+
+  const task = await db.task.findUnique({
+    where: { id: taskId },
+    include: { team: { include: { memberships: true } } },
+  });
+  if (!task) return;
+
+  const membership = await db.membership.findUnique({
+    where: { userId_teamId: { userId: user.id, teamId: task.teamId } },
+  });
+  if (!membership || membership.role !== "OWNER") return;
+
+  const updates: Record<string, unknown> = { title, priority: priority === "HIGH" ? "HIGH" : "NORMAL" };
+  if (due) {
+    const profile = await db.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } });
+    updates.dueAt = dueDateForSelection(due, profile?.timeZone ?? task.team.timeZone ?? "UTC");
+  }
+
+  await db.task.update({ where: { id: taskId }, data: updates as Parameters<typeof db.task.update>[0]["data"] });
+
+  const recipients = [...new Set([...task.assignees.map(({ userId }) => userId), task.creatorId])];
+  await publishRealtimeEvent(recipients, "task.updated");
+
+  revalidatePath("/");
+  revalidatePath("/dashboard");
+  revalidatePath("/analytics");
+}
+
+export async function deleteTaskAction(_: unknown, formData: FormData) {
+  const user = await requireUser();
+  const taskId = String(formData.get("taskId") ?? "");
+
+  const task = await db.task.findUnique({
+    where: { id: taskId },
+    include: { team: { include: { memberships: true } } },
+  });
+  if (!task) return;
+
+  const membership = await db.membership.findUnique({
+    where: { userId_teamId: { userId: user.id, teamId: task.teamId } },
+  });
+  if (!membership || membership.role !== "OWNER") return;
+
+  await db.task.delete({ where: { id: taskId } });
+
+  const recipients = task.team.memberships.map(({ userId }) => userId);
+  await publishRealtimeEvent(recipients, "task.updated");
+
+  revalidatePath("/");
+  revalidatePath("/dashboard");
+  revalidatePath("/analytics");
+}
+
+export async function transferOwnershipAction(_: unknown, formData: FormData) {
+  const user = await requireUser();
+  const teamId = String(formData.get("teamId") ?? "");
+  const newOwnerId = String(formData.get("newOwnerId") ?? "");
+
+  const ownerMembership = await db.membership.findUnique({
+    where: { userId_teamId: { userId: user.id, teamId } },
+  });
+  if (!ownerMembership || ownerMembership.role !== "OWNER") return;
+
+  const targetMembership = await db.membership.findUnique({
+    where: { userId_teamId: { userId: newOwnerId, teamId } },
+  });
+  if (!targetMembership) return;
+
+  await db.$transaction([
+    db.membership.update({ where: { id: ownerMembership.id }, data: { role: "MEMBER" } }),
+    db.membership.update({ where: { id: targetMembership.id }, data: { role: "OWNER" } }),
+    db.notification.create({
+      data: {
+        recipientId: newOwnerId,
+        teamId,
+        kind: "TEAM",
+        href: "/dashboard/teams",
+        title: "Team ownership transferred",
+        message: `${user.name} transferred ownership of the team to you.`,
+      },
+    }),
+  ]);
+
+  await publishRealtimeEvent([user.id, newOwnerId], "membership.updated");
+  revalidatePath("/dashboard");
+}

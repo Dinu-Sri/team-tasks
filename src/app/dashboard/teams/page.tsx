@@ -1,6 +1,7 @@
-import { CheckCircle2, LogOut, Trophy, UserMinus, Users } from "lucide-react";
+import { CheckCircle2, Crown, LogOut, Trophy, UserMinus, Users } from "lucide-react";
 
 import { acceptInviteAction, leaveTeamAction, removeMemberAction } from "@/app/actions/teams";
+import { transferOwnershipAction } from "@/app/actions/tasks";
 import { ConfirmSubmitButton } from "@/components/dashboard/confirm-submit-button";
 import { AssignTaskForm, CreateTeamForm, InviteForm } from "@/components/dashboard/team-forms";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +70,25 @@ export default async function TeamsBoardPage() {
                     {team.memberships.map((member) => (
                       <div key={member.userId} className="flex min-h-14 items-center gap-3 px-3 py-2.5">
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{member.user.name}{member.userId === user.id ? " (you)" : ""}</p><p className="truncate text-xs text-muted-foreground">{member.role === "OWNER" ? "Owner" : `${openByMember.get(member.userId) ?? 0} open tasks`}</p></div>
-                        {owner && member.role !== "OWNER" ? <form action={removeMemberAction}><input type="hidden" name="teamId" value={team.id} /><input type="hidden" name="memberId" value={member.userId} /><ConfirmSubmitButton type="submit" size="icon" variant="quiet" message={`Remove ${member.user.name} from ${team.name}?`} aria-label={`Remove ${member.user.name}`} title="Remove member"><UserMinus /></ConfirmSubmitButton></form> : null}
+                        {owner && member.role !== "OWNER" ? (
+                          <div className="flex items-center gap-1">
+                            <form action={transferOwnershipAction}>
+                              <input type="hidden" name="teamId" value={team.id} />
+                              <input type="hidden" name="newOwnerId" value={member.userId} />
+                              <ConfirmSubmitButton
+                                type="submit"
+                                size="icon"
+                                variant="quiet"
+                                message={`Transfer ownership of ${team.name} to ${member.user.name}?\n\nYou will become a regular member.`}
+                                aria-label={`Transfer ownership to ${member.user.name}`}
+                                title="Transfer ownership"
+                              >
+                                <Crown className="h-4 w-4" />
+                              </ConfirmSubmitButton>
+                            </form>
+                            <form action={removeMemberAction}><input type="hidden" name="teamId" value={team.id} /><input type="hidden" name="memberId" value={member.userId} /><ConfirmSubmitButton type="submit" size="icon" variant="quiet" message={`Remove ${member.user.name} from ${team.name}?`} aria-label={`Remove ${member.user.name}`} title="Remove member"><UserMinus /></ConfirmSubmitButton></form>
+                          </div>
+                        ) : null}
                       </div>
                     ))}
                   </div>

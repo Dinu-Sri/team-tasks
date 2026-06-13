@@ -1,11 +1,12 @@
 "use client";
 
-import { CheckCheck, Download, Eye, FileUp, Files, ImageIcon, MessageCircleMore, Paperclip, Send, Trash2, X } from "lucide-react";
+import { CheckCheck, Download, Eye, FileUp, Files, ImageIcon, MessageCircleMore, Paperclip, Pencil, Send, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { addTaskCommentAction, markTaskCommentsReadAction } from "@/app/actions/comments";
+import { deleteTaskAction, updateTaskAction } from "@/app/actions/tasks";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 
@@ -99,12 +100,16 @@ export function TaskDetailPanel({ task, currentUserId, onClose }: { task: TaskDe
 
   if (!mounted) return null;
   const hasBoth = task.team.commentsEnabled && task.team.attachmentsEnabled;
+  const isOwner = task.team.currentUserRole === "OWNER";
   return createPortal(
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-foreground/20 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section role="dialog" aria-modal="true" aria-label={task.title} className="flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-lg border border-border bg-surface shadow-soft sm:max-h-[84vh] sm:rounded-lg">
         <header className="flex items-start gap-3 border-b border-border px-4 py-3 sm:px-5 sm:py-4">
           <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold sm:text-lg">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.team.name}</p>{task.note ? <p className="mt-2 text-sm leading-5 text-muted-foreground">{task.note}</p> : null}</div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle" aria-label="Close task"><X className="h-4 w-4" /></button>
+          <div className="flex shrink-0 items-center gap-1">
+            {isOwner ? <EditTaskButton task={task} /> : null}
+            <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle" aria-label="Close task"><X className="h-4 w-4" /></button>
+          </div>
         </header>
 
         {hasBoth ? <div className="grid grid-cols-2 border-b border-border p-1.5"><TabButton active={tab === "comments"} onClick={() => setTab("comments")} icon={<MessageCircleMore />} label={`Discussion ${task.comments.length ? `(${task.comments.length})` : ""}`} unread={task.unreadCommentCount} /><TabButton active={tab === "files"} onClick={() => setTab("files")} icon={<Paperclip />} label={`Files ${task.attachments.length ? `(${task.attachments.length})` : ""}`} /></div> : null}
@@ -123,6 +128,65 @@ export function TaskDetailPanel({ task, currentUserId, onClose }: { task: TaskDe
     </div>,
     document.body,
   );
+}
+
+function EditTaskButton({ task }: { task: TaskDetail }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(task.title);
+  const [due, setDue] = useState("");
+  const [priority, setPriority] = useState("NORMAL");
+  const [pending, setPending] = useState(false);
+
+  async function handleSave() {
+    if (!title.trim()) return;
+    setPending(true);
+    const body = new FormData();
+    body.set("taskId", task.id);
+    body.set("title", title);
+    if (due) body.set("due", due);
+    body.set("priority", priority);
+    await updateTaskAction(null, body as unknown as Parameters<typeof updateTaskAction>[1]);
+    setPending(false);
+    setEditing(false);
+    router.refresh();
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`Delete "${task.title}"?\n\nThis cannot be undone.`)) return;
+    const body = new FormData();
+    body.set("taskId", task.id);
+    await deleteTaskAction(null, body as unknown as Parameters<typeof deleteTaskAction>[1]);
+    router.refresh();
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <div className="flex flex-col gap-1">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded border border-border bg-surface px-2 py-1 text-sm" placeholder="Task title" />
+          <div className="flex gap-1">
+            <select value={due} onChange={(e) => setDue(e.target.value)} className="rounded border border-border bg-surface px-1.5 py-0.5 text-xs">
+              <option value="">Keep date</option>
+              <option value="today">Today</option>
+              <option value="tomorrow">Tomorrow</option>
+              <option value="week">Next week</option>
+              <option value="none">No date</option>
+            </select>
+            <select value={priority} onChange={(e) => setPriority(e.target.value)} className="rounded border border-border bg-surface px-1.5 py-0.5 text-xs">
+              <option value="NORMAL">Normal</option>
+              <option value="HIGH">High</option>
+            </select>
+          </div>
+        </div>
+        <button onClick={handleSave} disabled={pending || !title.trim()} className="rounded bg-brand px-2 py-1 text-xs font-medium text-brand-foreground hover:opacity-90 disabled:opacity-50">{pending ? "..." : "Save"}</button>
+        <button onClick={() => setEditing(false)} className="rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+        <button onClick={handleDelete} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-danger/10 hover:text-danger" title="Delete task"><Trash2 className="h-3.5 w-3.5" /></button>
+      </div>
+    );
+  }
+
+  return <button type="button" onClick={() => setEditing(true)} className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle" title="Edit task"><Pencil className="h-4 w-4" /></button>;
 }
 
 function TabButton({ active, onClick, icon, label, unread = 0 }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; unread?: number }) {

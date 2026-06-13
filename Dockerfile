@@ -1,6 +1,6 @@
 FROM node:20-alpine AS base
 
-# Enable corepack for pnpm
+# Enable corepack for pnpm (cache-bust 2026-06-13)
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 FROM base AS deps

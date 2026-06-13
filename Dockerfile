@@ -10,14 +10,6 @@ FROM base AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Sentry build-time variables for source map upload
-ARG SENTRY_AUTH_TOKEN
-ARG NEXT_PUBLIC_SENTRY_DSN
-ARG SENTRY_DSN
-ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
-ENV NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN}
-ENV SENTRY_DSN=${SENTRY_DSN}
-
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate

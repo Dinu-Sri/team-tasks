@@ -7,18 +7,7 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  org: "clossyan-technologies-pvt-ltd",
-  project: "javascript-nextjs",
-
-  // Source map upload auth token
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-
-  // Upload wider set of client source files for better stack trace resolution
-  widenClientFileUpload: true,
-
-  // Create a proxy API route to bypass ad-blockers
-  tunnelRoute: "/monitoring",
-
-  // Suppress non-CI output
+  // Source maps are skipped without SENTRY_AUTH_TOKEN — still fully functional
+  // for error monitoring. Stack traces will be minified until you add the token.
   silent: !process.env.CI,
 });

@@ -9,9 +9,25 @@ export function ThemeButton() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("theme") === "dark";
-    setDark(saved);
-    document.documentElement.classList.toggle("dark", saved);
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const applyTheme = () => {
+      const storedTheme = window.localStorage.getItem("theme");
+      const nextDark = storedTheme === "dark" || (storedTheme !== "light" && mediaQuery.matches);
+      setDark(nextDark);
+      document.documentElement.classList.toggle("dark", nextDark);
+    };
+
+    const handleSystemThemeChange = () => {
+      if (window.localStorage.getItem("theme") === null) {
+        applyTheme();
+      }
+    };
+
+    applyTheme();
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+
+    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
   }, []);
 
   function toggle() {

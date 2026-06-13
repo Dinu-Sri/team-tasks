@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -16,10 +16,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <main className="flex min-h-[100svh] items-center justify-center bg-background px-4 py-8">
         <section className="w-full max-w-sm">
           <div className="mb-8 text-center">
-            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-brand text-brand-foreground">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            <h1 className="mt-4 text-2xl font-semibold">Reset password</h1>
+            <Image src="/tuduvia-logo.webp" alt="Tuduvia" width={52} height={52} className="mx-auto h-13 w-13 rounded-xl object-contain" />
+            <h1 className="mt-5 text-2xl font-semibold">Reset password</h1>
             <p className="mt-1 text-sm text-muted-foreground">Choose a new password.</p>
           </div>
           <ResetPasswordForm token={reset} />
@@ -32,10 +30,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <main className="flex min-h-[100svh] items-center justify-center bg-background px-4 py-8">
       <section className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-brand text-brand-foreground">
-            <CheckCircle2 className="h-5 w-5" />
-          </div>
-          <h1 className="mt-4 text-2xl font-semibold">Welcome back</h1>
+          <Image src="/tuduvia-logo.webp" alt="Tuduvia" width={52} height={52} className="mx-auto h-13 w-13 rounded-xl object-contain" />
+          <h1 className="mt-5 text-2xl font-semibold">Welcome back</h1>
           <p className="mt-1 text-sm text-muted-foreground">Your tasks are waiting.</p>
         </div>
         <AuthForm mode="login" action={loginAction} />

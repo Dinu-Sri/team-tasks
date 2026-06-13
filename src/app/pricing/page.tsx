@@ -16,10 +16,10 @@ export const metadata: Metadata = {
 const freeFeatures = ["Personal task list", "Temporary teams", "Team invites", "Task assignment", "Due dates and priorities", "Comments and files", "Notifications", "Momentum", "Mobile-friendly web app"];
 
 const faqs = [
-  { question: "Is Tuduvia free now?", answer: "Yes. Tuduvia is free to use now while we grow the user base and learn from real personal users and small teams." },
-  { question: "Why free first?", answer: "Simple tools spread when people can try them without friction. Tuduvia is following that adoption-first path before adding paid plans." },
-  { question: "Will paid plans arrive later?", answer: "Yes, paid or credit-based plans may come later for higher usage, advanced features, or larger team needs. They are not active today." },
-  { question: "Can I use Tuduvia for a business today?", answer: "Yes. Small teams can start now with the current free plan and keep the workflow simple." },
+  { question: "Is Tuduvia free?", answer: "Yes. All features are free — personal tasks, team tasks, comments, files, notifications, momentum, and mobile access. No hidden fees." },
+  { question: "Why is it free?", answer: "We believe the best productivity tools should be accessible to everyone. Simple task management shouldn't require a subscription." },
+  { question: "Will paid plans arrive later?", answer: "We may add optional credit-based plans for advanced capabilities in the future, but today every feature is free and available." },
+  { question: "Can I use Tuduvia for a business?", answer: "Yes. Small businesses, teams, freelancers, and organizations can start today with all features included." },
 ];
 
 export default function PricingPage() {
@@ -28,10 +28,10 @@ export default function PricingPage() {
       <MarketingHeader />
       <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <Badge>Free plan available now</Badge>
+          <Badge>All features included</Badge>
           <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-6xl">Start free. Keep it simple.</h1>
           <p className="mt-5 text-base leading-7 text-muted-foreground sm:text-xl">
-            Tuduvia is free to use now for personal tasks, temporary projects, and small teams. Paid and credit-based plans can come later after the community grows.
+            Tuduvia is free — personal tasks, team tasks, comments, files, notifications, momentum, and mobile access. All included. No hidden fees.
           </p>
         </div>
 
@@ -46,7 +46,7 @@ export default function PricingPage() {
             </div>
             <div className="mt-6 flex items-end gap-2">
               <span className="text-5xl font-semibold">$0</span>
-              <span className="pb-2 text-sm text-muted-foreground">for now</span>
+              <span className="pb-2 text-sm text-muted-foreground">free forever</span>
             </div>
             <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "mt-6 w-full")}>
               Start free <ArrowRight />
@@ -67,21 +67,21 @@ export default function PricingPage() {
       </section>
 
       <section className="border-y border-border bg-surface/50">
-        <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-3">
+        <div className="mx-auto grid w-full max-w-6xl gap-4 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-3">
           <div className="rounded-lg border border-border bg-background p-5">
             <Sparkles className="h-5 w-5 text-warning" />
-            <h2 className="mt-3 font-semibold">Simple adoption</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">A free plan helps Tuduvia spread through personal users, students, homes, and small teams.</p>
+            <h2 className="mt-3 font-semibold">Everything included</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Personal to-do lists, team tasks, comments, files, notifications, momentum, and mobile access — all free.</p>
           </div>
           <div className="rounded-lg border border-border bg-background p-5">
             <Clock className="h-5 w-5 text-brand" />
-            <h2 className="mt-3 font-semibold">No pressure deadline</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Use Tuduvia now for real work while future plans are shaped by actual demand.</p>
+            <h2 className="mt-3 font-semibold">Built to stay simple</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Tuduvia focuses on the shortest path from to-do to done. No feature bloat, no training needed.</p>
           </div>
           <div className="rounded-lg border border-border bg-background p-5">
             <CheckCircle2 className="h-5 w-5 text-success" />
-            <h2 className="mt-3 font-semibold">Clear promise</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">No Boards. No Training. The free plan keeps the main workflow focused on getting tasks done.</p>
+            <h2 className="mt-3 font-semibold">No hidden fees</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">No credit card needed. No surprise charges. Just a simple task app that works.</p>
           </div>
         </div>
       </section>

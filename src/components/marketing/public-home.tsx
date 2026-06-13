@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, CheckCircle2, ClipboardList, MessageCircle, Paperclip, ShieldCheck, Smartphone, Sparkles, Undo2, UserRound, Users } from "lucide-react";
+import { ArrowRight, Ban, Bell, CheckCircle2, ClipboardList, CreditCard, MessageCircle, Paperclip, ShieldCheck, Smartphone, Undo2, UserRound, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -10,10 +10,10 @@ import { highPriorityUseCases } from "@/lib/marketing/use-cases";
 import { cn } from "@/lib/utils";
 
 const pains = [
-  "Tasks vanish inside chat, notes, and memory.",
-  "Boards look powerful, then nobody updates them.",
-  "Non-IT people avoid tools that feel like software training.",
-  "Team leaders waste time asking who finished what.",
+  { icon: MessageCircle, text: "Tasks vanish inside chat, notes, and memory." },
+  { icon: ClipboardList, text: "Boards look powerful, then nobody updates them." },
+  { icon: Ban, text: "Non-IT people avoid tools that feel like software training." },
+  { icon: UserRound, text: "Team leaders waste time asking who finished what." },
 ];
 
 const workflow = [
@@ -43,10 +43,10 @@ const personas = [
 ];
 
 const faqs = [
-  { question: "Is Tuduvia only for teams?", answer: "No. Tuduvia starts as a simple personal to-do list. Team features appear when you invite people." },
-  { question: "Why no boards?", answer: "Many people do not need columns, rituals, and setup. They need a clear task, a clear owner, and a clear finish." },
-  { question: "Is Tuduvia free?", answer: "Yes. Tuduvia is free to use now while we grow the user base. Paid or credit-based plans may come later for advanced usage." },
-  { question: "Can non-technical people use it?", answer: "That is the point. Tuduvia is designed for people who want simple tasks, not software training." },
+  { question: "Is Tuduvia only for teams?", answer: "No. Tuduvia starts as a simple personal to-do list. Team features appear only when you invite people." },
+  { question: "Why no boards?", answer: "Most people don't need columns and setup rituals. They need a clear task, a clear owner, and a clear finish." },
+  { question: "Is Tuduvia really free?", answer: "Yes. All features are free — personal tasks, team tasks, comments, files, notifications, and mobile access. No hidden fees." },
+  { question: "Can non-technical people use it?", answer: "That's the entire point. Tuduvia is built for people who want simple tasks, not software training." },
 ];
 
 export function PublicHome() {
@@ -55,42 +55,42 @@ export function PublicHome() {
       <MarketingHeader />
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden border-b border-border/50 bg-surface/60">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+      <section className="relative overflow-hidden border-b border-border/50 bg-gradient-to-b from-surface/90 to-surface/50">
+        <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div className="text-center lg:text-left">
-            <Badge className="inline-flex">For personal life &amp; small teams</Badge>
-            <h1 className="mx-auto mt-4 max-w-xl text-4xl font-bold leading-tight tracking-tight sm:text-6xl lg:mx-0">
+            <Badge className="inline-flex" variant="success">Free &mdash; all features included</Badge>
+            <h1 className="mx-auto mt-5 max-w-xl text-4xl font-bold leading-tight tracking-tight sm:text-7xl lg:mx-0">
               To-do <span className="text-brand">&rarr;</span> Done
             </h1>
-            <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg lg:mx-0">
+            <p className="mx-auto mt-5 max-w-lg text-base leading-7 text-muted-foreground sm:text-xl lg:mx-0">
               One simple list. Start alone, invite people when it becomes a project. No boards. No training.
             </p>
-            <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row lg:items-start">
-              <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "px-7 font-semibold")}>
+            <div className="mt-8 flex flex-col items-center gap-3 lg:items-start">
+              <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "px-8 font-semibold text-base")}>
                 Start free <ArrowRight />
               </Link>
-              <Link href="/use-cases" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "px-7")}>
-                See use cases
-              </Link>
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <CreditCard className="h-4 w-4 text-success" />
+                No credit card needed
+              </p>
             </div>
           </div>
           <ProductPreview />
         </div>
-        {/* subtle gradient bar */}
-        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-brand/40 via-brand/15 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-brand/50 via-brand/20 to-transparent" />
       </section>
 
       {/* ── Pain ── */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-warning">The problem</p>
           <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">Most task apps become the task.</h2>
         </div>
-        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {pains.map((pain, i) => (
-            <div key={i} className="rounded-lg border border-border/80 bg-surface/80 p-5 transition-colors hover:border-warning/30 hover:bg-surface">
-              <Sparkles className="h-5 w-5 text-warning" />
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{pain}</p>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {pains.map(({ icon: Icon, text }, i) => (
+            <div key={i} className="flex flex-col items-center rounded-xl border border-border/80 bg-surface/80 p-6 text-center transition-colors hover:border-warning/30 hover:bg-surface">
+              <Icon className="h-8 w-8 text-warning/80" />
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">{text}</p>
             </div>
           ))}
         </div>
@@ -98,7 +98,7 @@ export function PublicHome() {
 
       {/* ── Flow ── */}
       <section className="border-y border-border/50 bg-surface/60">
-        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">How it works</p>
             <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">From personal to-do to team project in three moves.</h2>
@@ -116,7 +116,7 @@ export function PublicHome() {
       </section>
 
       {/* ── Personas ── */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Who it is for</p>
           <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">Simple enough for anyone. Useful enough for real work.</h2>
@@ -133,7 +133,7 @@ export function PublicHome() {
 
       {/* ── Features ── */}
       <section className="border-y border-border/50 bg-surface/60">
-        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Features</p>
@@ -156,7 +156,7 @@ export function PublicHome() {
       </section>
 
       {/* ── Use cases ── */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Use cases</p>
@@ -176,12 +176,12 @@ export function PublicHome() {
 
       {/* ── Trust ── */}
       <section className="border-y border-border/50 bg-surface/60">
-        <div className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-14 sm:px-6 sm:py-20 md:grid-cols-3">
+        <div className="mx-auto grid w-full max-w-6xl gap-5 px-5 py-16 sm:px-8 sm:py-24 md:grid-cols-3">
           <div className="flex gap-3 rounded-lg border border-border/80 bg-background p-5">
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
             <div>
-              <h3 className="text-sm font-semibold">Free now, honest later.</h3>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">Free while we grow. Paid or credit-based plans come later for advanced usage.</p>
+              <h3 className="text-sm font-semibold">All features free.</h3>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Personal tasks, team tasks, comments, files, and notifications — all included.</p>
             </div>
           </div>
           <div className="flex gap-3 rounded-lg border border-border/80 bg-background p-5">
@@ -202,7 +202,7 @@ export function PublicHome() {
       </section>
 
       {/* ── FAQ ── */}
-      <section className="mx-auto w-full max-w-4xl px-4 py-14 sm:px-6 sm:py-20">
+      <section className="mx-auto w-full max-w-4xl px-5 py-16 sm:px-8 sm:py-24">
         <div className="text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">FAQ</p>
           <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">Simple answers.</h2>
@@ -216,12 +216,18 @@ export function PublicHome() {
           ))}
         </div>
         {/* ── bottom CTA ── */}
-        <div className="mt-10 rounded-xl border border-brand/25 bg-surface p-6 text-center shadow-soft">
+        <div className="mt-12 rounded-xl border-2 border-brand/30 bg-surface p-8 text-center shadow-soft">
           <h2 className="text-2xl font-bold">Make the next task visible.</h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">Start with one task. Invite people only when the work becomes shared.</p>
-          <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "mt-5 px-7 font-semibold")}>
-            Start free <ArrowRight />
-          </Link>
+          <div className="mt-6 flex flex-col items-center gap-3">
+            <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "px-8 font-semibold text-base")}>
+              Start free <ArrowRight />
+            </Link>
+            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <CreditCard className="h-4 w-4 text-success" />
+              No credit card needed
+            </p>
+          </div>
         </div>
       </section>
 

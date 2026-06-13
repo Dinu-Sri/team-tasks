@@ -10,7 +10,8 @@ test.describe("Tuduvia marketing website", () => {
     await expect(page.locator("h1")).toContainText("To-do");
     await expect(page.getByText("No boards. No training.").first()).toBeVisible();
     await expect(page.getByRole("link", { name: /Start free/i }).first()).toBeVisible();
-    await expect(page.getByText("Start alone, invite people when it becomes a project")).toBeVisible();
+    await expect(page.getByText("No credit card needed")).toBeVisible();
+    await expect(page.getByText("All features included")).toBeVisible();
   });
 
   test("pricing, contact, and legal pages are public", async ({ page }) => {

@@ -42,8 +42,9 @@ export async function signupAction(_: AuthState, formData: FormData): Promise<Au
 
   // Create a welcome demo task for the new user
   const team = await db.membership.findFirst({
-    where: { userId: user.id },
+    where: { userId: user.id, role: "OWNER" },
     select: { teamId: true },
+    orderBy: { createdAt: "asc" },
   });
   if (team) {
     await db.task.create({
@@ -51,6 +52,7 @@ export async function signupAction(_: AuthState, formData: FormData): Promise<Au
         title: "👋 Welcome! This is your first task — mark it done to get started",
         status: "OPEN",
         priority: "NORMAL",
+        creatorId: user.id,
         teamId: team.teamId,
         assignees: { create: { userId: user.id } },
       },

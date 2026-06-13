@@ -37,5 +37,9 @@ jobs:
             ghcr.io/dinu-sri/team-tasks:latest
             ghcr.io/dinu-sri/team-tasks-app:latest
             ghcr.io/dinu-sri/team-tasks:${{ github.sha }}
+          build-args: |
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+            NEXT_PUBLIC_SENTRY_DSN=${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+            SENTRY_DSN=${{ vars.SENTRY_DSN }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

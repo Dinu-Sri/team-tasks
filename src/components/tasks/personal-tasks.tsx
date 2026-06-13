@@ -87,7 +87,7 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, team
       </div>
 
       {!memberView && showAdd ? (
-        <form action={createPersonalTaskAction} className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
+        <form action={createPersonalTaskAction} id="onborda-add-task" className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
           <Input name="title" placeholder="What needs to be done?" autoFocus required />
           <select name="teamId" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Team" required>
             {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
@@ -125,7 +125,7 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, team
         </section>
       ) : null}
 
-      <section className="overflow-hidden rounded-lg border border-border bg-surface">
+      <section id="onborda-task-list" className="overflow-hidden rounded-lg border border-border bg-surface">
         {tasks.length ? (
           <div className="divide-y divide-border">
             {tasks.map((task) => {

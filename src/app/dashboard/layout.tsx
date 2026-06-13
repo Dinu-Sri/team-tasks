@@ -2,9 +2,11 @@ import type { ReactNode } from "react";
 
 import { AppHeader } from "@/components/app-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { OnboardingProvider } from "@/components/onboarding-provider";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
+import { teamTourSteps } from "@/lib/onboarding-tours";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
@@ -19,11 +21,13 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const attachmentsEnabled = capabilities.some(({ team }) => team.featureSettings?.attachmentsEnabled);
 
   return (
-    <main className="min-h-screen bg-background">
-      <AppHeader user={user} {...headerData} />
-      <DashboardShell commentsEnabled={commentsEnabled} attachmentsEnabled={attachmentsEnabled}>
-        {children}
-      </DashboardShell>
-    </main>
+    <OnboardingProvider steps={teamTourSteps} tourName="team-tour">
+      <main className="min-h-screen bg-background">
+        <AppHeader user={user} {...headerData} />
+        <DashboardShell commentsEnabled={commentsEnabled} attachmentsEnabled={attachmentsEnabled}>
+          {children}
+        </DashboardShell>
+      </main>
+    </OnboardingProvider>
   );
 }

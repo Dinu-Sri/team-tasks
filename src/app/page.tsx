@@ -2,12 +2,14 @@ import { ArrowRight, ListTodo } from "lucide-react";
 import Link from "next/link";
 
 import { AppHeader } from "@/components/app-header";
+import { OnboardingProvider } from "@/components/onboarding-provider";
 import { PersonalTasks } from "@/components/tasks/personal-tasks";
 import { ThemeButton } from "@/components/theme-button";
 import { buttonVariants } from "@/components/ui/button";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
+import { personalTourSteps } from "@/lib/onboarding-tours";
 import { cn } from "@/lib/utils";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string }> }) {
@@ -118,26 +120,28 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     })));
 
   return (
-    <main className="min-h-screen bg-background">
-      <AppHeader user={user} {...headerData} memberTaskViewEnabled={memberTaskGroups.length > 0} />
-      <PersonalTasks
-        tasks={tasks.map(serializeTask)}
-        discussionUpdates={discussionUpdates.map(serializeTask)}
-        memberTaskGroups={memberTaskGroups}
-        teams={memberships.map(({ team, role }) => {
-          const canAssignMembers = role === "OWNER" && (team.featureSettings?.memberTaskViewEnabled ?? false);
-          return {
-            id: team.id,
-            name: team.name,
-            canAssignMembers,
-            members: canAssignMembers ? team.memberships.map(({ user: member }) => ({ id: member.id, name: member.name })) : [{ id: user.id, name: user.name }],
-          };
-        })}
-        currentUserId={user.id}
-        initialTaskId={query.task}
-        focusedTask={focusedTask ? serializeTask(focusedTask) : undefined}
-      />
-    </main>
+    <OnboardingProvider steps={personalTourSteps} tourName="personal-tour">
+      <main className="min-h-screen bg-background">
+        <AppHeader user={user} {...headerData} memberTaskViewEnabled={memberTaskGroups.length > 0} />
+        <PersonalTasks
+          tasks={tasks.map(serializeTask)}
+          discussionUpdates={discussionUpdates.map(serializeTask)}
+          memberTaskGroups={memberTaskGroups}
+          teams={memberships.map(({ team, role }) => {
+            const canAssignMembers = role === "OWNER" && (team.featureSettings?.memberTaskViewEnabled ?? false);
+            return {
+              id: team.id,
+              name: team.name,
+              canAssignMembers,
+              members: canAssignMembers ? team.memberships.map(({ user: member }) => ({ id: member.id, name: member.name })) : [{ id: user.id, name: user.name }],
+            };
+          })}
+          currentUserId={user.id}
+          initialTaskId={query.task}
+          focusedTask={focusedTask ? serializeTask(focusedTask) : undefined}
+        />
+      </main>
+    </OnboardingProvider>
   );
 }
 

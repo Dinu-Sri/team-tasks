@@ -58,21 +58,21 @@ export function PublicHome() {
       <section className="relative overflow-hidden border-b border-border/50 bg-gradient-to-b from-surface/90 to-surface/50">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div className="text-center lg:text-left">
-            <Badge className="inline-flex" variant="success">Free &mdash; all features included</Badge>
+            <Badge className="inline-flex px-4 py-1.5 text-sm font-bold" variant="success">Free &mdash; all features included</Badge>
             <h1 className="mx-auto mt-5 max-w-xl text-4xl font-bold leading-tight tracking-tight sm:text-7xl lg:mx-0">
               To-do <span className="text-brand">&rarr;</span> Done
             </h1>
             <p className="mx-auto mt-5 max-w-lg text-base leading-7 text-muted-foreground sm:text-xl lg:mx-0">
-              One simple list. Start alone, invite people when it becomes a project. No boards. No training.
+              One simple list. Start alone, invite people when it becomes a project. <strong className="text-foreground font-bold">No boards. No training.</strong>
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 lg:items-start">
               <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "px-8 font-semibold text-base")}>
                 Start free <ArrowRight />
+                <span className="ml-3 inline-flex items-center gap-1.5 border-l border-brand-foreground/25 pl-3 text-xs font-normal opacity-90">
+                  <CreditCard className="h-3.5 w-3.5" />
+                  No credit card needed
+                </span>
               </Link>
-              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <CreditCard className="h-4 w-4 text-success" />
-                No credit card needed
-              </p>
             </div>
           </div>
           <AnimatedProductPreview />
@@ -222,11 +222,11 @@ export function PublicHome() {
           <div className="mt-6 flex flex-col items-center gap-3">
             <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "px-8 font-semibold text-base")}>
               Start free <ArrowRight />
+              <span className="ml-3 inline-flex items-center gap-1.5 border-l border-brand-foreground/25 pl-3 text-xs font-normal opacity-90">
+                <CreditCard className="h-3.5 w-3.5" />
+                No credit card needed
+              </span>
             </Link>
-            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <CreditCard className="h-4 w-4 text-success" />
-              No credit card needed
-            </p>
           </div>
         </div>
       </section>

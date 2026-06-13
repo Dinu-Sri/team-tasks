@@ -16,7 +16,7 @@ export function MarketingFooter() {
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.2fr_0.9fr_0.9fr]">
         <div>
           <Link href="/" className="inline-flex items-center gap-2.5 shrink-0" aria-label="Tuduvia home">
-            <Image src="/tuduvia-logo.webp" alt="Tuduvia" width={40} height={40} className="h-10 w-10 rounded-xl object-contain" />
+            <Image src="/tuduvia-logo.webp" alt="Tuduvia" width={72} height={72} className="h-[72px] w-[72px] rounded-2xl object-contain" />
           </Link>
           <p className="mt-3 max-w-xs text-sm leading-6 text-muted-foreground">
             {siteConfig.tagline} Simple task app for personal life, temporary projects, and small teams.

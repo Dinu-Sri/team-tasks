@@ -91,8 +91,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       commentsEnabled: task.team.featureSettings?.commentsEnabled ?? false,
       attachmentsEnabled: task.team.featureSettings?.attachmentsEnabled ?? false,
       attachmentLimitMb: task.team.featureSettings?.attachmentLimitMb ?? 5,
-      currentUserRole: task.team.memberships.find(({ userId }) => userId === user.id)?.role ?? "MEMBER" as const,
-      members: task.team.memberships.map(({ user: member }) => member),
+      currentUserRole: task.team.memberships.find(({ userId }: { userId: string }) => userId === user.id)?.role ?? "MEMBER" as const,
+      members: task.team.memberships.map(({ user: member }: { user: { id: string; name: string; email: string } }) => member),
     },
     comments: task.comments.map((comment) => ({
       ...comment,
@@ -100,17 +100,19 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       receipts: comment.receipts.map((receipt) => ({ ...receipt, readAt: receipt.readAt?.toISOString() ?? null })),
     })),
     attachments: task.attachments,
-    unreadCommentCount: task.comments.filter((comment) => comment.receipts.some((receipt) => receipt.userId === user.id && !receipt.readAt)).length,
-    hasMentionAttention: task.comments.some((comment) => comment.receipts.some((receipt) => receipt.userId === user.id && !receipt.readAt && receipt.requiresAttention)),
+    unreadCommentCount: task.comments.filter((comment: { receipts: Array<{ userId: string; readAt: Date | null }> }) => comment.receipts.some((receipt: { userId: string; readAt: Date | null }) => receipt.userId === user.id && !receipt.readAt)).length,
+    hasMentionAttention: task.comments.some((comment: { receipts: Array<{ userId: string; readAt: Date | null; requiresAttention: boolean }> }) => comment.receipts.some((receipt: { userId: string; readAt: Date | null; requiresAttention: boolean }) => receipt.userId === user.id && !receipt.readAt && receipt.requiresAttention)),
   });
 
-  const memberTaskGroups = viewerTeams.flatMap(({ team }) => team.memberships
-    .filter(({ userId }) => userId !== user.id)
-    .map(({ user: member }) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const memberTaskGroups = viewerTeams.flatMap(({ team }: any) => team.memberships
+    .filter(({ userId }: { userId: string }) => userId !== user.id)
+    .map(({ user: member }: { user: { id: string; name: string } }) => ({
       id: `${team.id}:${member.id}`,
       memberName: member.name,
       teamName: team.name,
-      tasks: memberTasks.filter((task) => task.teamId === team.id && task.assignees.some(({ userId }) => userId === member.id)).map((task) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tasks: memberTasks.filter((task: any) => task.teamId === team.id && task.assignees.some(({ userId }: { userId: string }) => userId === member.id)).map((task: any) => ({
         id: task.id,
         title: task.title,
         priority: task.priority,

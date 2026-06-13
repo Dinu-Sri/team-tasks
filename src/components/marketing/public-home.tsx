@@ -1,4 +1,4 @@
-import { ArrowRight, Ban, Bell, CheckCircle2, ClipboardList, CreditCard, MessageCircle, MessageCircleMore, Paperclip, ShieldCheck, Smartphone, Undo2, UserRound, Users } from "lucide-react";
+import { ArrowRight, Ban, Bell, CheckCircle2, Circle, ClipboardList, CreditCard, MessageCircle, MessageCircleMore, Paperclip, ShieldCheck, Smartphone, Undo2, UserRound, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -238,162 +238,111 @@ export function PublicHome() {
 
 function AnimatedProductPreview() {
   return (
-    <div className="relative mx-auto mt-10 w-full max-w-md rounded-xl border border-border/70 bg-background text-left shadow-soft lg:mt-2" style={{ minHeight: "240px" }}>
+    <div className="relative mx-auto mt-10 w-full max-w-md rounded-xl border border-border/70 bg-background text-left shadow-soft lg:mt-2">
       {/* Static header — always visible */}
       <div className="flex items-center justify-between border-b border-border/60 px-4 pb-3 pt-4">
         <div>
           <p className="text-sm font-semibold">Today in Tuduvia</p>
-          <p className="animate-subtitle text-xs text-muted-foreground">Personal tasks, one simple list.</p>
+          <p className="animate-subtitle text-xs text-muted-foreground">Team tasks, clear ownership.</p>
         </div>
-        <Badge variant="success" className="text-xs">3 open</Badge>
+        <span className="inline-flex items-center gap-1 rounded-full border border-success/20 bg-success/12 px-2.5 py-1 text-xs font-medium text-success">3 open</span>
       </div>
 
       <style>{`
-        @keyframes tuduvia-scene-cycle {
-          0%,  28%  { transform: translateY(0); opacity: 1; visibility: visible; }
-          29%, 31%  { opacity: 0; }
-          32%, 100% { visibility: hidden; opacity: 0; }
+        @keyframes tuduvia-fade-swap {
+          0%,  44%  { opacity: 1; }
+          46%, 48%  { opacity: 0; }
+          50%,  94% { opacity: 0; }
+          96%, 98%  { opacity: 1; }
+          100%      { opacity: 1; }
         }
-        @keyframes tuduvia-scene-enter {
-          0%,  31%  { visibility: hidden; opacity: 0; }
-          32%, 34%  { opacity: 1; visibility: visible; }
-          35%, 100% { transform: translateY(0); opacity: 1; visibility: visible; }
-        }
-        @keyframes tuduvia-tick {
-          0%,  8%   { border-color: hsl(var(--border)); background: hsl(var(--background)); color: transparent; }
-          11%, 100% { border-color: hsl(var(--success)); background: hsl(var(--success)); color: white; }
-        }
-        @keyframes tuduvia-strike {
-          0%,  8%   { text-decoration-color: transparent; opacity: 1; }
-          11%, 100% { text-decoration: line-through; text-decoration-color: hsl(var(--muted-foreground)); opacity: 0.55; }
-        }
-        @keyframes tuduvia-tick-stagger1 { 0% { opacity: 0; } 3%, 100% { opacity: 1; } }
-        @keyframes tuduvia-tick-stagger2 { 0%, 12% { opacity: 0; } 15%, 100% { opacity: 1; } }
-        @keyframes tuduvia-tick-stagger3 { 0%, 24% { opacity: 0; } 27%, 100% { opacity: 1; } }
-
-        @keyframes tuduvia-undo-flash {
-          0%,  50%  { border-color: hsl(var(--success)); background: hsl(var(--success)); color: white; }
-          50.1%, 65% { border-color: hsl(var(--success)); background: hsl(var(--background)); color: hsl(var(--success)); }
-          66%,  100% { border-color: hsl(var(--border));  background: hsl(var(--background)); color: hsl(var(--muted-foreground)); }
-        }
-        @keyframes tuduvia-undo-strike-out {
-          0%,  50%  { text-decoration: line-through; text-decoration-color: hsl(var(--muted-foreground)); opacity: 0.55; }
-          66%,  100% { text-decoration: none; opacity: 1; }
-        }
-
-        .animate-cycle { animation: tuduvia-scene-cycle 14s ease-in-out infinite; }
-        .animate-cycle-enter { animation: tuduvia-scene-enter 14s ease-in-out infinite; }
-        .animate-tick-s1 { animation: tuduvia-tick 14s ease-in-out infinite, tuduvia-tick-stagger1 14s ease-in-out infinite; }
-        .animate-tick-s2 { animation: tuduvia-tick 14s ease-in-out infinite, tuduvia-tick-stagger2 14s ease-in-out infinite; }
-        .animate-tick-s3 { animation: tuduvia-tick 14s ease-in-out infinite, tuduvia-tick-stagger3 14s ease-in-out infinite; }
-        .animate-strike-s1 { animation: tuduvia-strike 14s ease-in-out infinite, tuduvia-tick-stagger1 14s ease-in-out infinite; }
-        .animate-strike-s2 { animation: tuduvia-strike 14s ease-in-out infinite, tuduvia-tick-stagger2 14s ease-in-out infinite; }
-        .animate-strike-s3 { animation: tuduvia-strike 14s ease-in-out infinite, tuduvia-tick-stagger3 14s ease-in-out infinite; }
-        .animate-undo-circle { animation: tuduvia-undo-flash 14s ease-in-out infinite; }
-        .animate-undo-strike { animation: tuduvia-undo-strike-out 14s ease-in-out infinite; }
+        .animate-scene-a { animation: tuduvia-fade-swap 8s ease-in-out infinite; }
+        .animate-scene-b { animation: tuduvia-fade-swap 8s ease-in-out infinite; animation-delay: -4s; }
 
         .animate-subtitle::after {
-          animation: subtitle-cycle 14s ease-in-out infinite;
+          animation: subtitle-cycle 8s ease-in-out infinite;
           content: "";
         }
         @keyframes subtitle-cycle {
-          0%,  29%  { content: "Personal tasks, one simple list."; }
-          30%, 32%  { opacity: 0; }
-          33%, 62%  { content: "Team tasks, clear ownership."; opacity: 1; }
-          63%, 65%  { opacity: 0; }
-          66%, 95%  { content: "Undo mistakes instantly."; opacity: 1; }
+          0%,  44%  { content: "Team tasks, clear ownership."; }
+          46%, 48%  { opacity: 0; }
+          50%,  94% { content: "Home tasks, done or next."; opacity: 1; }
           96%, 100% { opacity: 0; }
         }
       `}</style>
 
-      {/* ── Scene 1: Personal tasks (simple, no extra icons) ── */}
-      <div className="animate-cycle px-4 pb-4 pt-2">
-        <div className="grid gap-1.5">
-          {[
-            { title: "Pay electricity bill", owner: "You" },
-            { title: "Finish school slides", owner: "Maya" },
-            { title: "Call supplier", owner: "Sam" },
-          ].map((task, idx) => {
-            const staggerClass = idx === 0 ? "animate-tick-s1" : idx === 1 ? "animate-tick-s2" : "animate-tick-s3";
-            const strikeClass = idx === 0 ? "animate-strike-s1" : idx === 1 ? "animate-strike-s2" : "animate-strike-s3";
-            return (
-              <div key={idx} className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5">
-                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground ${staggerClass}`}>
-                  <CheckCircle2 className={`h-3.5 w-3.5 ${staggerClass}`} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className={`truncate text-sm font-medium text-foreground ${strikeClass}`}>{task.title}</p>
-                  <p className="text-xs text-muted-foreground">{task.owner}</p>
-                </div>
-                <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">Personal</Badge>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Task area — scenes swap with simple opacity fade */}
+      <div className="relative px-4 py-3" style={{ minHeight: "176px" }}>
 
-      {/* ── Scene 2: Team management with comment/attachment/notification icons like real app ── */}
-      <div className="animate-cycle-enter bg-background" style={{ animationDelay: "-4.66s", position: "absolute", left: 0, right: 0, top: 0, paddingTop: "52px", borderRadius: "12px" }}>
-        <div className="grid gap-1.5 px-4 pb-4">
+        {/* ── Scene A: Team tasks (matching screenshot) ── */}
+        <div className="animate-scene-a grid gap-1.5" style={{ position: "absolute", left: "16px", right: "16px", top: "12px" }}>
           {[
-            { title: "Assign onboarding buddy", owner: "Liam", tag: "HR", comments: 2, unread: 1, files: 1 },
-            { title: "Review Q3 report draft", owner: "Priya", tag: "Team", comments: 0, unread: 0, files: 0 },
-            { title: "Book venue for offsite", owner: "Carlos", tag: "Events", comments: 3, unread: 2, files: 0 },
-          ].map((task, idx) => {
-            const staggerClass = idx === 0 ? "animate-tick-s1" : idx === 1 ? "animate-tick-s2" : "animate-tick-s3";
-            const strikeClass = idx === 0 ? "animate-strike-s1" : idx === 1 ? "animate-strike-s2" : "animate-strike-s3";
-            return (
-              <div key={idx} className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5">
-                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground ${staggerClass}`}>
-                  <CheckCircle2 className={`h-3.5 w-3.5 ${staggerClass}`} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className={`truncate text-sm font-medium text-foreground ${strikeClass}`}>{task.title}</p>
-                  <p className="text-xs text-muted-foreground">{task.owner}</p>
-                </div>
-                {/* Comment + file icons like real app */}
+            { title: "Assign onboarding buddy", owner: "Liam", tag: "HR", comments: 1, files: 1 },
+            { title: "Review Q3 report draft",  owner: "Priya", tag: "Team", comments: 0, files: 0 },
+            { title: "Book venue for offsite",   owner: "Carlos", tag: "Events", comments: 2, files: 0 },
+          ].map((task, idx) => (
+            <div key={idx} className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-success bg-success text-white">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{task.title}</p>
+                <p className="text-xs text-muted-foreground">{task.owner}</p>
+              </div>
+              {task.comments > 0 ? (
                 <span className="relative flex items-center gap-1 text-xs text-muted-foreground">
                   <MessageCircleMore className="h-3.5 w-3.5" />
-                  {task.comments > 0 ? <span>{task.comments}</span> : null}
-                  {task.unread > 0 ? (
-                    <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-danger px-1 text-[8px] font-semibold text-white">{task.unread}</span>
+                  <span>{task.comments}</span>
+                  {task.comments > 0 ? (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-danger px-1 text-[8px] font-semibold text-white">{task.comments}</span>
                   ) : null}
                 </span>
-                {task.files > 0 ? (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Paperclip className="h-3.5 w-3.5" />
-                    <span>{task.files}</span>
-                  </span>
-                ) : null}
-                <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">{task.tag}</Badge>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Scene 3: Undo moment ── */}
-      <div className="animate-cycle-enter bg-background" style={{ animationDelay: "-9.33s", position: "absolute", left: 0, right: 0, top: 0, paddingTop: "52px", borderRadius: "12px" }}>
-        <div className="grid gap-1.5 px-4 pb-4">
-          <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5 opacity-55">
-            <svg className="h-6 w-6 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm line-through text-muted-foreground">Ship v2 landing page</p>
-              <p className="text-xs text-muted-foreground">You</p>
+              ) : null}
+              {task.files > 0 ? (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Paperclip className="h-3.5 w-3.5" />
+                  <span>{task.files}</span>
+                </span>
+              ) : null}
+              <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5 shrink-0">{task.tag}</Badge>
             </div>
-            <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">Launch</Badge>
-          </div>
-          <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5">
-            <span className="animate-undo-circle flex h-6 w-6 shrink-0 items-center justify-center rounded-full border">
-              <Undo2 className="h-3.5 w-3.5" />
+          ))}
+        </div>
+
+        {/* ── Scene B: Home tasks (2 done, 1 open) ── */}
+        <div className="animate-scene-b grid gap-1.5" style={{ position: "absolute", left: "16px", right: "16px", top: "12px" }}>
+          <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5 opacity-55">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-success bg-success text-white">
+              <CheckCircle2 className="h-3.5 w-3.5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="animate-undo-strike truncate text-sm font-medium text-foreground">Ship v2 landing page</p>
+              <p className="truncate text-sm font-medium line-through text-muted-foreground">Pay electricity bill</p>
               <p className="text-xs text-muted-foreground">You</p>
             </div>
-            <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5">Launch</Badge>
+            <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5 shrink-0">Home</Badge>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5 opacity-55">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-success bg-success text-white">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium line-through text-muted-foreground">Buy groceries for week</p>
+              <p className="text-xs text-muted-foreground">You</p>
+            </div>
+            <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5 shrink-0">Home</Badge>
+          </div>
+          <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-surface/70 px-3 py-2.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
+              <Circle className="h-3.5 w-3.5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">Call landlord about leak</p>
+              <p className="text-xs text-muted-foreground">You</p>
+            </div>
+            <Badge variant="secondary" className="text-[0.65rem] px-2 py-0.5 shrink-0">Home</Badge>
           </div>
         </div>
+
       </div>
     </div>
   );

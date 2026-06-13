@@ -5,6 +5,7 @@ import { CalendarDays, Check, ChevronLeft, ChevronRight, Eye, MessageCircleMore,
 import { useRouter } from "next/navigation";
 
 import { createPersonalTaskAction } from "@/app/actions/tasks";
+import { acceptInviteAction } from "@/app/actions/teams";
 import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,9 @@ function dueLabel(dueAt: string | null) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(due);
 }
 
-export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, teams, currentUserId, initialTaskId, focusedTask }: { tasks: TaskItem[]; discussionUpdates: TaskItem[]; memberTaskGroups: MemberTaskGroup[]; teams: TeamOption[]; currentUserId: string; initialTaskId?: string; focusedTask?: TaskItem }) {
+type PendingInvite = { id: string; token: string; teamName: string; inviterName: string };
+
+export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, pendingInvites, teams, currentUserId, initialTaskId, focusedTask }: { tasks: TaskItem[]; discussionUpdates: TaskItem[]; memberTaskGroups: MemberTaskGroup[]; pendingInvites: PendingInvite[]; teams: TeamOption[]; currentUserId: string; initialTaskId?: string; focusedTask?: TaskItem }) {
   const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
   const [memberView, setMemberView] = useState(false);
@@ -121,7 +124,23 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, team
         </form>
       ) : null}
 
-      {memberView ? <div className="task-view-enter"><MemberTaskCarousel groups={memberTaskGroups} index={memberIndex} onIndexChange={setMemberIndex} /></div> : <div className="task-view-enter">{discussionUpdates.length ? (
+      {memberView ? <div className="task-view-enter"><MemberTaskCarousel groups={memberTaskGroups} index={memberIndex} onIndexChange={setMemberIndex} /></div> : <div className="task-view-enter">
+        {pendingInvites.length ? (
+          <section className="mb-4 space-y-2">
+            {pendingInvites.map((invite) => (
+              <div key={invite.id} className="flex items-center justify-between gap-3 rounded-lg border border-brand/30 bg-brand/5 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{invite.inviterName} invited you to {invite.teamName}</p>
+                </div>
+                <form action={acceptInviteAction}>
+                  <input type="hidden" name="token" value={invite.token} />
+                  <Button size="sm" type="submit">Accept</Button>
+                </form>
+              </div>
+            ))}
+          </section>
+        ) : null}
+      {discussionUpdates.length ? (
         <section className="mb-4 overflow-hidden rounded-lg border border-border bg-surface">
           <div className="border-b border-border px-4 py-3 sm:px-6">
             <h2 className="text-sm font-semibold">Discussion updates</h2>

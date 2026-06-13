@@ -59,7 +59,7 @@ export async function getHeaderData(userId: string) {
   }));
 
   return {
-    notifications: [...liveNotifications, ...storedNotifications].slice(0, 10),
+    notifications: [...liveNotifications, ...storedNotifications].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10),
     notificationCount: storedUnreadCount,
     momentum,
   };

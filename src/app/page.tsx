@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { personalTourSteps } from "@/lib/onboarding-tours";
 import { cn } from "@/lib/utils";
+import { acceptInviteAction } from "@/app/actions/teams";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string }> }) {
   const user = await getSessionUser();
@@ -29,7 +30,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     },
     attachments: { include: { uploader: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" as const } },
   };
-  const [tasks, discussionUpdates, memberships, headerData, focusedTask] = await Promise.all([
+  const [tasks, discussionUpdates, memberships, headerData, focusedTask, pendingInvites] = await Promise.all([
     db.task.findMany({
       where: { status: "OPEN", assignees: { some: { userId: user.id } } },
       include: taskInclude,
@@ -60,6 +61,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       where: { id: query.task, team: { memberships: { some: { userId: user.id } } } },
       include: taskInclude,
     }) : null,
+    db.invite.findMany({
+      where: { email: user.email, status: "PENDING", expiresAt: { gt: new Date() } },
+      include: { team: true, invitedBy: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
   const personalTourCompleted = await db.onboardingProgress.findUnique({
     where: { userId_tourName: { userId: user.id, tourName: "personal-tour" } },
@@ -138,6 +144,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           tasks={tasks.map(serializeTask)}
           discussionUpdates={discussionUpdates.map(serializeTask)}
           memberTaskGroups={memberTaskGroups}
+          pendingInvites={pendingInvites.map((invite) => ({
+            id: invite.id,
+            token: invite.token,
+            teamName: invite.team.name,
+            inviterName: invite.invitedBy.name,
+          }))}
           teams={memberships.map(({ team, role }) => {
             const canAssignMembers = role === "OWNER" && (team.featureSettings?.memberTaskViewEnabled ?? false);
             return {

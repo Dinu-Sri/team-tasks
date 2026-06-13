@@ -117,6 +117,7 @@ export async function acceptInviteAction(formData: FormData) {
 
   await publishRealtimeEvent([user.id, invite.invitedById], "invite.accepted");
 
+  revalidatePath("/");
   redirect("/dashboard");
 }
 

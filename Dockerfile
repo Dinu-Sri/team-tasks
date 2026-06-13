@@ -1,10 +1,13 @@
 FROM node:20-alpine AS base
 
+# Enable corepack for pnpm
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package*.json ./
-RUN npm install --no-audit --no-fund
+COPY pnpm-lock.yaml package.json ./
+RUN pnpm install --frozen-lockfile --prod=false
 
 FROM base AS builder
 WORKDIR /app

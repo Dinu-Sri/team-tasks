@@ -1,5 +1,4 @@
 import { Check, Flame, ShieldCheck, Sparkles, Trophy } from "lucide-react";
-import { cookies } from "next/headers";
 
 import { AppHeader } from "@/components/app-header";
 import { MomentumBadgeIcon } from "@/components/momentum/momentum-badge";
@@ -25,16 +24,6 @@ function statusLabel(status: string) {
 
 export default async function MomentumPage() {
   const user = await requireUser();
-
-  // Read workspace from cookie (inline — Next.js 15 restriction)
-  let workspaceId: string | null = null;
-  try {
-    const cookieStore = await cookies();
-    const raw = cookieStore.get("tw_ws")?.value;
-    if (raw) workspaceId = decodeURIComponent(raw);
-  } catch {
-    // ignore
-  }
   const [headerData, memberships] = await Promise.all([
     getHeaderData(user.id),
     db.membership.findMany({
@@ -46,6 +35,8 @@ export default async function MomentumPage() {
   const momentum = headerData.momentum;
   const achievementSet = new Set(momentum.achievements.map(({ badge }) => badge));
   const activeDefinition = BADGE_DEFINITIONS.find((badge) => badge.tier === momentum.currentBadge);
+
+  const workspaceId: string | null = null;
 
   const workspaces: WorkspaceOption[] = memberships.map(({ team, role }) => ({
     id: team.id,

@@ -47,7 +47,7 @@ export function WorkspaceSelector({
   const handleSelect = useCallback(
     (id: string) => {
       setOpen(false);
-      // Persist to cookie so server-side pages can read it
+      // Persist to cookie
       setWorkspaceCookie(id);
 
       const params = new URLSearchParams(searchParams.toString());
@@ -64,6 +64,22 @@ export function WorkspaceSelector({
     },
     [router, searchParams]
   );
+
+  // On first mount, if no workspace param but cookie exists, redirect to it
+  useEffect(() => {
+    const currentWs = searchParams.get("workspace");
+    if (!currentWs && workspaces.length > 0) {
+      // Read cookie
+      const match = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]*)`));
+      const cookieVal = match ? decodeURIComponent(match[1]) : null;
+      if (cookieVal && (cookieVal === ALL_ID || workspaces.some((w) => w.id === cookieVal))) {
+        const params = new URLSearchParams(searchParams.toString());
+        if (cookieVal !== ALL_ID) params.set("workspace", cookieVal);
+        const qs = params.toString();
+        router.replace(`/${qs ? `?${qs}` : ""}`, { scroll: false });
+      }
+    }
+  }, []); // only on mount
 
   return (
     <div ref={rootRef} className="relative">

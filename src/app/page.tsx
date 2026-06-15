@@ -7,7 +7,6 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { personalTourSteps } from "@/lib/onboarding-tours";
-import { cookies } from "next/headers";
 import { Suspense } from "react";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string; workspace?: string }> }) {
@@ -15,18 +14,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   if (!user) return <PublicHome />;
   const query = await searchParams;
 
-  // Read workspace from cookie (inline — must not be in a helper, Next.js 15 restriction)
-  let cookieWs: string | null = null;
-  try {
-    const cookieStore = await cookies();
-    const raw = cookieStore.get("tw_ws")?.value;
-    if (raw) cookieWs = decodeURIComponent(raw);
-  } catch {
-    // ignore
-  }
-
-  // Use URL param first, then cookie fallback
-  const activeWorkspace = query.workspace ?? cookieWs ?? undefined;
+  // Use URL param only — cookie persistence is handled client-side by WorkspaceSelector
+  const activeWorkspace = query.workspace ?? undefined;
 
   const taskInclude = {
     team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },

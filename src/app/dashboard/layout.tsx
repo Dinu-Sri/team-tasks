@@ -9,20 +9,13 @@ import { isSuperAdmin, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { teamTourSteps } from "@/lib/onboarding-tours";
-import { cookies } from "next/headers";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
 
-  // Read workspace from cookie (inline — Next.js 15 restriction)
-  let workspaceId: string | null = null;
-  try {
-    const cookieStore = await cookies();
-    const raw = cookieStore.get("tw_ws")?.value;
-    if (raw) workspaceId = decodeURIComponent(raw);
-  } catch {
-    // ignore
-  }
+  // Workspace is read from URL param by the client-side WorkspaceSelector
+  // and persisted via cookie. For dashboard pages, workspace context comes from URL.
+  const workspaceId: string | null = null;
   const [headerData, capabilities, teamTourCompleted, memberships] = await Promise.all([
     getHeaderData(user.id),
     db.membership.findMany({

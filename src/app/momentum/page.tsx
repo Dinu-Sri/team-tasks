@@ -11,17 +11,6 @@ import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { BADGE_DEFINITIONS } from "@/lib/momentum-shared";
 
-function getWorkspaceCookie(): string | null {
-  try {
-    const cookieStore = cookies();
-    const raw = cookieStore.get("tw_ws")?.value;
-    if (!raw) return null;
-    return decodeURIComponent(raw);
-  } catch {
-    return null;
-  }
-}
-
 function dayLabel(date: string) {
   return new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
 }
@@ -36,7 +25,16 @@ function statusLabel(status: string) {
 
 export default async function MomentumPage() {
   const user = await requireUser();
-  const workspaceId = getWorkspaceCookie();
+
+  // Read workspace from cookie (inline — Next.js 15 restriction)
+  let workspaceId: string | null = null;
+  try {
+    const cookieStore = await cookies();
+    const raw = cookieStore.get("tw_ws")?.value;
+    if (raw) workspaceId = decodeURIComponent(raw);
+  } catch {
+    // ignore
+  }
   const [headerData, memberships] = await Promise.all([
     getHeaderData(user.id),
     db.membership.findMany({

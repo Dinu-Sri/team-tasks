@@ -10,24 +10,23 @@ import { personalTourSteps } from "@/lib/onboarding-tours";
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 
-function getWorkspaceCookie(): string | null {
-  try {
-    const cookieStore = cookies();
-    const raw = cookieStore.get("tw_ws")?.value;
-    if (!raw) return null;
-    return decodeURIComponent(raw);
-  } catch {
-    return null;
-  }
-}
-
 export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string; workspace?: string }> }) {
   const user = await getSessionUser();
   if (!user) return <PublicHome />;
   const query = await searchParams;
 
+  // Read workspace from cookie (inline — must not be in a helper, Next.js 15 restriction)
+  let cookieWs: string | null = null;
+  try {
+    const cookieStore = await cookies();
+    const raw = cookieStore.get("tw_ws")?.value;
+    if (raw) cookieWs = decodeURIComponent(raw);
+  } catch {
+    // ignore
+  }
+
   // Use URL param first, then cookie fallback
-  const activeWorkspace = query.workspace ?? getWorkspaceCookie() ?? undefined;
+  const activeWorkspace = query.workspace ?? cookieWs ?? undefined;
 
   const taskInclude = {
     team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },

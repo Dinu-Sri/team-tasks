@@ -11,20 +11,18 @@ import { getHeaderData } from "@/lib/header-data";
 import { teamTourSteps } from "@/lib/onboarding-tours";
 import { cookies } from "next/headers";
 
-function getWorkspaceCookie(): string | null {
-  try {
-    const cookieStore = cookies();
-    const raw = cookieStore.get("tw_ws")?.value;
-    if (!raw) return null;
-    return decodeURIComponent(raw);
-  } catch {
-    return null;
-  }
-}
-
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
-  const workspaceId = getWorkspaceCookie();
+
+  // Read workspace from cookie (inline — Next.js 15 restriction)
+  let workspaceId: string | null = null;
+  try {
+    const cookieStore = await cookies();
+    const raw = cookieStore.get("tw_ws")?.value;
+    if (raw) workspaceId = decodeURIComponent(raw);
+  } catch {
+    // ignore
+  }
   const [headerData, capabilities, teamTourCompleted, memberships] = await Promise.all([
     getHeaderData(user.id),
     db.membership.findMany({

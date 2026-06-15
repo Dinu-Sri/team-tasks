@@ -8,7 +8,7 @@ import { MOMENTUM_CELEBRATION_EVENT } from "@/components/momentum/momentum-celeb
 
 const UNDO_GRACE_MS = 4000;
 
-export function CompleteTaskButton({ taskId, title }: { taskId: string; title: string }) {
+export function CompleteTaskButton({ taskId, title, onCompleted }: { taskId: string; title: string; onCompleted?: () => void }) {
   const [pending, startTransition] = useTransition();
   const [activated, setActivated] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
@@ -30,6 +30,7 @@ export function CompleteTaskButton({ taskId, title }: { taskId: string; title: s
         if (result.completed) {
           setJustCompleted(true);
           undoRef.current = setTimeout(() => setJustCompleted(false), UNDO_GRACE_MS);
+          onCompleted?.();
         }
         window.dispatchEvent(new CustomEvent(MOMENTUM_CELEBRATION_EVENT, { detail: result }));
       } finally {

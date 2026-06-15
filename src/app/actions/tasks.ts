@@ -241,6 +241,18 @@ export async function updateTaskAction(_: unknown, formData: FormData) {
     updates.dueAt = dueDateForSelection(due, profile?.timeZone ?? task.team.timeZone ?? "UTC");
   }
 
+  // Add audit trail if owner edits a task they didn't create
+  if (task.creatorId !== user.id) {
+    updates.editNote = `Edited by ${user.name}`;
+    updates.editedById = user.id;
+    updates.editedAt = new Date();
+  } else {
+    // Clear any previous edit note if creator edits their own task
+    updates.editNote = null;
+    updates.editedById = null;
+    updates.editedAt = null;
+  }
+
   await db.task.update({ where: { id: taskId }, data: updates as Parameters<typeof db.task.update>[0]["data"] });
 
   const recipients = [...new Set([...task.assignees.map(({ userId }) => userId), task.creatorId])];
@@ -308,4 +320,47 @@ export async function transferOwnershipAction(_: unknown, formData: FormData) {
 
   await publishRealtimeEvent([user.id, newOwnerId], "membership.updated");
   revalidatePath("/dashboard");
+}
+
+export type CompletedMemberTask = {
+  id: string;
+  title: string;
+  completedAt: string;
+  completedByName: string;
+  completedById: string;
+  priority: "NORMAL" | "HIGH";
+  teamName: string;
+};
+
+export async function getCompletedMemberTasksAction(teamId: string): Promise<CompletedMemberTask[]> {
+  const user = await requireUser();
+  const membership = await db.membership.findUnique({
+    where: { userId_teamId: { userId: user.id, teamId } },
+  });
+  if (!membership || membership.role !== "OWNER") return [];
+
+  const tasks = await db.task.findMany({
+    where: {
+      teamId,
+      status: "DONE",
+    },
+    include: {
+      completedBy: { select: { id: true, name: true } },
+      team: { select: { name: true } },
+    },
+    orderBy: { completedAt: "desc" },
+    take: 50,
+  });
+
+  return tasks
+    .filter((t: { completedBy: unknown; completedAt: unknown }) => t.completedBy && t.completedAt)
+    .map((t) => ({
+      id: t.id,
+      title: t.title,
+      completedAt: t.completedAt!.toISOString(),
+      completedByName: t.completedBy!.name,
+      completedById: t.completedBy!.id,
+      priority: t.priority as "NORMAL" | "HIGH",
+      teamName: t.team.name,
+    }));
 }

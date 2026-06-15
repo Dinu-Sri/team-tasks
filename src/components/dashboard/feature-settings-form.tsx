@@ -1,6 +1,6 @@
 "use client";
 
-import { FileUp, MessageCircleMore, UsersRound } from "lucide-react";
+import { CheckCheck, FileUp, MessageCircleMore, UsersRound } from "lucide-react";
 import { useActionState, useState } from "react";
 
 import { updateTeamFeaturesAction } from "@/app/actions/features";
@@ -11,12 +11,14 @@ export function FeatureSettingsForm({
   commentsEnabled: initialComments,
   attachmentsEnabled: initialAttachments,
   memberTaskViewEnabled: initialMemberTaskView,
+  finishedTaskViewEnabled: initialFinishedTaskView,
   attachmentLimitMb: initialLimit,
 }: {
   teamId: string;
   commentsEnabled: boolean;
   attachmentsEnabled: boolean;
   memberTaskViewEnabled: boolean;
+  finishedTaskViewEnabled: boolean;
   attachmentLimitMb: number;
 }) {
   const [state, action, pending] = useActionState(updateTeamFeaturesAction, {});
@@ -58,6 +60,14 @@ export function FeatureSettingsForm({
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">Member task view</span>
           <span className="mt-1 block text-sm leading-5 text-muted-foreground">Let owners assign from Home and privately review each member's current task list.</span>
+        </span>
+      </label>
+      <label className="flex cursor-pointer items-start gap-3 border-t border-border pt-4">
+        <input name="finishedTaskViewEnabled" type="checkbox" defaultChecked={initialFinishedTaskView} className="mt-1 h-4 w-4 accent-[hsl(var(--brand))]" />
+        <CheckCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Finished task view</span>
+          <span className="mt-1 block text-sm leading-5 text-muted-foreground">Owners can see a list of tasks completed by members and reopen them if needed.</span>
         </span>
       </label>
       <div className="flex items-center justify-between gap-3">

@@ -15,6 +15,7 @@ model User {
   memberships        Membership[]
   createdTasks       Task[]                @relation("CreatedTasks")
   completedTasks     Task[]                @relation("CompletedTasks")
+  editedTasks        Task[]                @relation("EditedTasks")
   assignments        TaskMember[]
   sentInvites        Invite[]              @relation("InviteSender")
   invitations        Invite[]              @relation("InvitedUser")
@@ -83,8 +84,12 @@ model Task {
   momentumAwardedAt DateTime?
   creatorId         String
   teamId            String
+  editNote          String?
+  editedById        String?
+  editedAt          DateTime?
   creator           User                @relation("CreatedTasks", fields: [creatorId], references: [id])
   completedBy       User?               @relation("CompletedTasks", fields: [completedById], references: [id], onDelete: SetNull)
+  editedBy          User?               @relation("EditedTasks", fields: [editedById], references: [id], onDelete: SetNull)
   team              Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
   assignees         TaskMember[]
   momentumDays      MomentumDay[]
@@ -99,14 +104,15 @@ model Task {
 }
 
 model TeamFeatureSettings {
-  teamId             String   @id
-  commentsEnabled    Boolean  @default(false)
-  attachmentsEnabled Boolean  @default(false)
-  memberTaskViewEnabled Boolean @default(false)
-  attachmentLimitMb  Int      @default(5)
-  team               Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  teamId                  String   @id
+  commentsEnabled         Boolean  @default(false)
+  attachmentsEnabled      Boolean  @default(false)
+  memberTaskViewEnabled   Boolean  @default(false)
+  finishedTaskViewEnabled Boolean  @default(false)
+  attachmentLimitMb       Int      @default(5)
+  team                    Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
 model TaskComment {

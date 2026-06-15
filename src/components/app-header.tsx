@@ -1,7 +1,6 @@
-"use client";
-
 import { ListTodo } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { MemberTaskViewToggle, MomentumMenu, NotificationMenu, ProfileMenu } from "@/components/header-menus";
 import { MomentumCelebrationListener } from "@/components/momentum/momentum-celebration";
@@ -50,10 +49,12 @@ export function AppHeader({
         {/* Center: workspace selector */}
         <div className="flex-1 flex justify-center">
           {workspaces && workspaces.length > 0 ? (
-            <WorkspaceSelector
-              workspaces={workspaces}
-              selectedId={selectedWorkspaceId ?? "__all__"}
-            />
+            <Suspense fallback={<div className="h-9 w-40" />}>
+              <WorkspaceSelector
+                workspaces={workspaces}
+                selectedId={selectedWorkspaceId ?? "__all__"}
+              />
+            </Suspense>
           ) : null}
         </div>
 

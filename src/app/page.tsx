@@ -7,7 +7,6 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { personalTourSteps } from "@/lib/onboarding-tours";
-import { Suspense } from "react";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string; workspace?: string }> }) {
   const user = await getSessionUser();
@@ -178,15 +177,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       completedInDb={Boolean(personalTourCompleted)}
     >
       <main className="min-h-screen bg-background">
-        <Suspense fallback={<div className="mx-auto flex h-16 max-w-5xl items-center px-3 sm:px-6" />}>
-          <AppHeader
-            user={user}
-            {...headerData}
-            memberTaskViewEnabled={memberTaskGroups.length > 0}
-            workspaces={workspaces}
-            selectedWorkspaceId={activeWorkspace ?? "__all__"}
-          />
-        </Suspense>
+        <AppHeader
+          user={user}
+          {...headerData}
+          memberTaskViewEnabled={memberTaskGroups.length > 0}
+          workspaces={workspaces}
+          selectedWorkspaceId={activeWorkspace ?? "__all__"}
+        />
         <PersonalTasks
           tasks={tasks.map(serializeTask)}
           discussionUpdates={discussionUpdates.map(serializeTask)}

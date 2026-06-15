@@ -120,14 +120,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const memberTaskGroups = viewerTeams.flatMap(({ team }: any) => team.memberships
+  const memberTaskGroups = viewerTeams.flatMap(({ team }: any) => (team.memberships ?? [])
     .filter(({ userId }: { userId: string }) => userId !== user.id)
     .map(({ user: member }: { user: { id: string; name: string } }) => ({
       id: `${team.id}:${member.id}`,
       memberName: member.name,
       teamName: team.name,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tasks: memberTasks.filter((task: any) => task.teamId === team.id && task.assignees.some(({ userId }: { userId: string }) => userId === member.id)).map((task: any) => ({
+      tasks: memberTasks.filter((task: any) => task.teamId === team.id && (task.assignees ?? []).some(({ userId }: { userId: string }) => userId === member.id)).map((task: any) => ({
         id: task.id,
         title: task.title,
         priority: task.priority,

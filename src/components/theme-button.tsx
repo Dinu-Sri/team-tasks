@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-
 export function ThemeButton() {
   const [dark, setDark] = useState(false);
 
@@ -40,8 +38,13 @@ export function ThemeButton() {
   }
 
   return (
-    <Button className="h-9 w-9 sm:h-10 sm:w-10" variant="quiet" size="icon" onClick={toggle} aria-label="Toggle theme">
-      {dark ? <Sun /> : <Moon />}
-    </Button>
+    <button
+      type="button"
+      onClick={toggle}
+      className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-subtle hover:text-foreground sm:h-10 sm:w-10"
+      aria-label="Toggle theme"
+    >
+      {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </button>
   );
 }

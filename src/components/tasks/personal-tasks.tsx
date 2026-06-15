@@ -160,7 +160,7 @@ export function PersonalTasks({
         </form>
       ) : null}
 
-      {memberView ? <div className="task-view-enter"><MemberTaskCarousel groups={memberTaskGroups} index={memberIndex} onIndexChange={setMemberIndex} /></div> : <div className="task-view-enter">
+      {memberView ? <div className="task-view-enter"><MemberTaskCarousel groups={memberTaskGroups} index={memberIndex} onIndexChange={setMemberIndex} isOwner={isOwnerInWorkspace} /></div> : <div className="task-view-enter">
         {pendingInvites.length ? (
           <section className="mb-4 space-y-2">
             {pendingInvites.map((invite) => (
@@ -240,15 +240,45 @@ export function PersonalTasks({
   );
 }
 
-function MemberTaskCarousel({ groups, index, onIndexChange }: { groups: MemberTaskGroup[]; index: number; onIndexChange: (index: number) => void }) {
+function MemberTaskCarousel({ groups, index, onIndexChange, isOwner }: { groups: MemberTaskGroup[]; index: number; onIndexChange: (index: number) => void; isOwner: boolean }) {
   const touchStart = useRef<number | null>(null);
+  const router = useRouter();
   const [direction, setDirection] = useState<1 | -1>(1);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [saving, setSaving] = useState(false);
   const group = groups[index];
 
   function move(offset: number) {
     if (groups.length < 2) return;
     setDirection(offset > 0 ? 1 : -1);
     onIndexChange((index + offset + groups.length) % groups.length);
+  }
+
+  function startEdit(task: MemberTaskSummary) {
+    setEditingId(task.id);
+    setEditTitle(task.title);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditTitle("");
+  }
+
+  async function handleSave(taskId: string) {
+    if (!editTitle.trim() || saving) return;
+    setSaving(true);
+    const formData = new FormData();
+    formData.set("taskId", taskId);
+    formData.set("title", editTitle.trim());
+    formData.set("priority", "NORMAL");
+    formData.set("due", "none");
+    try {
+      await updateTaskAction(undefined, formData);
+      setEditingId(null);
+      router.refresh();
+    } catch { /* ignore */ }
+    finally { setSaving(false); }
   }
 
   if (!group) return <section className="rounded-lg border border-border bg-surface py-20 text-center text-sm text-muted-foreground">No team members to review.</section>;
@@ -261,7 +291,42 @@ function MemberTaskCarousel({ groups, index, onIndexChange }: { groups: MemberTa
         {groups.length > 1 ? <div className="flex items-center gap-1"><button type="button" onClick={() => move(-1)} className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle hover:text-foreground" aria-label="Previous team member"><ChevronLeft className="h-5 w-5" /></button><span className="min-w-10 text-center text-xs text-muted-foreground">{index + 1}/{groups.length}</span><button type="button" onClick={() => move(1)} className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle hover:text-foreground" aria-label="Next team member"><ChevronRight className="h-5 w-5" /></button></div> : null}
       </header>
       <div className="overflow-hidden">
-        <div key={group.id} className={direction > 0 ? "member-slide-next" : "member-slide-previous"}>{group.tasks.length ? <div className="divide-y divide-border">{group.tasks.map((task) => { const due = dueLabel(task.dueAt); return <div key={task.id} className="flex min-h-20 items-center gap-3 px-4 py-4 sm:px-6"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-muted-foreground"><Eye className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="break-words text-base font-semibold leading-6">{task.title}</p><div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"><span>{task.teamName}</span>{due ? <><span>-</span><span className={due === "Today" ? "text-warning" : ""}><CalendarDays className="mr-1 inline h-4 w-4" />{due}</span></> : null}{task.priority === "HIGH" ? <Badge variant="danger">Important</Badge> : null}</div></div></div>; })}</div> : <div className="py-20 text-center text-sm text-muted-foreground">No open tasks for {group.memberName}.</div>}</div>
+        <div key={group.id} className={direction > 0 ? "member-slide-next" : "member-slide-previous"}>
+          {group.tasks.length ? <div className="divide-y divide-border">
+            {group.tasks.map((task) => {
+              const due = dueLabel(task.dueAt);
+              const isEditing = editingId === task.id;
+              return (
+                <div key={task.id} className="flex min-h-20 items-center gap-3 px-4 py-4 sm:px-6">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-muted-foreground"><Eye className="h-4 w-4" /></span>
+                  <div className="min-w-0 flex-1">
+                    {isEditing && isOwner ? (
+                      <div className="flex items-center gap-2">
+                        <Input name="title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-9 text-sm" autoFocus onKeyDown={(e) => { if (e.key === "Enter") handleSave(task.id); }} />
+                        <Button type="button" size="sm" className="h-9" disabled={saving} onClick={() => handleSave(task.id)}>{saving ? "Saving..." : "Save"}</Button>
+                        <Button type="button" size="sm" variant="secondary" className="h-9" onClick={cancelEdit} disabled={saving}>Cancel</Button>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="break-words text-base font-semibold leading-6">{task.title}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                          {due ? <span className={due === "Today" ? "text-warning" : ""}><CalendarDays className="mr-1 inline h-4 w-4" />{due}</span> : null}
+                          {task.priority === "HIGH" ? <Badge variant="danger">Important</Badge> : null}
+                          {task.editNote ? <span className="flex items-center gap-1 text-xs text-brand"><Pencil className="h-3 w-3" />{task.editNote}</span> : null}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {isOwner && !isEditing ? (
+                    <button type="button" onClick={() => startEdit(task)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-brand/10 hover:text-brand transition-colors" aria-label={`Edit ${task.title}`} title="Edit this task">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div> : <div className="py-20 text-center text-sm text-muted-foreground">No open tasks for {group.memberName}.</div>}
+        </div>
       </div>
     </section>
   );

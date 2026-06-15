@@ -241,6 +241,13 @@ export async function updateTaskAction(_: unknown, formData: FormData) {
     updates.dueAt = dueDateForSelection(due, profile?.timeZone ?? task.team.timeZone ?? "UTC");
   }
 
+  // Add audit trail if owner edits a task they didn't create
+  if (task.creatorId !== user.id) {
+    updates.editNote = `Edited by ${user.name}`;
+    updates.editedById = user.id;
+    updates.editedAt = new Date();
+  }
+
   await db.task.update({ where: { id: taskId }, data: updates as Parameters<typeof db.task.update>[0]["data"] });
 
   const recipients = [...new Set([...task.assignees.map(({ userId }) => userId), task.creatorId])];

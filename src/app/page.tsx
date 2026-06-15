@@ -152,22 +152,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   // Only show member task view toggle for the selected workspace if user is owner there
   const canViewMemberTasks = workspaceRole === "OWNER" && memberTaskGroups.length > 0;
 
-  // === DEBUG START ===
-  const firstTaskRaw = tasks[0] as unknown as { editNote?: string | null; editedAt?: Date | null; title?: string };
-  console.log("[DEBUG page]", JSON.stringify({
-    activeWorkspace,
-    workspaceRole,
-    isCurrentWorkspaceOwner: workspaceRole === "OWNER",
-    membershipsCount: memberships.length,
-    membershipsRoles: memberships.map(m => ({ teamId: m.teamId, role: m.role, name: m.team.name })),
-    firstTaskId: tasks[0]?.id,
-    firstTaskTitle: firstTaskRaw?.title,
-    firstTaskEditNote: firstTaskRaw?.editNote,
-    firstTaskEditedAt: firstTaskRaw?.editedAt,
-    taskCount: tasks.length,
-  }));
-  // === DEBUG END ===
-
   return (
     <OnboardingProvider
       steps={personalTourSteps}

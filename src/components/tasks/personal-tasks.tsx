@@ -82,6 +82,11 @@ export function PersonalTasks({
   // When workspace is selected, use that team for member dropdown (not selectedTeamId)
   const workspaceTeam = !isAllWorkspaces ? teams.find(t => t.id === workspaceId) : null;
 
+  // Reset showAdd when workspace context changes and user is not owner
+  useEffect(() => {
+    if (!showAddButton) setShowAdd(false);
+  }, [showAddButton]);
+
   const onTaskCompleted = useCallback((taskId: string, title: string) => {
     setLastCompleted({ id: taskId, title });
     setShowCompletedToast(true);

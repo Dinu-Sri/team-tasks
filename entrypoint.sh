@@ -19,5 +19,24 @@ fi
 echo "Applying database migrations..."
 npx prisma migrate deploy
 
+# Ensure audit columns exist (idempotent safety net)
+echo "Ensuring audit columns exist..."
+node -e "
+const { Client } = require('pg');
+(async () => {
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query(\`ALTER TABLE \"Task\" ADD COLUMN IF NOT EXISTS \"editNote\" TEXT\`);
+    await client.query(\`ALTER TABLE \"Task\" ADD COLUMN IF NOT EXISTS \"editedById\" TEXT\`);
+    await client.query(\`ALTER TABLE \"Task\" ADD COLUMN IF NOT EXISTS \"editedAt\" TIMESTAMP(3)\`);
+    await client.query(\`ALTER TABLE \"TeamFeatureSettings\" ADD COLUMN IF NOT EXISTS \"finishedTaskViewEnabled\" BOOLEAN NOT NULL DEFAULT false\`);
+    console.log('Audit columns verified.');
+  } finally {
+    await client.end();
+  }
+})().catch(err => { console.error('Audit column check failed (non-fatal):', err.message); });
+"
+
 echo "Starting Team Tasks..."
 exec node server.js

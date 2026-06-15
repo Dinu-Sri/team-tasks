@@ -218,9 +218,16 @@ export function PersonalTasks({
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-base font-semibold leading-6 sm:text-lg">{task.title}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                      <span>{task.team.name}</span>
-                      {due ? <><span>-</span><span className={due === "Today" ? "text-warning" : ""}><CalendarDays className="mr-1 inline h-4 w-4" />{due}</span></> : null}
+                      {isAllWorkspaces ? <span>{task.team.name}</span> : null}
+                      {isAllWorkspaces && due ? <span>-</span> : null}
+                      {due ? <span className={due === "Today" ? "text-warning" : ""}><CalendarDays className="mr-1 inline h-4 w-4" />{due}</span> : null}
                       {task.priority === "HIGH" ? <Badge className="sm:hidden" variant="danger">Important</Badge> : null}
+                      {(task as any).editNote ? (
+                        <span className="flex items-center gap-1 text-xs text-brand">
+                          <Pencil className="h-3 w-3" />
+                          {(task as any).editNote}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                   {task.team.commentsEnabled || task.team.attachmentsEnabled ? <button type="button" onClick={() => openTask(task)} className="flex min-h-10 shrink-0 items-center gap-2 rounded-full px-2.5 text-sm text-muted-foreground hover:bg-surface-subtle hover:text-foreground" aria-label={`Open details for ${task.title}`}>{task.team.commentsEnabled ? <span className="relative flex items-center gap-1"><MessageCircleMore className={cn("h-4 w-4", task.unreadCommentCount > 0 && "text-brand")} /><span>{task.comments.length || ""}</span>{task.unreadCommentCount ? <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-semibold text-white">{task.unreadCommentCount}</span> : null}</span> : null}{task.team.attachmentsEnabled ? <span className="flex items-center gap-1"><Paperclip className="h-4 w-4" /><span>{task.attachments.length || ""}</span></span> : null}</button> : null}

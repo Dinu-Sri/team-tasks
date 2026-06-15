@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronDown, Globe } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type WorkspaceOption = { id: string; name: string; role: "OWNER" | "MEMBER" };
@@ -47,7 +47,6 @@ export function WorkspaceSelector({
   const handleSelect = useCallback(
     (id: string) => {
       setOpen(false);
-      // Persist to cookie
       setWorkspaceCookie(id);
 
       const params = new URLSearchParams(searchParams.toString());
@@ -60,23 +59,23 @@ export function WorkspaceSelector({
       }
       if (task) params.set("task", task);
       const qs = params.toString();
-      router.replace(`/${qs ? `?${qs}` : ""}`, { scroll: false });
+      // Use window.location for full reload to ensure server re-renders with new workspace
+      window.location.href = `/${qs ? `?${qs}` : ""}`;
     },
-    [router, searchParams]
+    [searchParams]
   );
 
   // On first mount, if no workspace param but cookie exists, redirect to it
   useEffect(() => {
     const currentWs = searchParams.get("workspace");
     if (!currentWs && workspaces.length > 0) {
-      // Read cookie
       const match = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]*)`));
       const cookieVal = match ? decodeURIComponent(match[1]) : null;
       if (cookieVal && (cookieVal === ALL_ID || workspaces.some((w) => w.id === cookieVal))) {
         const params = new URLSearchParams(searchParams.toString());
         if (cookieVal !== ALL_ID) params.set("workspace", cookieVal);
         const qs = params.toString();
-        router.replace(`/${qs ? `?${qs}` : ""}`, { scroll: false });
+        window.location.href = `/${qs ? `?${qs}` : ""}`;
       }
     }
   }, []); // only on mount

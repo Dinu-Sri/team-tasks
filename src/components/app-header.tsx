@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MemberTaskViewToggle, MomentumMenu, NotificationMenu, ProfileMenu } from "@/components/header-menus";
 import { MomentumCelebrationListener } from "@/components/momentum/momentum-celebration";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
+import { TabIndicator, type LedLevel } from "@/components/tab-indicator";
 import { ThemeButton } from "@/components/theme-button";
 import type { HeaderNotification } from "@/lib/header-data";
 import type { MomentumSummary } from "@/lib/momentum-shared";
@@ -13,16 +14,19 @@ export function AppHeader({
   notifications,
   notificationCount,
   momentum,
+  ledLevel = "clear",
   memberTaskViewEnabled = false,
 }: {
   user: { name: string; email: string };
   notifications: HeaderNotification[];
   notificationCount: number;
   momentum: MomentumSummary;
+  ledLevel?: LedLevel;
   memberTaskViewEnabled?: boolean;
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur-lg">
+      <TabIndicator level={ledLevel} />
       <RealtimeRefresh />
       <MomentumCelebrationListener />
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-3 sm:px-6">

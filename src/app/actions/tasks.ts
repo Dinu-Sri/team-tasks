@@ -242,9 +242,11 @@ export async function updateTaskAction(_: unknown, formData: FormData) {
   }
 
   // Add audit trail on any edit
-  updates.editNote = `Edited by ${user.name}`;
+  const editedAt = new Date();
+  const timeLabel = editedAt.toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  updates.editNote = `Edited by ${user.name} · ${timeLabel}`;
   updates.editedById = user.id;
-  updates.editedAt = new Date();
+  updates.editedAt = editedAt;
 
   await db.task.update({ where: { id: taskId }, data: updates as Parameters<typeof db.task.update>[0]["data"] });
 

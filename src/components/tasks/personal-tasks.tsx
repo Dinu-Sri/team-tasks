@@ -275,18 +275,17 @@ function MemberTaskCarousel({ groups, index, onIndexChange, isOwner }: { groups:
   async function handleSave(taskId: string) {
     if (!editTitle.trim() || saving) return;
     setSaving(true);
-    const formData = new FormData();
-    formData.set("taskId", taskId);
-    formData.set("title", editTitle.trim());
-    formData.set("priority", "NORMAL");
-    formData.set("due", "none");
     try {
+      const formData = new FormData();
+      formData.set("taskId", taskId);
+      formData.set("title", editTitle.trim());
+      formData.set("priority", "NORMAL");
+      formData.set("due", "");
       await updateTaskAction(undefined, formData);
       setEditingId(null);
       router.refresh();
-    } catch (err) {
-      // Keep edit open so user can retry
-      console.error("Failed to save task edit:", err);
+    } catch {
+      // ignore — action doesn't throw, but just in case
     } finally {
       setSaving(false);
     }

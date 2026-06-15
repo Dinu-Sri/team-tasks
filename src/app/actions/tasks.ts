@@ -222,18 +222,18 @@ export async function updateTaskAction(_: unknown, formData: FormData) {
   const due = String(formData.get("due") ?? "");
   const priority = String(formData.get("priority") ?? "NORMAL");
 
-  if (!title) throw new Error("Title is required");
+  if (!title) return;
 
   const task = await db.task.findUnique({
     where: { id: taskId },
     include: { team: { include: { memberships: true } }, assignees: { select: { userId: true } } },
   });
-  if (!task) throw new Error("Task not found");
+  if (!task) return;
 
   const membership = await db.membership.findUnique({
     where: { userId_teamId: { userId: user.id, teamId: task.teamId } },
   });
-  if (!membership || membership.role !== "OWNER") throw new Error("Only the team owner can edit tasks");
+  if (!membership || membership.role !== "OWNER") return;
 
   const updates: Record<string, unknown> = { title, priority: priority === "HIGH" ? "HIGH" : "NORMAL" };
   if (due) {

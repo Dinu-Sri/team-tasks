@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { getMomentumSummary } from "@/lib/momentum";
 
+export type LedLevel = "clear" | "notification" | "due-today" | "overdue" | "attention";
+
 export type HeaderNotification = {
   id: string;
   title: string;
@@ -18,7 +20,7 @@ export async function getHeaderData(userId: string) {
   const endOfToday = new Date(now);
   endOfToday.setHours(23, 59, 59, 999);
 
-  const [stored, storedUnreadCount, dueTasks, momentum] = await Promise.all([
+  const [stored, storedUnreadCount, dueTasks, attentionCount, momentum] = await Promise.all([
     db.notification.findMany({
       where: { recipientId: userId },
       orderBy: { createdAt: "desc" },
@@ -35,6 +37,21 @@ export async function getHeaderData(userId: string) {
       orderBy: { dueAt: "asc" },
       take: 5,
     }),
+    db.task.count({
+      where: {
+        comments: {
+          some: {
+            receipts: {
+              some: {
+                userId,
+                readAt: null,
+                requiresAttention: true,
+              },
+            },
+          },
+        },
+      },
+    }),
     getMomentumSummary(userId),
   ]);
 
@@ -47,6 +64,17 @@ export async function getHeaderData(userId: string) {
     unread: true,
     live: true,
   }));
+
+  let ledLevel: LedLevel = "clear";
+  if (attentionCount > 0) {
+    ledLevel = "attention";
+  } else if (dueTasks.some((t) => t.dueAt && t.dueAt < startOfToday)) {
+    ledLevel = "overdue";
+  } else if (dueTasks.length > 0) {
+    ledLevel = "due-today";
+  } else if (storedUnreadCount > 0) {
+    ledLevel = "notification";
+  }
 
   const storedNotifications: HeaderNotification[] = stored.map((notification) => ({
     id: notification.id,
@@ -62,5 +90,6 @@ export async function getHeaderData(userId: string) {
     notifications: [...liveNotifications, ...storedNotifications].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10),
     notificationCount: storedUnreadCount,
     momentum,
+    ledLevel,
   };
 }

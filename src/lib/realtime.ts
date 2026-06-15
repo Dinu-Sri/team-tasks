@@ -3,8 +3,6 @@ import "server-only";
 import { EventEmitter } from "events";
 import { Client } from "pg";
 
-import { db } from "@/lib/db";
-
 const CHANNEL = "team_tasks_events";
 
 export type RealtimeEvent = {
@@ -36,14 +34,19 @@ type RealtimeState = {
 
 const globalRealtime = globalThis as typeof globalThis & { teamTasksRealtime?: RealtimeState };
 
-const state = globalRealtime.teamTasksRealtime ?? {
-  emitter: new EventEmitter(),
-};
-
-state.emitter.setMaxListeners(0);
-globalRealtime.teamTasksRealtime = state;
+// Lazy-initialize state to avoid module-level side effects that can cause
+// "Cannot access before initialization" in Next.js 15 server bundles.
+function getState(): RealtimeState {
+  if (!globalRealtime.teamTasksRealtime) {
+    const emitter = new EventEmitter();
+    emitter.setMaxListeners(0);
+    globalRealtime.teamTasksRealtime = { emitter };
+  }
+  return globalRealtime.teamTasksRealtime;
+}
 
 function scheduleReconnect() {
+  const state = getState();
   if (state.retryTimer) return;
   state.retryTimer = setTimeout(() => {
     state.retryTimer = undefined;
@@ -52,6 +55,7 @@ function scheduleReconnect() {
 }
 
 async function startListener() {
+  const state = getState();
   if (state.listenerPromise) return state.listenerPromise;
 
   state.listenerPromise = (async () => {
@@ -99,8 +103,8 @@ export async function subscribeToUserEvents(userId: string, listener: (event: Re
     if (event.userIds.includes(userId)) listener(event);
   };
 
-  state.emitter.on("event", handleEvent);
-  return () => state.emitter.off("event", handleEvent);
+  getState().emitter.on("event", handleEvent);
+  return () => getState().emitter.off("event", handleEvent);
 }
 
 export async function publishRealtimeEvent(userIds: string[], type: RealtimeEvent["type"]) {
@@ -114,6 +118,7 @@ export async function publishRealtimeEvent(userIds: string[], type: RealtimeEven
   };
 
   try {
+    const { db } = await import("@/lib/db");
     await db.$queryRaw`SELECT pg_notify(${CHANNEL}, ${JSON.stringify(event)})`;
   } catch (error) {
     console.error("Unable to publish realtime event", error);

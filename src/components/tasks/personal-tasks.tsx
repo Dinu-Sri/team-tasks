@@ -79,6 +79,21 @@ export function PersonalTasks({
   // Only show add when owner of the selected workspace (not on "All")
   const showAddButton = !memberView && isOwnerInWorkspace && !isAllWorkspaces;
 
+  // === DEBUG START ===
+  console.log("[DEBUG PersonalTasks]", JSON.stringify({
+    workspaceId,
+    workspaceRole,
+    isCurrentWorkspaceOwner,
+    isOwnerInWorkspace,
+    isAllWorkspaces,
+    showAddButton,
+    memberView,
+    taskCount: tasks.length,
+    firstTaskEditNote: tasks[0]?.editNote,
+    firstTaskEditedAt: tasks[0]?.editedAt,
+  }));
+  // === DEBUG END ===
+
   // When workspace is selected, use that team for member dropdown (not selectedTeamId)
   const workspaceTeam = !isAllWorkspaces ? teams.find(t => t.id === workspaceId) : null;
 

@@ -142,6 +142,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     role: role as "OWNER" | "MEMBER",
   }));
 
+  // Determine workspace role
+  const workspaceRole = !activeWorkspace || activeWorkspace === "__all__"
+    ? null
+    : (memberships.find((m) => m.teamId === activeWorkspace)?.role as "OWNER" | "MEMBER") ?? null;
+
+  // Only show member task view toggle for the selected workspace if user is owner there
+  const canViewMemberTasks = workspaceRole === "OWNER" && memberTaskGroups.length > 0;
+
   return (
     <OnboardingProvider
       steps={personalTourSteps}
@@ -150,7 +158,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       completedInDb={Boolean(personalTourCompleted)}
     >
       <main className="min-h-screen bg-background">
-        <AppHeader user={user} {...headerData} memberTaskViewEnabled={memberTaskGroups.length > 0} workspaces={workspaces} selectedWorkspaceId={activeWorkspace ?? "__all__"} />
+        <AppHeader user={user} {...headerData} memberTaskViewEnabled={canViewMemberTasks} workspaces={workspaces} selectedWorkspaceId={activeWorkspace ?? "__all__"} />
         <PersonalTasks
           tasks={tasks.map(serializeTask)}
           discussionUpdates={discussionUpdates.map(serializeTask)}
@@ -173,6 +181,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           currentUserId={user.id}
           initialTaskId={query.task}
           focusedTask={focusedTask ? serializeTask(focusedTask) : undefined}
+          workspaceId={activeWorkspace ?? "__all__"}
+          workspaceRole={workspaceRole}
         />
       </main>
     </OnboardingProvider>

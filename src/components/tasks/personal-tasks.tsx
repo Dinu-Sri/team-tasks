@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { CalendarDays, Check, ChevronLeft, ChevronRight, Eye, MessageCircleMore, Paperclip, Plus, UsersRound, X } from "lucide-react";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Eye, ListChecks, MessageCircleMore, Paperclip, Pencil, Plus, Undo2, UsersRound, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { createPersonalTaskAction } from "@/app/actions/tasks";
+import { createPersonalTaskAction, toggleTaskAction, updateTaskAction } from "@/app/actions/tasks";
 import { acceptInviteAction } from "@/app/actions/teams";
 import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
+import { FloatingActionMenu, CompletedToast } from "@/components/tasks/floating-action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +24,8 @@ type TaskItem = {
   priority: "NORMAL" | "HIGH";
   dueAt: string | null;
 } & TaskDetail;
-type MemberTaskSummary = { id: string; title: string; priority: "NORMAL" | "HIGH"; dueAt: string | null; teamName: string };
-type MemberTaskGroup = { id: string; memberName: string; teamName: string; tasks: MemberTaskSummary[] };
+type MemberTaskSummary = { id: string; title: string; priority: "NORMAL" | "HIGH"; dueAt: string | null; teamName: string; editNote?: string | null; editedAt?: string | null };
+type MemberTaskGroup = { id: string; memberName: string; teamName: string; tasks: MemberTaskSummary[]; teamId: string };
 
 function dueLabel(dueAt: string | null) {
   if (!dueAt) return null;
@@ -42,7 +43,22 @@ function dueLabel(dueAt: string | null) {
 
 type PendingInvite = { id: string; token: string; teamName: string; inviterName: string };
 
-export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, pendingInvites, teams, currentUserId, initialTaskId, focusedTask }: { tasks: TaskItem[]; discussionUpdates: TaskItem[]; memberTaskGroups: MemberTaskGroup[]; pendingInvites: PendingInvite[]; teams: TeamOption[]; currentUserId: string; initialTaskId?: string; focusedTask?: TaskItem }) {
+export function PersonalTasks({
+  tasks, discussionUpdates, memberTaskGroups, pendingInvites, teams,
+  currentUserId, initialTaskId, focusedTask,
+  workspaceId, workspaceRole,
+}: {
+  tasks: TaskItem[];
+  discussionUpdates: TaskItem[];
+  memberTaskGroups: MemberTaskGroup[];
+  pendingInvites: PendingInvite[];
+  teams: TeamOption[];
+  currentUserId: string;
+  initialTaskId?: string;
+  focusedTask?: TaskItem;
+  workspaceId?: string;
+  workspaceRole?: "OWNER" | "MEMBER" | null;
+}) {
   const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
   const [memberView, setMemberView] = useState(false);
@@ -50,7 +66,27 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, pend
   const [selectedTeamId, setSelectedTeamId] = useState(teams[0]?.id ?? "");
   const [assigneeId, setAssigneeId] = useState(currentUserId);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [lastCompleted, setLastCompleted] = useState<{ id: string; title: string } | null>(null);
+  const [showCompletedToast, setShowCompletedToast] = useState(false);
   const selectedTeam = teams.find(({ id }) => id === selectedTeamId);
+
+  const isOwnerInWorkspace = workspaceRole === "OWNER";
+  const showAddButton = !memberView && isOwnerInWorkspace && workspaceId !== "__all__";
+
+  const onTaskCompleted = useCallback((taskId: string, title: string) => {
+    setLastCompleted({ id: taskId, title });
+    setShowCompletedToast(true);
+  }, []);
+
+  const handleUndoLast = useCallback(() => {
+    if (!lastCompleted) return;
+    const taskId = lastCompleted.id;
+    setLastCompleted(null);
+    setShowCompletedToast(false);
+    startTransition(async () => {
+      try { await toggleTaskAction(taskId); router.refresh(); } catch { /* ignore */ }
+    });
+  }, [lastCompleted, router]);
 
   useEffect(() => {
     const handleToggle = (event: Event) => {
@@ -63,7 +99,7 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, pend
 
     // Open add form when Onborda "Add a Task" step starts
     const handleOnbordaAddStep = () => {
-      if (!memberView) {
+      if (!memberView && showAddButton) {
         setShowAdd(true);
       }
     };
@@ -83,8 +119,8 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, pend
   const selectedTask = tasks.find(({ id }) => id === selectedTaskId) ?? discussionUpdates.find(({ id }) => id === selectedTaskId) ?? (focusedTask?.id === selectedTaskId ? focusedTask : undefined);
 
   useKeyboardShortcuts({
-    onAddTask: () => { if (!memberView) setShowAdd(true); },
-    canAddTask: !memberView,
+    onAddTask: () => { if (!memberView && showAddButton) setShowAdd(true); },
+    canAddTask: !memberView && showAddButton,
   });
 
   function openTask(task: TaskItem) {
@@ -169,7 +205,7 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, pend
               const due = dueLabel(task.dueAt);
               return (
                 <div key={task.id} className={cn("relative flex min-h-24 items-start gap-3 px-4 py-5 sm:items-center sm:gap-4 sm:px-6", task.hasMentionAttention && "task-mention-attention")}>
-                  <CompleteTaskButton taskId={task.id} title={task.title} />
+                  <CompleteTaskButton taskId={task.id} title={task.title} onCompleted={() => onTaskCompleted(task.id, task.title)} />
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-base font-semibold leading-6 sm:text-lg">{task.title}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
@@ -189,6 +225,17 @@ export function PersonalTasks({ tasks, discussionUpdates, memberTaskGroups, pend
         )}
       </section></div>}
       {selectedTask ? <TaskDetailPanel task={selectedTask} currentUserId={currentUserId} onClose={closeTask} /> : null}
+
+      <FloatingActionMenu
+        actions={
+          lastCompleted ? [{ id: "undo", icon: <Undo2 className="h-4 w-4" />, label: "Undo last complete", onClick: handleUndoLast }] : []
+        }
+        isOwner={isOwnerInWorkspace}
+      />
+
+      {showCompletedToast && lastCompleted ? (
+        <CompletedToast taskTitle={lastCompleted.title} onUndo={handleUndoLast} onDismiss={() => setShowCompletedToast(false)} />
+      ) : null}
     </div>
   );
 }

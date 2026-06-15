@@ -142,8 +142,8 @@ textarea {
 
 .task-complete-circle,
 .task-complete-check {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {

@@ -13,11 +13,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   if (!user) return <PublicHome />;
   const query = await searchParams;
 
-  // Use URL param only — cookie persistence is handled client-side by WorkspaceSelector
   const activeWorkspace = query.workspace ?? undefined;
 
-  try {
-    const taskInclude = {
+  const taskInclude = {
     team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },
     assignees: { select: { userId: true } },
     comments: {
@@ -75,40 +73,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       orderBy: { createdAt: "desc" },
     }),
   ]);
+
   const personalTourCompleted = await db.onboardingProgress.findUnique({
     where: { userId_tourName: { userId: user.id, tourName: "personal-tour" } },
     select: { id: true },
   });
 
-  const viewerTeams = memberships.filter(({ role, team }) => role === "OWNER" && team.featureSettings?.memberTaskViewEnabled);
-  const viewerTeamIds = viewerTeams.map(({ teamId }) => teamId);
-
-  // Check finishedTaskViewEnabled for any owned team in current workspace context
-  const finishedTaskViewEnabled = memberships.some(({ role, team }) =>
-    role === "OWNER" &&
-    team.featureSettings?.finishedTaskViewEnabled &&
-    (!activeWorkspace || activeWorkspace === "__all__" || activeWorkspace === team.id)
-  );
-
-  const memberTaskWhere: Record<string, unknown> = { status: "OPEN", teamId: { in: viewerTeamIds } };
-  if (activeWorkspace && activeWorkspace !== "__all__") {
-    memberTaskWhere.teamId = { in: [activeWorkspace] };
-  }
-  const memberTasks = viewerTeamIds.length ? await db.task.findMany({
-    where: memberTaskWhere,
-    select: {
-      id: true,
-      title: true,
-      priority: true,
-      dueAt: true,
-      teamId: true,
-      editNote: true,
-      editedAt: true,
-      team: { select: { name: true } },
-      assignees: { select: { userId: true } },
-    },
-    orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
-  }) : [];
+  // Simplified — removed member/finished task view logic for debugging
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const memberTaskGroups: any[] = [];
 
   const serializeTask = (task: (typeof tasks)[number]) => ({
     id: task.id,
@@ -117,8 +90,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     priority: task.priority,
     note: task.note,
     dueAt: task.dueAt?.toISOString() ?? null,
-    editNote: task.editNote,
-    editedAt: task.editedAt?.toISOString() ?? null,
+    editNote: (task as Record<string, unknown>).editNote as string | null ?? null,
+    editedAt: ((task as Record<string, unknown>).editedAt as Date | null)?.toISOString() ?? null,
     team: {
       id: task.team.id,
       name: task.team.name,
@@ -138,37 +111,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     hasMentionAttention: task.comments.some((comment: { receipts: Array<{ userId: string; readAt: Date | null; requiresAttention: boolean }> }) => comment.receipts.some((receipt: { userId: string; readAt: Date | null; requiresAttention: boolean }) => receipt.userId === user.id && !receipt.readAt && receipt.requiresAttention)),
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const memberTaskGroups = viewerTeams.flatMap(({ team }: any) => team.memberships
-    .filter(({ userId }: { userId: string }) => userId !== user.id)
-    .map(({ user: member }: { user: { id: string; name: string } }) => ({
-      id: `${team.id}:${member.id}`,
-      memberName: member.name,
-      teamName: team.name,
-      teamId: team.id,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tasks: memberTasks.filter((task: any) => task.teamId === team.id && task.assignees.some(({ userId }: { userId: string }) => userId === member.id)).map((task: any) => ({
-        id: task.id,
-        title: task.title,
-        priority: task.priority,
-        dueAt: task.dueAt?.toISOString() ?? null,
-        teamName: task.team.name,
-        editNote: task.editNote ?? null,
-        editedAt: task.editedAt?.toISOString() ?? null,
-      })),
-    })));
-
-  // Build workspace options for the header selector
   const workspaces: WorkspaceOption[] = memberships.map(({ team, role }) => ({
     id: team.id,
     name: team.name,
     role: role as "OWNER" | "MEMBER",
   }));
-
-  // Determine workspace role
-  const workspaceRole = !activeWorkspace || activeWorkspace === "__all__"
-    ? null
-    : (memberships.find((m) => m.teamId === activeWorkspace)?.role as "OWNER" | "MEMBER") ?? null;
 
   return (
     <OnboardingProvider
@@ -181,7 +128,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
         <AppHeader
           user={user}
           {...headerData}
-          memberTaskViewEnabled={memberTaskGroups.length > 0}
+          memberTaskViewEnabled={false}
           workspaces={workspaces}
           selectedWorkspaceId={activeWorkspace ?? "__all__"}
         />
@@ -208,15 +155,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           initialTaskId={query.task}
           focusedTask={focusedTask ? serializeTask(focusedTask) : undefined}
           workspaceId={activeWorkspace ?? "__all__"}
-          workspaceRole={workspaceRole}
-          finishedTaskViewEnabled={finishedTaskViewEnabled}
+          workspaceRole={null}
+          finishedTaskViewEnabled={false}
         />
       </main>
     </OnboardingProvider>
   );
-  } catch (error) {
-    console.error("Page render error:", error);
-    throw error;
-  }
 }
-

@@ -1,8 +1,6 @@
 import { db } from "@/lib/db";
 import { getMomentumSummary } from "@/lib/momentum";
 
-export type LedLevel = "clear" | "notification" | "due-today" | "overdue" | "attention" | "completed";
-
 export type HeaderNotification = {
   id: string;
   title: string;
@@ -20,7 +18,7 @@ export async function getHeaderData(userId: string) {
   const endOfToday = new Date(now);
   endOfToday.setHours(23, 59, 59, 999);
 
-  const [stored, storedUnreadCount, dueTasks, attentionCount, momentum] = await Promise.all([
+  const [stored, storedUnreadCount, dueTasks, momentum] = await Promise.all([
     db.notification.findMany({
       where: { recipientId: userId },
       orderBy: { createdAt: "desc" },
@@ -37,26 +35,10 @@ export async function getHeaderData(userId: string) {
       orderBy: { dueAt: "asc" },
       take: 5,
     }),
-    // Count tasks where someone requested this user's attention (unread mentions)
-    db.task.count({
-      where: {
-        comments: {
-          some: {
-            receipts: {
-              some: {
-                userId,
-                readAt: null,
-                requiresAttention: true,
-              },
-            },
-          },
-        },
-      },
-    }),
     getMomentumSummary(userId),
   ]);
 
-  const liveNotifications: HeaderNotification[] = dueTasks.map((task: { id: string; dueAt: Date | null; title: string; team: { name: string } }) => ({
+  const liveNotifications: HeaderNotification[] = dueTasks.map((task) => ({
     id: `task-${task.id}`,
     title: task.dueAt && task.dueAt < startOfToday ? "Overdue" : "Due today",
     message: `${task.title} - ${task.team.name}`,
@@ -66,19 +48,7 @@ export async function getHeaderData(userId: string) {
     live: true,
   }));
 
-  // Determine LED level (highest priority wins)
-  let ledLevel: LedLevel = "clear";
-  if (attentionCount > 0) {
-    ledLevel = "attention";
-  } else if (dueTasks.some((t: { dueAt: Date | null }) => t.dueAt && t.dueAt < startOfToday)) {
-    ledLevel = "overdue";
-  } else if (dueTasks.length > 0) {
-    ledLevel = "due-today";
-  } else if (storedUnreadCount > 0) {
-    ledLevel = "notification";
-  }
-
-  const storedNotifications: HeaderNotification[] = stored.map((notification: { id: string; title: string; message: string; createdAt: Date; readAt: Date | null; href: string | null; inviteId: string | null }) => ({
+  const storedNotifications: HeaderNotification[] = stored.map((notification) => ({
     id: notification.id,
     title: notification.title,
     message: notification.message,
@@ -92,6 +62,5 @@ export async function getHeaderData(userId: string) {
     notifications: [...liveNotifications, ...storedNotifications].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10),
     notificationCount: storedUnreadCount,
     momentum,
-    ledLevel,
   };
 }

@@ -4,7 +4,6 @@ import { AppHeader } from "@/components/app-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts-provider";
 import { OnboardingProvider } from "@/components/onboarding-provider";
-import type { WorkspaceOption } from "@/components/workspace-selector";
 import { isSuperAdmin, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
@@ -12,11 +11,7 @@ import { teamTourSteps } from "@/lib/onboarding-tours";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
-
-  // Workspace is read from URL param by the client-side WorkspaceSelector
-  // and persisted via cookie. For dashboard pages, workspace context comes from URL.
-  const workspaceId: string | null = null;
-  const [headerData, capabilities, teamTourCompleted, memberships] = await Promise.all([
+  const [headerData, capabilities, teamTourCompleted] = await Promise.all([
     getHeaderData(user.id),
     db.membership.findMany({
       where: { userId: user.id },
@@ -26,31 +21,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       where: { userId: user.id, tourName: { in: ["team-tour", "team-owner-tour", "team-member-tour"] } },
       select: { id: true },
     }),
-    db.membership.findMany({
-      where: { userId: user.id },
-      include: { team: { select: { name: true } } },
-      orderBy: { createdAt: "asc" },
-    }),
   ]);
   const commentsEnabled = capabilities.some(({ team }) => team.featureSettings?.commentsEnabled);
   const attachmentsEnabled = capabilities.some(({ team }) => team.featureSettings?.attachmentsEnabled);
-
-  // Build workspace options
-  const workspaces: WorkspaceOption[] = memberships.map(({ team, role }) => ({
-    id: team.id,
-    name: team.name,
-    role: role as "OWNER" | "MEMBER",
-  }));
-
-  // Determine current workspace role
-  const currentRole = !workspaceId || workspaceId === "__all__"
-    ? null
-    : (memberships.find((m) => m.teamId === workspaceId)?.role as "OWNER" | "MEMBER") ?? null;
-
-  // If user is a member in the selected workspace, redirect to home (no dashboard for members)
-  if (currentRole === "MEMBER") {
-    // Allow members to see the dashboard pages but we could restrict here
-  }
 
   return (
     <OnboardingProvider
@@ -61,12 +34,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       completedInDb={Boolean(teamTourCompleted)}
     >
       <main className="min-h-screen bg-background">
-        <AppHeader
-          user={user}
-          {...headerData}
-          workspaces={workspaces}
-          selectedWorkspaceId={workspaceId ?? "__all__"}
-        />
+        <AppHeader user={user} {...headerData} />
         <KeyboardShortcutsProvider />
         <DashboardShell
           commentsEnabled={commentsEnabled}

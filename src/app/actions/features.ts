@@ -14,7 +14,6 @@ export async function updateTeamFeaturesAction(_: FeatureState, formData: FormDa
   const commentsEnabled = formData.get("commentsEnabled") === "on";
   const attachmentsEnabled = formData.get("attachmentsEnabled") === "on";
   const memberTaskViewEnabled = formData.get("memberTaskViewEnabled") === "on";
-  const finishedTaskViewEnabled = formData.get("finishedTaskViewEnabled") === "on";
   const attachmentLimitMb = Math.max(5, Math.min(25, Number(formData.get("attachmentLimitMb") ?? 5) || 5));
 
   const membership = await db.membership.findUnique({
@@ -25,15 +24,15 @@ export async function updateTeamFeaturesAction(_: FeatureState, formData: FormDa
 
   await db.teamFeatureSettings.upsert({
     where: { teamId },
-    update: { commentsEnabled, attachmentsEnabled, memberTaskViewEnabled, finishedTaskViewEnabled, attachmentLimitMb },
-    create: { teamId, commentsEnabled, attachmentsEnabled, memberTaskViewEnabled, finishedTaskViewEnabled, attachmentLimitMb },
+    update: { commentsEnabled, attachmentsEnabled, memberTaskViewEnabled, attachmentLimitMb },
+    create: { teamId, commentsEnabled, attachmentsEnabled, memberTaskViewEnabled, attachmentLimitMb },
   });
 
   const members = await db.membership.findMany({ where: { teamId }, select: { userId: true } });
   const recipients = members.map(({ userId }) => userId);
   const otherMembers = recipients.filter((id) => id !== user.id);
   if (otherMembers.length) {
-    const active = [commentsEnabled ? "comments" : null, attachmentsEnabled ? "files" : null, memberTaskViewEnabled ? "member task view" : null, finishedTaskViewEnabled ? "finished task view" : null].filter(Boolean).join(", ") || "no optional features";
+    const active = [commentsEnabled ? "comments" : null, attachmentsEnabled ? "files" : null, memberTaskViewEnabled ? "member task view" : null].filter(Boolean).join(", ") || "no optional features";
     await db.notification.createMany({
       data: otherMembers.map((recipientId) => ({
         recipientId,

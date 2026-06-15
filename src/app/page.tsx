@@ -2,18 +2,15 @@ import { AppHeader } from "@/components/app-header";
 import { PublicHome } from "@/components/marketing/public-home";
 import { OnboardingProvider } from "@/components/onboarding-provider";
 import { PersonalTasks } from "@/components/tasks/personal-tasks";
-import type { WorkspaceOption } from "@/components/workspace-selector";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { personalTourSteps } from "@/lib/onboarding-tours";
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string; workspace?: string }> }) {
+export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string }> }) {
   const user = await getSessionUser();
   if (!user) return <PublicHome />;
   const query = await searchParams;
-
-  const activeWorkspace = query.workspace ?? undefined;
 
   const taskInclude = {
     team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },
@@ -27,26 +24,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     },
     attachments: { include: { uploader: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" as const } },
   };
-
-  const buildTaskWhere = (extra: Record<string, unknown> = {}) => {
-    const base: Record<string, unknown> = { ...extra };
-    if (activeWorkspace && activeWorkspace !== "__all__") {
-      base.teamId = activeWorkspace;
-    }
-    return base;
-  };
-
   const [tasks, discussionUpdates, memberships, headerData, focusedTask, pendingInvites] = await Promise.all([
     db.task.findMany({
-      where: buildTaskWhere({ status: "OPEN", assignees: { some: { userId: user.id } } }),
+      where: { status: "OPEN", assignees: { some: { userId: user.id } } },
       include: taskInclude,
       orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
     }),
     db.task.findMany({
-      where: buildTaskWhere({
+      where: {
         comments: { some: { receipts: { some: { userId: user.id, readAt: null } } } },
         NOT: { status: "OPEN", assignees: { some: { userId: user.id } } },
-      }),
+      },
       include: taskInclude,
       orderBy: { createdAt: "desc" },
     }),
@@ -73,15 +61,26 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       orderBy: { createdAt: "desc" },
     }),
   ]);
-
   const personalTourCompleted = await db.onboardingProgress.findUnique({
     where: { userId_tourName: { userId: user.id, tourName: "personal-tour" } },
     select: { id: true },
   });
 
-  // Simplified — removed member/finished task view logic for debugging
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const memberTaskGroups: any[] = [];
+  const viewerTeams = memberships.filter(({ role, team }) => role === "OWNER" && team.featureSettings?.memberTaskViewEnabled);
+  const viewerTeamIds = viewerTeams.map(({ teamId }) => teamId);
+  const memberTasks = viewerTeamIds.length ? await db.task.findMany({
+    where: { status: "OPEN", teamId: { in: viewerTeamIds } },
+    select: {
+      id: true,
+      title: true,
+      priority: true,
+      dueAt: true,
+      teamId: true,
+      team: { select: { name: true } },
+      assignees: { select: { userId: true } },
+    },
+    orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+  }) : [];
 
   const serializeTask = (task: (typeof tasks)[number]) => ({
     id: task.id,
@@ -90,8 +89,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     priority: task.priority,
     note: task.note,
     dueAt: task.dueAt?.toISOString() ?? null,
-    editNote: (task as Record<string, unknown>).editNote as string | null ?? null,
-    editedAt: ((task as Record<string, unknown>).editedAt as Date | null)?.toISOString() ?? null,
     team: {
       id: task.team.id,
       name: task.team.name,
@@ -111,11 +108,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     hasMentionAttention: task.comments.some((comment: { receipts: Array<{ userId: string; readAt: Date | null; requiresAttention: boolean }> }) => comment.receipts.some((receipt: { userId: string; readAt: Date | null; requiresAttention: boolean }) => receipt.userId === user.id && !receipt.readAt && receipt.requiresAttention)),
   });
 
-  const workspaces: WorkspaceOption[] = memberships.map(({ team, role }) => ({
-    id: team.id,
-    name: team.name,
-    role: role as "OWNER" | "MEMBER",
-  }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const memberTaskGroups = viewerTeams.flatMap(({ team }: any) => team.memberships
+    .filter(({ userId }: { userId: string }) => userId !== user.id)
+    .map(({ user: member }: { user: { id: string; name: string } }) => ({
+      id: `${team.id}:${member.id}`,
+      memberName: member.name,
+      teamName: team.name,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tasks: memberTasks.filter((task: any) => task.teamId === team.id && task.assignees.some(({ userId }: { userId: string }) => userId === member.id)).map((task: any) => ({
+        id: task.id,
+        title: task.title,
+        priority: task.priority,
+        dueAt: task.dueAt?.toISOString() ?? null,
+        teamName: task.team.name,
+      })),
+    })));
 
   return (
     <OnboardingProvider
@@ -125,13 +133,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       completedInDb={Boolean(personalTourCompleted)}
     >
       <main className="min-h-screen bg-background">
-        <AppHeader
-          user={user}
-          {...headerData}
-          memberTaskViewEnabled={false}
-          workspaces={workspaces}
-          selectedWorkspaceId={activeWorkspace ?? "__all__"}
-        />
+        <AppHeader user={user} {...headerData} memberTaskViewEnabled={memberTaskGroups.length > 0} />
         <PersonalTasks
           tasks={tasks.map(serializeTask)}
           discussionUpdates={discussionUpdates.map(serializeTask)}
@@ -154,11 +156,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           currentUserId={user.id}
           initialTaskId={query.task}
           focusedTask={focusedTask ? serializeTask(focusedTask) : undefined}
-          workspaceId={activeWorkspace ?? "__all__"}
-          workspaceRole={null}
-          finishedTaskViewEnabled={false}
         />
       </main>
     </OnboardingProvider>
   );
 }
+

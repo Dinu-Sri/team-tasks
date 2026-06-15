@@ -102,6 +102,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     dueAt: task.dueAt?.toISOString() ?? null,
     editNote: (task as { editNote?: string | null }).editNote ?? null,
     editedAt: (task as { editedAt?: Date | null }).editedAt?.toISOString() ?? null,
+    // Debug: log first task's edit fields
+    ...(tasks.indexOf(task) === 0 ? { _debug: console.log("[page.tsx] first task editNote:", (task as { editNote?: string | null }).editNote, "editedAt:", (task as { editedAt?: Date | null }).editedAt) } : {}),
     team: {
       id: task.team.id,
       name: task.team.name,
@@ -148,6 +150,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const workspaceRole = !activeWorkspace || activeWorkspace === "__all__"
     ? null
     : (memberships.find((m) => m.teamId === activeWorkspace)?.role as "OWNER" | "MEMBER") ?? null;
+
+  // Debug log
+  console.log("[page.tsx] activeWorkspace:", activeWorkspace, "workspaceRole:", workspaceRole, "memberships:", memberships.map(m => ({ teamId: m.teamId, role: m.role })));
 
   // Only show member task view toggle for the selected workspace if user is owner there
   const canViewMemberTasks = workspaceRole === "OWNER" && memberTaskGroups.length > 0;

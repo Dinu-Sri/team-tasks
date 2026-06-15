@@ -13,11 +13,6 @@ function setWorkspaceCookie(id: string) {
   document.cookie = `${COOKIE_NAME}=${encodeURIComponent(id)}; path=/; max-age=${maxAge}; SameSite=Lax`;
 }
 
-function getSearchParam(name: string): string | null {
-  if (typeof window === "undefined") return null;
-  return new URLSearchParams(window.location.search).get(name);
-}
-
 export function WorkspaceSelector({
   workspaces,
   selectedId,
@@ -56,20 +51,6 @@ export function WorkspaceSelector({
     if (task) params.set("task", task);
     const qs = params.toString();
     window.location.href = `/${qs ? `?${qs}` : ""}`;
-  }, []);
-
-  useEffect(() => {
-    const currentWs = getSearchParam("workspace");
-    if (!currentWs && workspaces.length > 0) {
-      const match = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]*)`));
-      const cookieVal = match ? decodeURIComponent(match[1]) : null;
-      if (cookieVal && (cookieVal === ALL_ID || workspaces.some((w) => w.id === cookieVal))) {
-        const params = new URLSearchParams(window.location.search);
-        if (cookieVal !== ALL_ID) params.set("workspace", cookieVal);
-        const qs = params.toString();
-        window.location.href = `/${qs ? `?${qs}` : ""}`;
-      }
-    }
   }, []);
 
   return (

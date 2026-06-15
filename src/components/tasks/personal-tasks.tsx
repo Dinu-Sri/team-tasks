@@ -4,7 +4,8 @@ import { startTransition, useCallback, useEffect, useRef, useState } from "react
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Eye, ListChecks, MessageCircleMore, Paperclip, Pencil, Plus, Undo2, UsersRound, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { createPersonalTaskAction, getCompletedMemberTasksAction, toggleTaskAction, updateTaskAction, type CompletedMemberTask } from "@/app/actions/tasks";
+import { createPersonalTaskAction, toggleTaskAction, updateTaskAction } from "@/app/actions/tasks";
+import { getCompletedMemberTasksAction, type CompletedMemberTask } from "@/app/actions/completed-tasks";
 import { acceptInviteAction } from "@/app/actions/teams";
 import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
 import { CompletedTasksPanel } from "@/components/tasks/completed-tasks-panel";

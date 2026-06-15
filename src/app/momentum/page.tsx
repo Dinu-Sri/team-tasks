@@ -1,12 +1,26 @@
 import { Check, Flame, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { cookies } from "next/headers";
 
 import { AppHeader } from "@/components/app-header";
 import { MomentumBadgeIcon } from "@/components/momentum/momentum-badge";
 import { MomentumSettingsForm } from "@/components/momentum/momentum-settings-form";
+import type { WorkspaceOption } from "@/components/workspace-selector";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { BADGE_DEFINITIONS } from "@/lib/momentum-shared";
+
+function getWorkspaceCookie(): string | null {
+  try {
+    const cookieStore = cookies();
+    const raw = cookieStore.get("tw_ws")?.value;
+    if (!raw) return null;
+    return decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+}
 
 function dayLabel(date: string) {
   return new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
@@ -22,14 +36,33 @@ function statusLabel(status: string) {
 
 export default async function MomentumPage() {
   const user = await requireUser();
-  const headerData = await getHeaderData(user.id);
+  const workspaceId = getWorkspaceCookie();
+  const [headerData, memberships] = await Promise.all([
+    getHeaderData(user.id),
+    db.membership.findMany({
+      where: { userId: user.id },
+      include: { team: { select: { name: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
   const momentum = headerData.momentum;
   const achievementSet = new Set(momentum.achievements.map(({ badge }) => badge));
   const activeDefinition = BADGE_DEFINITIONS.find((badge) => badge.tier === momentum.currentBadge);
 
+  const workspaces: WorkspaceOption[] = memberships.map(({ team, role }) => ({
+    id: team.id,
+    name: team.name,
+    role: role as "OWNER" | "MEMBER",
+  }));
+
   return (
     <main className="min-h-screen bg-background">
-      <AppHeader user={user} {...headerData} />
+      <AppHeader
+        user={user}
+        {...headerData}
+        workspaces={workspaces}
+        selectedWorkspaceId={workspaceId ?? "__all__"}
+      />
       <div className="mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-6">
         <section className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">

@@ -7,6 +7,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export type WorkspaceOption = { id: string; name: string; role: "OWNER" | "MEMBER" };
 
 const ALL_ID = "__all__";
+const COOKIE_NAME = "tw_ws";
+
+function setWorkspaceCookie(id: string) {
+  // Set a session cookie that lasts until browser close; server can read it
+  const maxAge = 60 * 60 * 24 * 365; // 1 year
+  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(id)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+}
 
 export function WorkspaceSelector({
   workspaces,
@@ -40,6 +47,9 @@ export function WorkspaceSelector({
   const handleSelect = useCallback(
     (id: string) => {
       setOpen(false);
+      // Persist to cookie so server-side pages can read it
+      setWorkspaceCookie(id);
+
       const params = new URLSearchParams(searchParams.toString());
       const task = params.get("task");
       params.delete("task");

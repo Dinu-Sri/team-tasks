@@ -7,12 +7,27 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { personalTourSteps } from "@/lib/onboarding-tours";
+import { cookies } from "next/headers";
 import { Suspense } from "react";
+
+function getWorkspaceCookie(): string | null {
+  try {
+    const cookieStore = cookies();
+    const raw = cookieStore.get("tw_ws")?.value;
+    if (!raw) return null;
+    return decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+}
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string; workspace?: string }> }) {
   const user = await getSessionUser();
   if (!user) return <PublicHome />;
   const query = await searchParams;
+
+  // Use URL param first, then cookie fallback
+  const activeWorkspace = query.workspace ?? getWorkspaceCookie() ?? undefined;
 
   const taskInclude = {
     team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },
@@ -29,8 +44,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
 
   const buildTaskWhere = (extra: Record<string, unknown> = {}) => {
     const base: Record<string, unknown> = { ...extra };
-    if (query.workspace && query.workspace !== "__all__") {
-      base.teamId = query.workspace;
+    if (activeWorkspace && activeWorkspace !== "__all__") {
+      base.teamId = activeWorkspace;
     }
     return base;
   };
@@ -84,12 +99,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const finishedTaskViewEnabled = memberships.some(({ role, team }) =>
     role === "OWNER" &&
     team.featureSettings?.finishedTaskViewEnabled &&
-    (!query.workspace || query.workspace === "__all__" || query.workspace === team.id)
+    (!activeWorkspace || activeWorkspace === "__all__" || activeWorkspace === team.id)
   );
 
   const memberTaskWhere: Record<string, unknown> = { status: "OPEN", teamId: { in: viewerTeamIds } };
-  if (query.workspace && query.workspace !== "__all__") {
-    memberTaskWhere.teamId = { in: [query.workspace] };
+  if (activeWorkspace && activeWorkspace !== "__all__") {
+    memberTaskWhere.teamId = { in: [activeWorkspace] };
   }
   const memberTasks = viewerTeamIds.length ? await db.task.findMany({
     where: memberTaskWhere,
@@ -163,9 +178,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   }));
 
   // Determine workspace role
-  const workspaceRole = !query.workspace || query.workspace === "__all__"
+  const workspaceRole = !activeWorkspace || activeWorkspace === "__all__"
     ? null
-    : (memberships.find((m) => m.teamId === query.workspace)?.role as "OWNER" | "MEMBER") ?? null;
+    : (memberships.find((m) => m.teamId === activeWorkspace)?.role as "OWNER" | "MEMBER") ?? null;
 
   return (
     <OnboardingProvider
@@ -181,7 +196,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
             {...headerData}
             memberTaskViewEnabled={memberTaskGroups.length > 0}
             workspaces={workspaces}
-            selectedWorkspaceId={query.workspace ?? "__all__"}
+            selectedWorkspaceId={activeWorkspace ?? "__all__"}
           />
         </Suspense>
         <PersonalTasks
@@ -206,7 +221,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           currentUserId={user.id}
           initialTaskId={query.task}
           focusedTask={focusedTask ? serializeTask(focusedTask) : undefined}
-          workspaceId={query.workspace ?? "__all__"}
+          workspaceId={activeWorkspace ?? "__all__"}
           workspaceRole={workspaceRole}
           finishedTaskViewEnabled={finishedTaskViewEnabled}
         />

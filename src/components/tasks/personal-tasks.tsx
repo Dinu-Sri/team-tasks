@@ -96,6 +96,8 @@ export function PersonalTasks({
   const [showCompletedPanel, setShowCompletedPanel] = useState(false);
   const [completedTasks, setCompletedTasks] = useState<CompletedMemberTask[]>([]);
   const selectedTeam = teams.find(({ id }) => id === selectedTeamId);
+  // For the add form, when workspace is set, use the workspace's team for member selection
+  const effectiveTeam = isAllWorkspaces ? selectedTeam : teams.find(({ id }) => id === workspaceTeamId) ?? selectedTeam;
 
   const isOwnerInWorkspace = workspaceRole === "OWNER";
   // Hide Add when "All" is selected (user should pick a workspace first) unless they are owner somewhere
@@ -167,9 +169,9 @@ export function PersonalTasks({
   }, [memberTaskGroups.length, memberView, showAddButton]);
   useEffect(() => { if (!memberTaskGroups.length) setMemberView(false); setMemberIndex((value) => Math.min(value, Math.max(0, memberTaskGroups.length - 1))); }, [memberTaskGroups.length]);
   useEffect(() => {
-    const members = selectedTeam?.members ?? [];
+    const members = effectiveTeam?.members ?? [];
     setAssigneeId(members.some(({ id }) => id === currentUserId) ? currentUserId : members[0]?.id ?? "");
-  }, [currentUserId, selectedTeam]);
+  }, [currentUserId, effectiveTeam]);
   useEffect(() => { if (initialTaskId && (tasks.some(({ id }) => id === initialTaskId) || discussionUpdates.some(({ id }) => id === initialTaskId) || focusedTask?.id === initialTaskId)) setSelectedTaskId(initialTaskId); }, [discussionUpdates, focusedTask?.id, initialTaskId, tasks]);
   const selectedTask = tasks.find(({ id }) => id === selectedTaskId) ?? discussionUpdates.find(({ id }) => id === selectedTaskId) ?? (focusedTask?.id === selectedTaskId ? focusedTask : undefined);
 
@@ -226,7 +228,7 @@ export function PersonalTasks({
           ) : (
             <input type="hidden" name="teamId" value={workspaceTeamId ?? teams[0]?.id ?? ""} />
           )}
-          {selectedTeam?.canAssignMembers ? <select name="assigneeId" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Assign to" required>{selectedTeam.members.map((member) => <option key={member.id} value={member.id}>{member.id === currentUserId ? "Me" : member.name}</option>)}</select> : <input type="hidden" name="assigneeId" value={currentUserId} />}
+          {effectiveTeam?.canAssignMembers ? <select name="assigneeId" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Assign to" required>{effectiveTeam.members.map((member) => <option key={member.id} value={member.id}>{member.id === currentUserId ? "Me" : member.name}</option>)}</select> : <input type="hidden" name="assigneeId" value={currentUserId} />}
           <select name="due" className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
             <option value="today">Today</option>
             <option value="tomorrow">Tomorrow</option>
@@ -356,9 +358,11 @@ function MemberTaskCarousel({
   isOwner: boolean;
 }) {
   const touchStart = useRef<number | null>(null);
+  const router = useRouter();
   const [direction, setDirection] = useState<1 | -1>(1);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [saving, setSaving] = useState(false);
   const group = groups[index];
 
   function move(offset: number) {
@@ -375,6 +379,25 @@ function MemberTaskCarousel({
   function cancelEdit() {
     setEditingId(null);
     setEditTitle("");
+  }
+
+  async function handleSave(taskId: string) {
+    if (!editTitle.trim() || saving) return;
+    setSaving(true);
+    const formData = new FormData();
+    formData.set("taskId", taskId);
+    formData.set("title", editTitle.trim());
+    formData.set("priority", "NORMAL");
+    formData.set("due", "none");
+    try {
+      await updateTaskAction(undefined, formData);
+      setEditingId(null);
+      router.refresh();
+    } catch {
+      // ignore
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (!group) return <section className="rounded-lg border border-border bg-surface py-20 text-center text-sm text-muted-foreground">No team members to review.</section>;
@@ -400,11 +423,7 @@ function MemberTaskCarousel({
                     </span>
                     <div className="min-w-0 flex-1">
                       {isEditing && isOwner ? (
-                        <form
-                          action={updateTaskAction as unknown as (formData: FormData) => void}
-                          onSubmit={() => setEditingId(null)}
-                          className="flex items-center gap-2"
-                        >
+                        <div className="flex items-center gap-2">
                           <input type="hidden" name="taskId" value={task.id} />
                           <Input
                             name="title"
@@ -412,12 +431,11 @@ function MemberTaskCarousel({
                             onChange={(e) => setEditTitle(e.target.value)}
                             className="h-9 text-sm"
                             autoFocus
+                            onKeyDown={(e) => { if (e.key === "Enter") handleSave(task.id); }}
                           />
-                          <input type="hidden" name="priority" value={task.priority} />
-                          <input type="hidden" name="due" value="none" />
-                          <Button type="submit" size="sm" className="h-9">Save</Button>
-                          <Button type="button" size="sm" variant="secondary" className="h-9" onClick={cancelEdit}>Cancel</Button>
-                        </form>
+                          <Button type="button" size="sm" className="h-9" disabled={saving} onClick={() => handleSave(task.id)}>{saving ? "Saving..." : "Save"}</Button>
+                          <Button type="button" size="sm" variant="secondary" className="h-9" onClick={cancelEdit} disabled={saving}>Cancel</Button>
+                        </div>
                       ) : (
                         <>
                           <p className="break-words text-base font-semibold leading-6">{task.title}</p>

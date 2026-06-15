@@ -1,7 +1,7 @@
 "use client";
 
-import { CheckCheck, ChevronUp, Ellipsis, ListChecks, Undo2, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { CheckCheck, Ellipsis, ListChecks, Undo2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 type MenuAction = {
   id: string;
@@ -12,10 +12,12 @@ type MenuAction = {
 
 export function FloatingActionMenu({
   actions,
-  position = "bottom-right",
+  isOwner = false,
+  hasLastCompleted = false,
 }: {
   actions: MenuAction[];
-  position?: "bottom-right" | "bottom-center";
+  isOwner?: boolean;
+  hasLastCompleted?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -35,16 +37,15 @@ export function FloatingActionMenu({
     };
   }, []);
 
-  const posClass = position === "bottom-center"
-    ? "bottom-4 left-1/2 -translate-x-1/2"
-    : "bottom-4 right-4 sm:bottom-6 sm:right-6";
+  // Always show at least one action for undo (the "undo last complete" always available when hasLastCompleted)
+  const effectiveActions = actions.length > 0 ? actions : [];
 
   return (
-    <div ref={rootRef} className={`fixed z-40 ${posClass}`}>
+    <div ref={rootRef} className="fixed bottom-4 right-4 z-40 sm:bottom-6 sm:right-6">
       {/* Expandable menu items */}
       {open ? (
         <div className="mb-3 flex flex-col-reverse gap-2">
-          {actions.map((action) => (
+          {effectiveActions.map((action) => (
             <button
               key={action.id}
               type="button"
@@ -60,7 +61,7 @@ export function FloatingActionMenu({
         </div>
       ) : null}
 
-      {/* Main FAB button */}
+      {/* Main FAB button — always visible */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -72,32 +73,37 @@ export function FloatingActionMenu({
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
       >
-        {open ? <X className="h-5 w-5" /> : <Ellipsis className="h-5 w-5" />}
+        {open ? <X className="h-5 w-5" /> : isOwner ? <Ellipsis className="h-5 w-5" /> : <Undo2 className="h-5 w-5" />}
       </button>
     </div>
   );
 }
 
-export function UndoFab({
-  lastCompletedTask,
+export function CompletedToast({
+  taskTitle,
   onUndo,
+  onDismiss,
 }: {
-  lastCompletedTask: { id: string; title: string } | null;
+  taskTitle: string;
   onUndo: () => void;
+  onDismiss: () => void;
 }) {
-  if (!lastCompletedTask) return null;
+  useEffect(() => {
+    const timer = setTimeout(onDismiss, 5000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-40 flex justify-center sm:bottom-6 sm:left-auto sm:right-20">
+    <div className="fixed bottom-20 left-4 right-4 z-40 flex justify-center sm:bottom-24 sm:left-auto sm:right-20">
       <div className="flex items-center gap-3 rounded-full bg-surface px-4 py-2.5 text-sm shadow-soft border border-border animate-in slide-in-from-bottom-2 fade-in">
-        <CheckCheck className="h-4 w-4 text-success" />
-        <span className="max-w-[200px] truncate sm:max-w-[280px]">
-          <span className="font-medium">Completed:</span> {lastCompletedTask.title}
+        <CheckCheck className="h-4 w-4 text-success shrink-0" />
+        <span className="max-w-[200px] truncate sm:max-w-[240px]">
+          <span className="font-medium">Completed:</span> {taskTitle}
         </span>
         <button
           type="button"
           onClick={onUndo}
-          className="flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand hover:bg-brand/20 transition-colors"
+          className="flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1 text-sm font-medium text-brand hover:bg-brand/20 transition-colors shrink-0"
         >
           <Undo2 className="h-3.5 w-3.5" />
           Undo

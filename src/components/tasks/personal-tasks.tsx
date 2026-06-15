@@ -8,7 +8,7 @@ import { createPersonalTaskAction, getCompletedMemberTasksAction, toggleTaskActi
 import { acceptInviteAction } from "@/app/actions/teams";
 import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
 import { CompletedTasksPanel } from "@/components/tasks/completed-tasks-panel";
-import { FloatingActionMenu, UndoFab } from "@/components/tasks/floating-action-menu";
+import { FloatingActionMenu, CompletedToast } from "@/components/tasks/floating-action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,26 +85,36 @@ export function PersonalTasks({
   const [showAdd, setShowAdd] = useState(false);
   const [memberView, setMemberView] = useState(false);
   const [memberIndex, setMemberIndex] = useState(0);
-  const [selectedTeamId, setSelectedTeamId] = useState(teams[0]?.id ?? "");
+  const [selectedTeamId, setSelectedTeamId] = useState(() => {
+    if (workspaceId && workspaceId !== "__all__") return workspaceId;
+    return teams[0]?.id ?? "";
+  });
   const [assigneeId, setAssigneeId] = useState(currentUserId);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [lastCompleted, setLastCompleted] = useState<{ id: string; title: string } | null>(null);
+  const [showCompletedToast, setShowCompletedToast] = useState(false);
   const [showCompletedPanel, setShowCompletedPanel] = useState(false);
   const [completedTasks, setCompletedTasks] = useState<CompletedMemberTask[]>([]);
   const selectedTeam = teams.find(({ id }) => id === selectedTeamId);
 
   const isOwnerInWorkspace = workspaceRole === "OWNER";
-  const showAddButton = !memberView && (workspaceId === "__all__" || isOwnerInWorkspace || !workspaceId);
-  const showTeamName = workspaceId === "__all__" || !workspaceId;
+  // Hide Add when "All" is selected (user should pick a workspace first) unless they are owner somewhere
+  const isAllWorkspaces = workspaceId === "__all__" || !workspaceId;
+  const showAddButton = !memberView && !isAllWorkspaces && isOwnerInWorkspace;
+  const showTeamName = isAllWorkspaces;
+  // When a specific workspace is selected, pre-fill teamId from workspace
+  const workspaceTeamId = isAllWorkspaces ? null : workspaceId;
 
   const onTaskCompleted = useCallback((taskId: string, title: string) => {
     setLastCompleted({ id: taskId, title });
+    setShowCompletedToast(true);
   }, []);
 
   const handleUndoLast = useCallback(() => {
     if (!lastCompleted) return;
     const taskId = lastCompleted.id;
     setLastCompleted(null);
+    setShowCompletedToast(false);
     startTransition(async () => {
       try {
         await toggleTaskAction(taskId);
@@ -117,8 +127,8 @@ export function PersonalTasks({
 
   const openCompletedPanel = useCallback(async () => {
     setShowCompletedPanel(true);
-    const teamIds = workspaceId && workspaceId !== "__all__"
-      ? [workspaceId]
+    const teamIds = workspaceTeamId
+      ? [workspaceTeamId]
       : teams.filter(t => t.canAssignMembers).map(t => t.id);
 
     const results: CompletedMemberTask[] = [];
@@ -179,7 +189,7 @@ export function PersonalTasks({
   }
 
   const fabActions = [];
-  if (finishedTaskViewEnabled && isOwnerInWorkspace) {
+  if (isOwnerInWorkspace && finishedTaskViewEnabled) {
     fabActions.push({
       id: "completed",
       icon: <ListChecks className="h-4 w-4" />,
@@ -207,11 +217,15 @@ export function PersonalTasks({
       </div>
 
       {!memberView && showAdd ? (
-        <form action={createPersonalTaskAction} id="onborda-add-task-form" className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
+        <form action={createPersonalTaskAction} id="onborda-add-task-form" className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
           <Input name="title" placeholder="What needs to be done?" autoFocus required />
-          <select name="teamId" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Team" required>
-            {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-          </select>
+          {isAllWorkspaces ? (
+            <select name="teamId" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Team" required>
+              {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+            </select>
+          ) : (
+            <input type="hidden" name="teamId" value={workspaceTeamId ?? teams[0]?.id ?? ""} />
+          )}
           {selectedTeam?.canAssignMembers ? <select name="assigneeId" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Assign to" required>{selectedTeam.members.map((member) => <option key={member.id} value={member.id}>{member.id === currentUserId ? "Me" : member.name}</option>)}</select> : <input type="hidden" name="assigneeId" value={currentUserId} />}
           <select name="due" className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
             <option value="today">Today</option>
@@ -303,9 +317,21 @@ export function PersonalTasks({
       )}
       {selectedTask ? <TaskDetailPanel task={selectedTask} currentUserId={currentUserId} onClose={closeTask} /> : null}
 
-      <UndoFab lastCompletedTask={lastCompleted} onUndo={handleUndoLast} />
+      {/* Always-visible FAB — icon changes based on owner status */}
+      <FloatingActionMenu
+        actions={fabActions}
+        isOwner={isOwnerInWorkspace}
+        hasLastCompleted={!!lastCompleted}
+      />
 
-      {fabActions.length > 0 ? <FloatingActionMenu actions={fabActions} /> : null}
+      {/* Temporary toast when a task is completed */}
+      {showCompletedToast && lastCompleted ? (
+        <CompletedToast
+          taskTitle={lastCompleted.title}
+          onUndo={handleUndoLast}
+          onDismiss={() => setShowCompletedToast(false)}
+        />
+      ) : null}
 
       {showCompletedPanel ? (
         <CompletedTasksPanel

@@ -23,6 +23,8 @@ type TaskItem = {
   status: "OPEN" | "DONE";
   priority: "NORMAL" | "HIGH";
   dueAt: string | null;
+  editNote?: string | null;
+  editedAt?: string | null;
 } & TaskDetail;
 type MemberTaskSummary = { id: string; title: string; priority: "NORMAL" | "HIGH"; dueAt: string | null; teamName: string; editNote?: string | null; editedAt?: string | null };
 type MemberTaskGroup = { id: string; memberName: string; teamName: string; tasks: MemberTaskSummary[]; teamId: string };
@@ -222,10 +224,10 @@ export function PersonalTasks({
                       {isAllWorkspaces && due ? <span>-</span> : null}
                       {due ? <span className={due === "Today" ? "text-warning" : ""}><CalendarDays className="mr-1 inline h-4 w-4" />{due}</span> : null}
                       {task.priority === "HIGH" ? <Badge className="sm:hidden" variant="danger">Important</Badge> : null}
-                      {(task as any).editNote ? (
+                      {task.editNote ? (
                         <span className="flex items-center gap-1 text-xs text-brand">
                           <Pencil className="h-3 w-3" />
-                          {(task as any).editNote}
+                          {task.editNote}
                         </span>
                       ) : null}
                     </div>

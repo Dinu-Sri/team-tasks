@@ -100,6 +100,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     priority: task.priority,
     note: task.note,
     dueAt: task.dueAt?.toISOString() ?? null,
+    editNote: (task as any).editNote as string | null ?? null,
+    editedAt: ((task as any).editedAt as Date | null)?.toISOString() ?? null,
     team: {
       id: task.team.id,
       name: task.team.name,

@@ -284,8 +284,12 @@ function MemberTaskCarousel({ groups, index, onIndexChange, isOwner }: { groups:
       await updateTaskAction(undefined, formData);
       setEditingId(null);
       router.refresh();
-    } catch { /* ignore */ }
-    finally { setSaving(false); }
+    } catch (err) {
+      // Keep edit open so user can retry
+      console.error("Failed to save task edit:", err);
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (!group) return <section className="rounded-lg border border-border bg-surface py-20 text-center text-sm text-muted-foreground">No team members to review.</section>;

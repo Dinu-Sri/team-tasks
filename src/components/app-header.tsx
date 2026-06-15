@@ -36,7 +36,7 @@ export function AppHeader({
       <RealtimeRefresh />
       <MomentumCelebrationListener />
       <div className="mx-auto flex h-16 max-w-5xl items-center px-3 sm:px-6">
-        <div className="w-[120px] sm:w-[140px] flex-shrink-0">
+        <div className="w-[120px] sm:w-[140px] flex-shrink-0" />
           <Link href="/" className="flex items-center gap-2.5 font-semibold" id="onborda-header">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-brand-foreground">
               <ListTodo className="h-4 w-4" />
@@ -53,7 +53,7 @@ export function AppHeader({
           ) : null}
         </div>
 
-        <div className="w-[120px] sm:w-[140px] flex-shrink-0 flex items-center justify-end gap-0.5 sm:gap-1" id="onborda-header-actions">
+        <div className="flex-shrink-0 flex items-center justify-end gap-0.5 sm:gap-1" id="onborda-header-actions">
           {memberTaskViewEnabled ? <MemberTaskViewToggle /> : null}
           <MomentumMenu momentum={momentum} />
           <NotificationMenu notifications={notifications} notificationCount={notificationCount} />

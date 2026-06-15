@@ -106,8 +106,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       commentsEnabled: task.team.featureSettings?.commentsEnabled ?? false,
       attachmentsEnabled: task.team.featureSettings?.attachmentsEnabled ?? false,
       attachmentLimitMb: task.team.featureSettings?.attachmentLimitMb ?? 5,
-      currentUserRole: task.team.memberships.find(({ userId }: { userId: string }) => userId === user.id)?.role ?? "MEMBER" as const,
-      members: task.team.memberships.map(({ user: member }: { user: { id: string; name: string; email: string } }) => member),
+      currentUserRole: (task.team.memberships ?? []).find(({ userId }: { userId: string }) => userId === user.id)?.role ?? "MEMBER" as const,
+      members: (task.team.memberships ?? []).map(({ user: member }: { user: { id: string; name: string; email: string } }) => member),
     },
     comments: task.comments.map((comment) => ({
       ...comment,

@@ -71,9 +71,12 @@ export function PersonalTasks({
   const selectedTeam = teams.find(({ id }) => id === selectedTeamId);
 
   const isOwnerInWorkspace = workspaceRole === "OWNER";
-  const showAddButton = !memberView && isOwnerInWorkspace && workspaceId !== "__all__";
+  const isAllWorkspaces = !workspaceId || workspaceId === "__all__";
+  // Only show add when owner of the selected workspace (not on "All")
+  const showAddButton = !memberView && isOwnerInWorkspace && !isAllWorkspaces;
 
-  const onTaskCompleted = useCallback((taskId: string, title: string) => {
+  // When workspace is selected, use that team for member dropdown (not selectedTeamId)
+  const workspaceTeam = !isAllWorkspaces ? teams.find(t => t.id === workspaceId) : null;
     setLastCompleted({ id: taskId, title });
     setShowCompletedToast(true);
   }, []);
@@ -144,12 +147,16 @@ export function PersonalTasks({
       </div>
 
       {!memberView && showAdd ? (
-        <form action={createPersonalTaskAction} id="onborda-add-task-form" className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto]">
+        <form action={createPersonalTaskAction} id="onborda-add-task-form" className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
           <Input name="title" placeholder="What needs to be done?" autoFocus required />
-          <select name="teamId" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Team" required>
-            {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-          </select>
-          {selectedTeam?.canAssignMembers ? <select name="assigneeId" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Assign to" required>{selectedTeam.members.map((member) => <option key={member.id} value={member.id}>{member.id === currentUserId ? "Me" : member.name}</option>)}</select> : <input type="hidden" name="assigneeId" value={currentUserId} />}
+          {isAllWorkspaces ? (
+            <select name="teamId" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Team" required>
+              {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+            </select>
+          ) : (
+            <input type="hidden" name="teamId" value={workspaceId ?? selectedTeamId} />
+          )}
+          {workspaceTeam?.canAssignMembers ? <select name="assigneeId" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Assign to" required>{workspaceTeam.members.map((member) => <option key={member.id} value={member.id}>{member.id === currentUserId ? "Me" : member.name}</option>)}</select> : isAllWorkspaces && selectedTeam?.canAssignMembers ? <select name="assigneeId" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Assign to" required>{selectedTeam.members.map((member) => <option key={member.id} value={member.id}>{member.id === currentUserId ? "Me" : member.name}</option>)}</select> : <input type="hidden" name="assigneeId" value={currentUserId} />}
           <select name="due" className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
             <option value="today">Today</option>
             <option value="tomorrow">Tomorrow</option>

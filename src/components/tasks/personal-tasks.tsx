@@ -49,6 +49,7 @@ export function PersonalTasks({
   tasks, discussionUpdates, memberTaskGroups, pendingInvites, teams,
   currentUserId, initialTaskId, focusedTask,
   workspaceId, workspaceRole,
+  isCurrentWorkspaceOwner,
 }: {
   tasks: TaskItem[];
   discussionUpdates: TaskItem[];
@@ -60,6 +61,7 @@ export function PersonalTasks({
   focusedTask?: TaskItem;
   workspaceId?: string;
   workspaceRole?: "OWNER" | "MEMBER" | null;
+  isCurrentWorkspaceOwner?: boolean;
 }) {
   const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
@@ -72,7 +74,7 @@ export function PersonalTasks({
   const [showCompletedToast, setShowCompletedToast] = useState(false);
   const selectedTeam = teams.find(({ id }) => id === selectedTeamId);
 
-  const isOwnerInWorkspace = workspaceRole === "OWNER";
+  const isOwnerInWorkspace = isCurrentWorkspaceOwner === true;
   const isAllWorkspaces = !workspaceId || workspaceId === "__all__";
   // Only show add when owner of the selected workspace (not on "All")
   const showAddButton = !memberView && isOwnerInWorkspace && !isAllWorkspaces;

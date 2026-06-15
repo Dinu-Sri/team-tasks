@@ -185,6 +185,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           focusedTask={focusedTask ? serializeTask(focusedTask) : undefined}
           workspaceId={activeWorkspace ?? "__all__"}
           workspaceRole={workspaceRole}
+          isCurrentWorkspaceOwner={workspaceRole === "OWNER"}
         />
       </main>
     </OnboardingProvider>

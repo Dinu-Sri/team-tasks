@@ -166,7 +166,7 @@ export function PersonalTasks({
     <div className="mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold">{memberView ? "Member tasks" : "My tasks"}</h1>
-        {!memberView ? <Button size="sm" id="onborda-add-task" onClick={() => setShowAdd((value) => !value)}>
+        {!memberView && showAddButton ? <Button size="sm" id="onborda-add-task" onClick={() => setShowAdd((value) => !value)}>
           {showAdd ? <X /> : <Plus />}
           {showAdd ? "Close" : "Add"}
         </Button> : null}

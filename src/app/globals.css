@@ -80,6 +80,36 @@ textarea {
     transform 160ms ease-out;
 }
 
+/* Undo button — distinct amber warning style to clearly indicate "undo" action */
+.task-undo-button {
+  position: relative;
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid hsl(var(--warning) / 0.5);
+  border-radius: 9999px;
+  color: hsl(var(--warning));
+  background: hsl(var(--warning) / 0.08);
+  transition:
+    color 160ms ease-out,
+    border-color 160ms ease-out,
+    background-color 160ms ease-out,
+    transform 160ms ease-out;
+}
+
+.task-undo-button:hover {
+  border-color: hsl(var(--warning));
+  background: hsl(var(--warning) / 0.15);
+  transform: scale(1.05);
+}
+
+.task-undo-button:active {
+  transform: scale(0.92);
+}
+
 .task-complete-button::after {
   content: "";
   position: absolute;

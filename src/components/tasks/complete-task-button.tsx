@@ -58,11 +58,11 @@ export function CompleteTaskButton({ taskId, title, onCompleted }: { taskId: str
       <button
         type="button"
         onClick={undo}
-        className="task-complete-button"
+        className="task-undo-button"
         aria-label={`Undo completing ${title}`}
         title="Undo — you just marked this done"
       >
-        <Undo2 className="task-complete-check" />
+        <Undo2 className="h-5 w-5" />
       </button>
     );
   }

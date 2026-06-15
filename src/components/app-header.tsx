@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { MemberTaskViewToggle, MomentumMenu, NotificationMenu, ProfileMenu } from "@/components/header-menus";
 import { MomentumCelebrationListener } from "@/components/momentum/momentum-celebration";
-import { NotificationLed, type LedLevel } from "@/components/notification-led";
+import { TabIndicator, type LedLevel } from "@/components/notification-led";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { ThemeButton } from "@/components/theme-button";
 import { WorkspaceSelector, type WorkspaceOption } from "@/components/workspace-selector";
@@ -31,6 +31,7 @@ export function AppHeader({
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur-lg">
+      <TabIndicator level={ledLevel} />
       <RealtimeRefresh />
       <MomentumCelebrationListener />
       <div className="mx-auto flex h-16 max-w-5xl items-center px-3 sm:px-6">
@@ -40,7 +41,7 @@ export function AppHeader({
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-brand-foreground">
               <ListTodo className="h-4 w-4" />
             </span>
-            <span className="hidden min-[360px]:inline-flex items-center gap-1.5">Tasks<NotificationLed level={ledLevel} /></span>
+            <span className="hidden min-[360px]:inline">Tasks</span>
           </Link>
         </div>
 

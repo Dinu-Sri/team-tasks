@@ -3,7 +3,8 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  serverExternalPackages: ["pg"],
+  serverExternalPackages: ["pg", "events"],
+  productionBrowserSourceMaps: true,
   typescript: {
     // Docker build uses npm which may not resolve all types from pnpm structure
     ignoreBuildErrors: true,

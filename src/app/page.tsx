@@ -16,7 +16,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   // Use URL param only — cookie persistence is handled client-side by WorkspaceSelector
   const activeWorkspace = query.workspace ?? undefined;
 
-  const taskInclude = {
+  try {
+    const taskInclude = {
     team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },
     assignees: { select: { userId: true } },
     comments: {
@@ -213,5 +214,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       </main>
     </OnboardingProvider>
   );
+  } catch (error) {
+    console.error("Page render error:", error);
+    throw error;
+  }
 }
 

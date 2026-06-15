@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { MemberTaskViewToggle, MomentumMenu, NotificationMenu, ProfileMenu } from "@/components/header-menus";
 import { MomentumCelebrationListener } from "@/components/momentum/momentum-celebration";
+import { NotificationLed, type LedLevel } from "@/components/notification-led";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { ThemeButton } from "@/components/theme-button";
 import { WorkspaceSelector, type WorkspaceOption } from "@/components/workspace-selector";
@@ -14,6 +15,7 @@ export function AppHeader({
   notifications,
   notificationCount,
   momentum,
+  ledLevel = "clear",
   memberTaskViewEnabled = false,
   workspaces,
   selectedWorkspaceId,
@@ -22,6 +24,7 @@ export function AppHeader({
   notifications: HeaderNotification[];
   notificationCount: number;
   momentum: MomentumSummary;
+  ledLevel?: LedLevel;
   memberTaskViewEnabled?: boolean;
   workspaces?: WorkspaceOption[];
   selectedWorkspaceId?: string;
@@ -35,7 +38,7 @@ export function AppHeader({
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-brand-foreground">
             <ListTodo className="h-4 w-4" />
           </span>
-          <span className="hidden min-[360px]:inline">Tasks</span>
+          <span className="hidden min-[360px]:inline-flex items-center gap-1.5">Tasks<NotificationLed level={ledLevel} /></span>
         </Link>
 
         {workspaces && workspaces.length > 0 ? (

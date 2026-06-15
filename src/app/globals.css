@@ -257,3 +257,87 @@ textarea {
   0% { opacity: 0; transform: translateX(-1.5rem); }
   100% { opacity: 1; transform: translateX(0); }
 }
+
+/* ── Notification LED dot animations ── */
+
+.led-dot {
+  display: inline-flex;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--led-color, #9ca3af);
+  transition: background-color 400ms ease;
+}
+
+/* Dormant — dim and static */
+.led-dormant {
+  opacity: 0.35;
+  box-shadow: 0 0 0 0 transparent;
+  animation: none;
+}
+
+/* Slow pulse — green for unread notifications */
+.led-pulse-slow {
+  animation: led-pulse-slow 2.8s ease-in-out infinite;
+}
+
+@keyframes led-pulse-slow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 3px var(--led-color, #22c55e); }
+  55% { opacity: 0.35; box-shadow: 0 0 8px var(--led-color, #22c55e); }
+}
+
+/* Medium pulse — amber for due-today */
+.led-pulse-medium {
+  animation: led-pulse-medium 1.8s ease-in-out infinite;
+}
+
+@keyframes led-pulse-medium {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--led-color, #f59e0b); }
+  55% { opacity: 0.25; box-shadow: 0 0 12px var(--led-color, #f59e0b); }
+}
+
+/* Fast pulse — red for overdue */
+.led-pulse-fast {
+  animation: led-pulse-fast 0.9s ease-in-out infinite;
+}
+
+@keyframes led-pulse-fast {
+  0%, 100% { opacity: 1; box-shadow: 0 0 5px var(--led-color, #ef4444); }
+  50% { opacity: 0.15; box-shadow: 0 0 14px var(--led-color, #ef4444); }
+}
+
+/* Ripple — red expanding ring for attention */
+.led-ripple {
+  animation: led-ripple 1.4s ease-out infinite;
+}
+
+@keyframes led-ripple {
+  0% { opacity: 1; box-shadow: 0 0 0 0 var(--led-color, #ef4444); transform: scale(1); }
+  100% { opacity: 0.7; box-shadow: 0 0 0 7px color-mix(in srgb, var(--led-color, #ef4444) 0%, transparent); transform: scale(1.25); }
+}
+
+/* Flash once — green for completed task */
+.led-flash-once {
+  animation: led-flash-once 2s ease-out forwards;
+}
+
+@keyframes led-flash-once {
+  0% { opacity: 1; box-shadow: 0 0 2px var(--led-color, #22c55e); transform: scale(1); }
+  18% { opacity: 1; box-shadow: 0 0 16px var(--led-color, #22c55e); transform: scale(1.5); }
+  100% { opacity: 0.35; box-shadow: 0 0 0 0 transparent; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .led-pulse-slow,
+  .led-pulse-medium,
+  .led-pulse-fast,
+  .led-ripple,
+  .led-flash-once {
+    animation: none !important;
+  }
+  .led-dot {
+    opacity: 0.55;
+    box-shadow: none;
+  }
+}

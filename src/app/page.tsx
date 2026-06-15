@@ -2,15 +2,17 @@ import { AppHeader } from "@/components/app-header";
 import { PublicHome } from "@/components/marketing/public-home";
 import { OnboardingProvider } from "@/components/onboarding-provider";
 import { PersonalTasks } from "@/components/tasks/personal-tasks";
+import type { WorkspaceOption } from "@/components/workspace-selector";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { personalTourSteps } from "@/lib/onboarding-tours";
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string }> }) {
+export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string; workspace?: string }> }) {
   const user = await getSessionUser();
   if (!user) return <PublicHome />;
   const query = await searchParams;
+  const activeWorkspace = query.workspace ?? undefined;
 
   const taskInclude = {
     team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },
@@ -24,17 +26,26 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     },
     attachments: { include: { uploader: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" as const } },
   };
+
+  const buildTaskWhere = (extra: Record<string, unknown> = {}) => {
+    const base: Record<string, unknown> = { ...extra };
+    if (activeWorkspace && activeWorkspace !== "__all__") {
+      base.teamId = activeWorkspace;
+    }
+    return base;
+  };
+
   const [tasks, discussionUpdates, memberships, headerData, focusedTask, pendingInvites] = await Promise.all([
     db.task.findMany({
-      where: { status: "OPEN", assignees: { some: { userId: user.id } } },
+      where: buildTaskWhere({ status: "OPEN", assignees: { some: { userId: user.id } } }),
       include: taskInclude,
       orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
     }),
     db.task.findMany({
-      where: {
+      where: buildTaskWhere({
         comments: { some: { receipts: { some: { userId: user.id, readAt: null } } } },
         NOT: { status: "OPEN", assignees: { some: { userId: user.id } } },
-      },
+      }),
       include: taskInclude,
       orderBy: { createdAt: "desc" },
     }),
@@ -125,6 +136,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       })),
     })));
 
+  const workspaces: WorkspaceOption[] = memberships.map(({ team, role }) => ({
+    id: team.id,
+    name: team.name,
+    role: role as "OWNER" | "MEMBER",
+  }));
+
   return (
     <OnboardingProvider
       steps={personalTourSteps}
@@ -133,7 +150,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       completedInDb={Boolean(personalTourCompleted)}
     >
       <main className="min-h-screen bg-background">
-        <AppHeader user={user} {...headerData} memberTaskViewEnabled={memberTaskGroups.length > 0} />
+        <AppHeader user={user} {...headerData} memberTaskViewEnabled={memberTaskGroups.length > 0} workspaces={workspaces} selectedWorkspaceId={activeWorkspace ?? "__all__"} />
         <PersonalTasks
           tasks={tasks.map(serializeTask)}
           discussionUpdates={discussionUpdates.map(serializeTask)}

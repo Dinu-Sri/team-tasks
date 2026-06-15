@@ -114,7 +114,7 @@ export async function publishRealtimeEvent(userIds: string[], type: RealtimeEven
   };
 
   try {
-    await db.$queryRawUnsafe(`SELECT pg_notify($1, $2)`, CHANNEL, JSON.stringify(event));
+    await db.$executeRaw`SELECT pg_notify(${CHANNEL}, ${JSON.stringify(event)})`;
   } catch (error) {
     console.error("Unable to publish realtime event", error);
   }

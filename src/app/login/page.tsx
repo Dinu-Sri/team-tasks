@@ -6,12 +6,13 @@ import { loginAction, requestPasswordResetAction, resetPasswordAction } from "@/
 import { AuthForm } from "@/components/auth/auth-form";
 import { getSessionUser } from "@/lib/auth";
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ reset?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ reset?: string; token?: string }> }) {
   if (await getSessionUser()) redirect("/");
-  const { reset } = await searchParams;
+  const { reset, token } = await searchParams;
+  const resetToken = reset ?? token;
 
   // If reset token in URL, show reset form
-  if (reset) {
+  if (resetToken) {
     return (
       <main className="flex min-h-[100svh] items-center justify-center bg-background px-4 py-8">
         <section className="w-full max-w-sm">
@@ -22,7 +23,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <h1 className="mt-5 text-2xl font-semibold">Reset password</h1>
             <p className="mt-1 text-sm text-muted-foreground">Choose a new password.</p>
           </div>
-          <ResetPasswordForm token={reset} />
+          <ResetPasswordForm token={resetToken} />
         </section>
       </main>
     );

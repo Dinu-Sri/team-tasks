@@ -86,6 +86,31 @@ Optional email:
 - `SMTP_PASS`
 - `SMTP_FROM`
 
+Auth providers:
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+- `FACEBOOK_CLIENT_ID`
+- `FACEBOOK_CLIENT_SECRET`
+- `BETTER_AUTH_TRUSTED_ORIGINS` (optional comma-separated extra origins)
+
+Auth callback URLs:
+
+- Google: `https://your-domain.com/api/auth/callback/google`
+- GitHub: `https://your-domain.com/api/auth/callback/github`
+- Facebook: `https://your-domain.com/api/auth/callback/facebook`
+
+Magic links, email verification, and password reset require working SMTP variables.
+
+Domain-based organization login:
+
+- Create a `Team` row for the organization.
+- Create an `OrganizationDomain` row with `teamId`, lowercase `domain` such as `wusl.ac.lk`, `autoJoin=true`, and `requireAdminApproval=false` for automatic joining.
+- Auto-join only runs after Better Auth marks the user email as verified. Do not grant access from the typed text after `@` alone.
+- When `requireAdminApproval=true`, the system records `organization_domain_join_pending` and does not create active membership yet.
+
 Sentry:
 
 - `NEXT_PUBLIC_SENTRY_DSN`
@@ -119,12 +144,13 @@ Most common causes:
 
 - Dockerfile/package-manager mismatch.
 - Unexpected lockfile changes.
+- npm peer dependency resolver conflicts.
 
 Fix:
 
 1. Keep Docker path npm-based unless full migration is planned.
 2. Keep `pnpm-lock.yaml` out of git for this repo.
-3. Re-run local `npm install` and `npm run build`.
+3. Re-run local `npm install --no-audit --no-fund --legacy-peer-deps --package-lock=false` and `npm run build`.
 4. Push again and re-check action logs.
 
 ### B) Type errors block build unexpectedly

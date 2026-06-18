@@ -1,7 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { isBlockedPasswordMarker } from "@/lib/account-status";
+import { auth } from "@/lib/better-auth";
 import { db } from "@/lib/db";
 
 const COOKIE_NAME = "team_tasks_session";
@@ -46,6 +48,21 @@ export async function clearSession() {
 }
 
 export async function getSessionUser() {
+  try {
+    const betterAuthSession = await auth.api.getSession({
+      headers: await headers(),
+      query: { disableCookieCache: true },
+    });
+
+    if (betterAuthSession?.user?.id) {
+      const user = await db.user.findUnique({ where: { id: betterAuthSession.user.id } });
+      if (!user || isBlockedPasswordMarker(user.passwordHash)) return null;
+      return user;
+    }
+  } catch {
+    // Fall through to the legacy JWT cookie during the Better Auth migration.
+  }
+
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
@@ -53,7 +70,9 @@ export async function getSessionUser() {
   try {
     const { payload } = await jwtVerify(token, sessionSecret());
     if (typeof payload.userId !== "string") return null;
-    return db.user.findUnique({ where: { id: payload.userId } });
+    const user = await db.user.findUnique({ where: { id: payload.userId } });
+    if (!user || isBlockedPasswordMarker(user.passwordHash)) return null;
+    return user;
   } catch {
     return null;
   }

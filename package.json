@@ -14,6 +14,7 @@
   "dependencies": {
     "@prisma/client": "^6.10.1",
     "@sentry/nextjs": "^9",
+    "better-auth": "^1.6.19",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

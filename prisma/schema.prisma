@@ -8,30 +8,34 @@ datasource db {
 }
 
 model User {
-  id                 String                @id @default(cuid())
-  email              String                @unique
-  name               String
-  passwordHash       String
-  memberships        Membership[]
-  createdTasks       Task[]                @relation("CreatedTasks")
-  completedTasks     Task[]                @relation("CompletedTasks")
-  editedTasks        Task[]                @relation("EditedTasks")
-  assignments        TaskMember[]
-  sentInvites        Invite[]              @relation("InviteSender")
-  invitations        Invite[]              @relation("InvitedUser")
-  notifications      Notification[]
-  momentumProfile    MomentumProfile?
-  momentumDays       MomentumDay[]
-  achievements       MomentumAchievement[]
-  questContributions QuestContribution[]
-  productEvents      ProductEvent[]
-  comments           TaskComment[]
-  commentMentions    CommentMention[]
-  commentReceipts    CommentReceipt[]
+  id                  String                @id @default(cuid())
+  email               String                @unique
+  emailVerified       Boolean               @default(false)
+  name                String
+  image               String?
+  passwordHash        String                @default("")
+  authAccounts        Account[]
+  sessions            Session[]
+  memberships         Membership[]
+  createdTasks        Task[]                @relation("CreatedTasks")
+  completedTasks      Task[]                @relation("CompletedTasks")
+  editedTasks         Task[]                @relation("EditedTasks")
+  assignments         TaskMember[]
+  sentInvites         Invite[]              @relation("InviteSender")
+  invitations         Invite[]              @relation("InvitedUser")
+  notifications       Notification[]
+  momentumProfile     MomentumProfile?
+  momentumDays        MomentumDay[]
+  achievements        MomentumAchievement[]
+  questContributions  QuestContribution[]
+  productEvents       ProductEvent[]
+  comments            TaskComment[]
+  commentMentions     CommentMention[]
+  commentReceipts     CommentReceipt[]
   uploadedAttachments TaskAttachment[]
-  onboardingProgress OnboardingProgress[]
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
+  onboardingProgress  OnboardingProgress[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
 }
 
 model OnboardingProgress {
@@ -46,59 +50,120 @@ model OnboardingProgress {
 }
 
 model Team {
-  id          String       @id @default(cuid())
-  name        String
-  description String?
-  timeZone    String       @default("UTC")
-  memberships Membership[]
-  tasks       Task[]
-  invites     Invite[]
-  quests      TeamQuest[]
-  productEvents ProductEvent[]
-  featureSettings TeamFeatureSettings?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                  String               @id @default(cuid())
+  name                String
+  description         String?
+  timeZone            String               @default("UTC")
+  memberships         Membership[]
+  organizationDomains OrganizationDomain[]
+  tasks               Task[]
+  invites             Invite[]
+  quests              TeamQuest[]
+  productEvents       ProductEvent[]
+  featureSettings     TeamFeatureSettings?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model Membership {
-  id        String   @id @default(cuid())
-  role      Role     @default(MEMBER)
+  id        String           @id @default(cuid())
+  role      Role             @default(MEMBER)
+  status    MembershipStatus @default(ACTIVE)
+  source    MembershipSource @default(MANUAL)
   userId    String
   teamId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team      Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
 
   @@unique([userId, teamId])
 }
 
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model OrganizationDomain {
+  id                   String   @id @default(cuid())
+  teamId               String
+  domain               String   @unique
+  autoJoin             Boolean  @default(false)
+  requireAdminApproval Boolean  @default(false)
+  team                 Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([teamId])
+}
+
 model Task {
-  id                String              @id @default(cuid())
-  title             String
-  note              String?
-  status            TaskStatus          @default(OPEN)
-  priority          Priority            @default(NORMAL)
-  dueAt             DateTime?
-  completedAt       DateTime?
-  completedById     String?
-  momentumAwardedAt DateTime?
-  creatorId         String
-  teamId            String
-  editNote          String?
-  editedById        String?
-  editedAt          DateTime?
-  creator           User                @relation("CreatedTasks", fields: [creatorId], references: [id])
-  completedBy       User?               @relation("CompletedTasks", fields: [completedById], references: [id], onDelete: SetNull)
-  editedBy          User?               @relation("EditedTasks", fields: [editedById], references: [id], onDelete: SetNull)
-  team              Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  assignees         TaskMember[]
-  momentumDays      MomentumDay[]
+  id                 String              @id @default(cuid())
+  title              String
+  note               String?
+  status             TaskStatus          @default(OPEN)
+  priority           Priority            @default(NORMAL)
+  dueAt              DateTime?
+  completedAt        DateTime?
+  completedById      String?
+  momentumAwardedAt  DateTime?
+  creatorId          String
+  teamId             String
+  editNote           String?
+  editedById         String?
+  editedAt           DateTime?
+  creator            User                @relation("CreatedTasks", fields: [creatorId], references: [id])
+  completedBy        User?               @relation("CompletedTasks", fields: [completedById], references: [id], onDelete: SetNull)
+  editedBy           User?               @relation("EditedTasks", fields: [editedById], references: [id], onDelete: SetNull)
+  team               Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignees          TaskMember[]
+  momentumDays       MomentumDay[]
   questContributions QuestContribution[]
   comments           TaskComment[]
   attachments        TaskAttachment[]
   replyForMention    CommentMention?     @relation("ReplyTask")
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
 
   @@index([teamId, status, dueAt])
 }
@@ -185,41 +250,41 @@ model TaskMember {
 }
 
 model Invite {
-  id            String       @id @default(cuid())
+  id            String         @id @default(cuid())
   email         String
-  token         String       @unique
-  status        InviteStatus @default(PENDING)
-  role          Role         @default(MEMBER)
+  token         String         @unique
+  status        InviteStatus   @default(PENDING)
+  role          Role           @default(MEMBER)
   teamId        String
   invitedById   String
   invitedUserId String?
-  team          Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  invitedBy     User         @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
-  invitedUser   User?        @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: SetNull)
+  team          Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedBy     User           @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
+  invitedUser   User?          @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: SetNull)
   notifications Notification[]
   expiresAt     DateTime
   acceptedAt    DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([teamId, status])
   @@index([email, status])
 }
 
 model Notification {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   title       String
   message     String
   kind        NotificationKind @default(GENERAL)
   href        String?
-  dedupeKey   String?  @unique
+  dedupeKey   String?          @unique
   recipientId String
   teamId      String?
   inviteId    String?
-  recipient   User     @relation(fields: [recipientId], references: [id], onDelete: Cascade)
-  invite      Invite?  @relation(fields: [inviteId], references: [id], onDelete: Cascade)
+  recipient   User             @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  invite      Invite?          @relation(fields: [inviteId], references: [id], onDelete: Cascade)
   readAt      DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime         @default(now())
 
   @@index([recipientId, readAt, createdAt])
 }
@@ -230,7 +295,7 @@ model MomentumProfile {
   timeZone         String   @default("UTC")
   workDays         String   @default("1,2,3,4,5")
   reminderHour     Int      @default(16)
-  remindersEnabled Boolean @default(true)
+  remindersEnabled Boolean  @default(true)
   currentStreak    Int      @default(0)
   longestStreak    Int      @default(0)
   totalWins        Int      @default(0)
@@ -272,19 +337,19 @@ model MomentumAchievement {
 }
 
 model TeamQuest {
-  id            String             @id @default(cuid())
+  id            String              @id @default(cuid())
   teamId        String
   weekKey       String
   title         String
   targetWins    Int
-  status        TeamQuestStatus    @default(ACTIVE)
+  status        TeamQuestStatus     @default(ACTIVE)
   startAt       DateTime
   endAt         DateTime
   completedAt   DateTime?
-  team          Team               @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team          Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
   contributions QuestContribution[]
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 
   @@unique([teamId, weekKey])
   @@index([teamId, status, startAt])
@@ -322,7 +387,19 @@ model ProductEvent {
 
 enum Role {
   OWNER
+  ADMIN
   MEMBER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  PENDING
+}
+
+enum MembershipSource {
+  MANUAL
+  INVITE
+  DOMAIN
 }
 
 enum TaskStatus {

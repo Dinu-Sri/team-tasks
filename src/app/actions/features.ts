@@ -40,7 +40,7 @@ export async function updateTeamFeaturesAction(_: FeatureState, formData: FormDa
         teamId,
         kind: "TEAM",
         href: "/dashboard/features",
-        title: "Team features updated",
+        title: "Team settings updated",
         message: `${user.name} set ${membership.team.name} to use ${active}.`,
       })),
     });
@@ -49,5 +49,5 @@ export async function updateTeamFeaturesAction(_: FeatureState, formData: FormDa
 
   revalidatePath("/");
   revalidatePath("/dashboard", "layout");
-  return { success: "Features saved." };
+  return { success: "Settings saved." };
 }

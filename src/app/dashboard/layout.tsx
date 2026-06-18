@@ -11,19 +11,13 @@ import { teamTourSteps } from "@/lib/onboarding-tours";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
-  const [headerData, capabilities, teamTourCompleted] = await Promise.all([
+  const [headerData, teamTourCompleted] = await Promise.all([
     getHeaderData(user.id),
-    db.membership.findMany({
-      where: { userId: user.id },
-      select: { team: { select: { featureSettings: true } } },
-    }),
     db.onboardingProgress.findFirst({
       where: { userId: user.id, tourName: { in: ["team-tour", "team-owner-tour", "team-member-tour"] } },
       select: { id: true },
     }),
   ]);
-  const commentsEnabled = capabilities.some(({ team }) => team.featureSettings?.commentsEnabled);
-  const attachmentsEnabled = capabilities.some(({ team }) => team.featureSettings?.attachmentsEnabled);
 
   return (
     <OnboardingProvider
@@ -36,11 +30,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <main className="min-h-screen bg-background">
         <AppHeader user={user} {...headerData} />
         <KeyboardShortcutsProvider />
-        <DashboardShell
-          commentsEnabled={commentsEnabled}
-          attachmentsEnabled={attachmentsEnabled}
-          isSuperAdmin={isSuperAdmin(user.email)}
-        >
+        <DashboardShell isSuperAdmin={isSuperAdmin(user.email)}>
           {children}
         </DashboardShell>
       </main>

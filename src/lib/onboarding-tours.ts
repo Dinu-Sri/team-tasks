@@ -56,8 +56,8 @@ export const teamOwnerTourSteps: Step[] = [
   },
   {
     icon: "📊",
-    title: "Team Board",
-    content: "Create and manage tasks for your whole team. Assign members, set due dates, and track progress.",
+    title: "Teams",
+    content: "Create teams, invite people, and assign shared work from one place.",
     selector: "#onborda-dashboard-dashboard-teams",
     side: "bottom",
     showControls: false,
@@ -66,8 +66,8 @@ export const teamOwnerTourSteps: Step[] = [
   },
   {
     icon: "📈",
-    title: "Analytics",
-    content: "See task completion rates, team velocity, and trends at a glance.",
+    title: "Progress",
+    content: "See open and finished work across your teams at a glance.",
     selector: "#onborda-dashboard-dashboard-analytics",
     side: "bottom",
     showControls: false,
@@ -76,8 +76,8 @@ export const teamOwnerTourSteps: Step[] = [
   },
   {
     icon: "⚙️",
-    title: "Features",
-    content: "Toggle comments, file attachments, and gamification features per team.",
+    title: "Settings",
+    content: "Turn optional team tools on only when the work needs them.",
     selector: "#onborda-dashboard-dashboard-features",
     side: "right",
     showControls: false,
@@ -109,8 +109,8 @@ export const teamMemberTourSteps: Step[] = [
   },
   {
     icon: "📊",
-    title: "Team Board",
-    content: "Open the Teams Board to view assigned tasks, due dates, and progress updates.",
+    title: "Teams",
+    content: "Open Teams to view people, assignments, and progress updates.",
     selector: "#onborda-dashboard-dashboard-teams",
     side: "bottom",
     showControls: false,
@@ -120,7 +120,7 @@ export const teamMemberTourSteps: Step[] = [
   {
     icon: "📈",
     title: "Track Team Progress",
-    content: "Check Analytics to understand completion trends and team momentum over time.",
+    content: "Check Progress to understand open and finished work over time.",
     selector: "#onborda-dashboard-dashboard-analytics",
     side: "bottom",
     showControls: false,
@@ -152,7 +152,7 @@ export const teamTourSteps: Step[] = [
   },
   {
     icon: "📊",
-    title: "Teams Board",
+    title: "Teams",
     content: "View assigned work and progress. If you own a team, you can also create tasks and assign members here.",
     selector: "#onborda-dashboard-dashboard-teams",
     side: "bottom",
@@ -162,8 +162,8 @@ export const teamTourSteps: Step[] = [
   },
   {
     icon: "📈",
-    title: "Analytics",
-    content: "Check completion trends and team momentum to understand delivery health.",
+    title: "Progress",
+    content: "Check open and finished work to understand delivery health.",
     selector: "#onborda-dashboard-dashboard-analytics",
     side: "bottom",
     showControls: false,
@@ -172,8 +172,8 @@ export const teamTourSteps: Step[] = [
   },
   {
     icon: "⚙️",
-    title: "Feature Controls",
-    content: "Owners can tune team settings like comments and attachments in Features.",
+    title: "Team Settings",
+    content: "Owners can tune optional tools like comments and attachments in Settings.",
     selector: "#onborda-dashboard-dashboard-features",
     side: "right",
     showControls: false,

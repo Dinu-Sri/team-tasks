@@ -1,12 +1,29 @@
-import { Download, Files } from "lucide-react";
-import { redirect } from "next/navigation";
+import { Download, Files, SlidersHorizontal } from "lucide-react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { FileSettingsForm } from "@/components/dashboard/file-settings-form";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
+
+type FileMembership = {
+  teamId: string;
+  role: "OWNER" | "MEMBER";
+  team: {
+    id: string;
+    name: string;
+    featureSettings: { attachmentsEnabled: boolean; attachmentLimitMb: number } | null;
+  };
+};
+
+type DashboardFile = {
+  id: string;
+  originalName: string;
+  size: number;
+  uploader: { name: string };
+  task: { title: string; team: { name: string } };
+};
 
 function sizeLabel(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -14,34 +31,34 @@ function sizeLabel(bytes: number) {
 
 export default async function FilesPage() {
   const user = await requireUser();
-  const memberships = await db.membership.findMany({
-    where: { userId: user.id, team: { featureSettings: { attachmentsEnabled: true } } },
+  const allMemberships = await db.membership.findMany({
+    where: { userId: user.id },
     include: { team: { include: { featureSettings: true } } },
-  });
-  if (!memberships.length) redirect("/dashboard/features");
+    orderBy: { createdAt: "asc" },
+  }) as FileMembership[];
+  const memberships = allMemberships.filter(({ team }) => team.featureSettings?.attachmentsEnabled);
+  const canChangeSettings = allMemberships.some(({ role }) => role === "OWNER");
 
-  const attachments = await db.taskAttachment.findMany({
+  const attachments = memberships.length ? (await db.taskAttachment.findMany({
     where: { task: { teamId: { in: memberships.map(({ teamId }) => teamId) } } },
     include: { uploader: { select: { name: true } }, task: { include: { team: { select: { name: true } } } } },
     orderBy: { createdAt: "desc" },
     take: 100,
-  });
+  })) as DashboardFile[] : [];
 
   return (
     <div className="space-y-5">
-      <header className="border-b border-border pb-5">
-        <h1 className="flex items-center gap-2 text-2xl font-semibold"><Files className="h-5 w-5 text-brand" />Files</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Private attachments from enabled teams.</p>
+      <header className="flex flex-col gap-3 border-b border-border pb-5 min-[520px]:flex-row min-[520px]:items-end min-[520px]:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold"><Files className="h-5 w-5 text-brand" />Files</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Private attachments from enabled teams.</p>
+        </div>
+        {canChangeSettings ? <Link href="/dashboard/features" className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-fit")}><SlidersHorizontal /> Team settings</Link> : null}
       </header>
-      <div className="flex flex-wrap gap-2">
-        {memberships.map(({ team }) => <Badge key={team.id} variant="secondary">{team.name} - {team.featureSettings?.attachmentLimitMb ?? 5} MB limit</Badge>)}
-      </div>
-      {memberships.some(({ role }) => role === "OWNER") ? (
-        <section className="grid gap-3 sm:grid-cols-2">
-          {memberships.filter(({ role }) => role === "OWNER").map(({ team }) => (
-            <FileSettingsForm key={team.id} teamId={team.id} teamName={team.name} commentsEnabled={team.featureSettings?.commentsEnabled ?? false} memberTaskViewEnabled={team.featureSettings?.memberTaskViewEnabled ?? false} initialLimit={team.featureSettings?.attachmentLimitMb ?? 5} />
-          ))}
-        </section>
+      {memberships.length ? (
+        <div className="flex flex-wrap gap-2">
+          {memberships.map(({ team }) => <Badge key={team.id} variant="secondary">{team.name} - {team.featureSettings?.attachmentLimitMb ?? 5} MB limit</Badge>)}
+        </div>
       ) : null}
       <section className="overflow-hidden rounded-lg border border-border bg-surface">
         {attachments.length ? (
@@ -54,7 +71,14 @@ export default async function FilesPage() {
               </div>
             ))}
           </div>
-        ) : <p className="px-4 py-20 text-center text-sm text-muted-foreground">No files uploaded yet.</p>}
+        ) : (
+          <div className="px-4 py-20 text-center">
+            <Files className="mx-auto h-6 w-6 text-muted-foreground" />
+            <p className="mt-3 text-sm font-medium">{memberships.length ? "No files uploaded yet." : "Files are off for your teams."}</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">File limits and attachment access are managed in Team Settings.</p>
+            {canChangeSettings ? <Link href="/dashboard/features" className={cn(buttonVariants({ size: "sm" }), "mt-4")}>Open settings</Link> : null}
+          </div>
+        )}
       </section>
     </div>
   );

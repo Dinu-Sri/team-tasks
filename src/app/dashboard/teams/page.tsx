@@ -37,7 +37,7 @@ export default async function TeamsBoardPage() {
   return (
     <div className="space-y-5" id="onborda-teams-board">
       <header className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div><h1 className="text-2xl font-semibold">Teams Board</h1><p className="mt-1 text-sm text-muted-foreground">People, invitations and assignments.</p></div>
+        <div><h1 className="text-2xl font-semibold">Teams</h1><p className="mt-1 text-sm text-muted-foreground">People, invitations and assignments.</p></div>
         <div className="w-full sm:w-80"><CreateTeamForm /></div>
       </header>
 

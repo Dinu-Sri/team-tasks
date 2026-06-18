@@ -1,19 +1,38 @@
-import { MessageCircleMore } from "lucide-react";
+import { MessageCircleMore, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
+import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { cn } from "@/lib/utils";
+
+type DiscussionMembership = {
+  teamId: string;
+  role: "OWNER" | "MEMBER";
+  team: { featureSettings: { commentsEnabled: boolean } | null };
+};
+
+type DiscussionComment = {
+  id: string;
+  taskId: string;
+  body: string;
+  createdAt: Date;
+  author: { name: string };
+  task: { title: string; team: { name: string } };
+  receipts: Array<{ user: { name: string } }>;
+};
 
 export default async function DiscussionsPage() {
   const user = await requireUser();
-  const teams = await db.membership.findMany({
-    where: { userId: user.id, team: { featureSettings: { commentsEnabled: true } } },
-    select: { teamId: true },
-  });
-  if (!teams.length) redirect("/dashboard/features");
+  const memberships = await db.membership.findMany({
+    where: { userId: user.id },
+    include: { team: { include: { featureSettings: true } } },
+    orderBy: { createdAt: "asc" },
+  }) as DiscussionMembership[];
+  const teams = memberships.filter(({ team }) => team.featureSettings?.commentsEnabled);
+  const canChangeSettings = memberships.some(({ role }) => role === "OWNER");
 
-  const comments = await db.taskComment.findMany({
+  const comments = teams.length ? (await db.taskComment.findMany({
     where: { task: { teamId: { in: teams.map(({ teamId }) => teamId) } } },
     include: {
       author: { select: { name: true } },
@@ -22,13 +41,16 @@ export default async function DiscussionsPage() {
     },
     orderBy: { createdAt: "desc" },
     take: 50,
-  });
+  })) as DiscussionComment[] : [];
 
   return (
     <div className="space-y-5">
-      <header className="border-b border-border pb-5">
-        <h1 className="flex items-center gap-2 text-2xl font-semibold"><MessageCircleMore className="h-5 w-5 text-brand" />Discussions</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Recent clarification across enabled teams.</p>
+      <header className="flex flex-col gap-3 border-b border-border pb-5 min-[520px]:flex-row min-[520px]:items-end min-[520px]:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-semibold"><MessageCircleMore className="h-5 w-5 text-brand" />Discussions</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Recent clarification across enabled teams.</p>
+        </div>
+        {canChangeSettings ? <Link href="/dashboard/features" className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-fit")}><SlidersHorizontal /> Team settings</Link> : null}
       </header>
       <section className="overflow-hidden rounded-lg border border-border bg-surface">
         {comments.length ? (
@@ -44,7 +66,14 @@ export default async function DiscussionsPage() {
               </Link>
             ))}
           </div>
-        ) : <p className="px-4 py-20 text-center text-sm text-muted-foreground">No comments yet.</p>}
+        ) : (
+          <div className="px-4 py-20 text-center">
+            <MessageCircleMore className="mx-auto h-6 w-6 text-muted-foreground" />
+            <p className="mt-3 text-sm font-medium">{teams.length ? "No comments yet." : "Comments are off for your teams."}</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Comments and mentions are managed in Team Settings.</p>
+            {canChangeSettings ? <Link href="/dashboard/features" className={cn(buttonVariants({ size: "sm" }), "mt-4")}>Open settings</Link> : null}
+          </div>
+        )}
       </section>
     </div>
   );

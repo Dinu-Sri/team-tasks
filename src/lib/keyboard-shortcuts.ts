@@ -12,8 +12,9 @@ import { useRouter, usePathname } from "next/navigation";
  *   2       – Go to dashboard
  *   3       – Go to momentum
  *   t       – Go to teams board
- *   a       – Go to analytics
- *   f       – Go to features (dashboard)
+ *   a       – Go to activity
+ *   p       – Go to progress
+ *   s       – Go to settings
  *   Escape  – Close open panels / cancel editing
  *   /       – Focus search / comment input
  *   ?       – Show shortcuts help (when added)
@@ -77,9 +78,13 @@ export function useKeyboardShortcuts({
           break;
         case "a":
           event.preventDefault();
+          router.push("/dashboard/activity");
+          break;
+        case "p":
+          event.preventDefault();
           router.push("/dashboard/analytics");
           break;
-        case "f":
+        case "s":
           event.preventDefault();
           router.push("/dashboard/features");
           break;
@@ -113,9 +118,10 @@ const SHORTCUTS = [
   ["1", "Personal tasks"],
   ["2", "Dashboard"],
   ["3", "Momentum"],
-  ["t", "Teams board"],
-  ["a", "Analytics"],
-  ["f", "Features"],
+  ["t", "Teams"],
+  ["a", "Activity"],
+  ["p", "Progress"],
+  ["s", "Settings"],
   ["/", "Quick-add task"],
   ["Esc", "Close panel / cancel"],
   ["Ctrl+Enter", "Submit form"],

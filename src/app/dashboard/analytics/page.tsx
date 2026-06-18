@@ -22,7 +22,7 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="border-b border-border pb-5"><h1 className="flex items-center gap-2 text-2xl font-semibold"><BarChart3 className="h-5 w-5 text-brand" />Analytics</h1><p className="mt-1 text-sm text-muted-foreground">A simple view of work across your teams.</p></header>
+      <header className="border-b border-border pb-5"><h1 className="flex items-center gap-2 text-2xl font-semibold"><BarChart3 className="h-5 w-5 text-brand" />Progress</h1><p className="mt-1 text-sm text-muted-foreground">A simple view of open and finished work across your teams.</p></header>
       <section className="grid grid-cols-3 divide-x divide-border rounded-lg border border-border bg-surface">
         <Metric value={memberships.length} label="Teams" icon={<Users />} />
         <Metric value={open} label="Open" icon={<Circle />} />

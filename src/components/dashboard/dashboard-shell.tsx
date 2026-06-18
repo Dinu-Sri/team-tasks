@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, BarChart3, Command, Files, MessageCircleMore, Shield, SlidersHorizontal, Users } from "lucide-react";
+import { Archive, BarChart3, BellDot, Shield, SlidersHorizontal, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -8,28 +8,23 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const coreItems = [
-  { href: "/dashboard/teams", label: "Teams Board", icon: Users },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/dashboard/teams", label: "Teams", icon: Users },
+  { href: "/dashboard/analytics", label: "Progress", icon: BarChart3 },
+  { href: "/dashboard/activity", label: "Activity", icon: BellDot },
+  { href: "/dashboard/features", label: "Settings", icon: SlidersHorizontal },
   { href: "/dashboard/archive", label: "Archive", icon: Archive },
-  { href: "/dashboard/features", label: "Features", icon: SlidersHorizontal },
 ];
 
 export function DashboardShell({
   children,
-  commentsEnabled,
-  attachmentsEnabled,
   isSuperAdmin = false,
 }: {
   children: ReactNode;
-  commentsEnabled: boolean;
-  attachmentsEnabled: boolean;
   isSuperAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const items = [
     ...coreItems,
-    ...(commentsEnabled ? [{ href: "/dashboard/discussions", label: "Discussions", icon: MessageCircleMore }] : []),
-    ...(attachmentsEnabled ? [{ href: "/dashboard/files", label: "Files", icon: Files }] : []),
     ...(isSuperAdmin ? [{ href: "/dashboard/admin", label: "Admin", icon: Shield }] : []),
   ];
 
@@ -56,41 +51,8 @@ export function DashboardShell({
             );
           })}
         </nav>
-        <ShortcutsHint />
       </aside>
       <div className="min-w-0">{children}</div>
-    </div>
-  );
-}
-
-function ShortcutsHint() {
-  const shortcuts: [string, string][] = [
-    ["n", "New task"],
-    ["1", "My tasks"],
-    ["2", "Dashboard"],
-    ["3", "Momentum"],
-    ["t", "Teams"],
-    ["a", "Analytics"],
-    ["f", "Features"],
-    ["/", "Quick add"],
-    ["Esc", "Close panel"],
-    ["Ctrl+Enter", "Submit form"],
-  ];
-
-  return (
-    <div className="mt-6 hidden rounded-lg border border-border bg-surface-subtle p-3 lg:block">
-      <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Command className="h-3.5 w-3.5" />
-        Shortcuts
-      </p>
-      <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs text-muted-foreground">
-        {shortcuts.map(([key, label]) => (
-          <span key={key} className="contents">
-            <kbd className="rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-[10px] leading-none">{key}</kbd>
-            <span>{label}</span>
-          </span>
-        ))}
-      </div>
     </div>
   );
 }

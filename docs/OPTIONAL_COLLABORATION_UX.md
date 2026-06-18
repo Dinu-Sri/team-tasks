@@ -14,7 +14,7 @@ Apple's Human Interface Guidelines recommend sidebars for stable top-level desti
 
 - Desktop: persistent left sidebar and a broad content area.
 - Mobile: the same destinations become a compact horizontal scroller so content never sits beside an unusably narrow rail.
-- `Files` and `Discussions` are capability-driven destinations. They are absent until at least one joined team enables the corresponding feature.
+- `Activity` is the stable destination for recent comments and files. It stays visible, and empty states explain when comments or files are off.
 
 ### Mention interaction
 
@@ -43,7 +43,7 @@ OWASP recommends allowlisting types, validating size and authorization, generati
 ### Enable a capability
 
 1. Open profile, then Dashboard.
-2. Choose Features.
+2. Choose Settings.
 3. Select a team owned by the user.
 4. Enable Comments and mentions and/or File attachments.
 5. If files are enabled, choose a 5-25 MB per-file limit.
@@ -76,12 +76,12 @@ Comments never require a mention. Requiring one would add friction to ordinary t
 2. Choose Add file and select one file.
 3. The interface checks the configured limit before uploading.
 4. The server validates and stores the file, then refreshes every relevant member in realtime.
-5. Files remain visible in the task panel and in Dashboard > Files.
+5. Files remain visible in the task panel and in Dashboard > Activity.
 
 ### Membership exits
 
 - Owners can remove members but cannot remove themselves through the member control.
-- Members can leave a team from Teams Board.
+- Members can leave a team from Teams.
 - Open assignments for the departing member are removed.
 - Both actions generate notifications and realtime updates.
 
@@ -114,7 +114,7 @@ New optional modules should follow the same contract:
 1. Team-scoped setting with an off-by-default migration.
 2. No home-screen footprint while disabled.
 3. A small contextual affordance when enabled.
-4. A dashboard destination only when the module needs management or history.
+4. A dashboard Activity section only when the module needs management or history.
 5. Server-side authorization independent of UI visibility.
 6. Notification and realtime events for changes that affect another person.
 

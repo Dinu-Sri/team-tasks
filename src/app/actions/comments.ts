@@ -75,6 +75,7 @@ export async function addTaskCommentAction(_: CommentState, formData: FormData):
 
   await publishRealtimeEvent([user.id, ...recipientIds], "comment.created");
   revalidatePath("/");
+  revalidatePath("/dashboard/activity");
   revalidatePath("/dashboard/discussions");
   return { success: comment.id };
 }
@@ -100,5 +101,6 @@ export async function markTaskCommentsReadAction(taskId: string) {
   const authors = [...new Set(unread.map(({ comment }) => comment.authorId))];
   await publishRealtimeEvent([user.id, ...authors], "comment.read");
   revalidatePath("/");
+  revalidatePath("/dashboard/activity");
   revalidatePath("/dashboard/discussions");
 }

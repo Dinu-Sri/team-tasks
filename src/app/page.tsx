@@ -15,7 +15,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const activeWorkspace = query.workspace ?? undefined;
 
   const taskInclude = {
-    team: { include: { featureSettings: true, memberships: { include: { user: { select: { id: true, name: true, email: true } } } } } },
+    team: { include: { featureSettings: true, memberships: { where: { status: "ACTIVE" as const }, include: { user: { select: { id: true, name: true, email: true } } } } } },
     assignees: { select: { userId: true } },
     comments: {
       include: {
@@ -28,7 +28,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   };
 
   const buildTaskWhere = (extra: Record<string, unknown> = {}) => {
-    const base: Record<string, unknown> = { ...extra };
+    const base: Record<string, unknown> = { team: { memberships: { some: { userId: user.id, status: "ACTIVE" } } }, ...extra };
     if (activeWorkspace && activeWorkspace !== "__all__") {
       base.teamId = activeWorkspace;
     }
@@ -50,7 +50,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       orderBy: { createdAt: "desc" },
     }),
     db.membership.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, status: "ACTIVE" },
       include: {
         team: {
           include: {
@@ -63,7 +63,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     }),
     getHeaderData(user.id),
     query.task ? db.task.findFirst({
-      where: { id: query.task, team: { memberships: { some: { userId: user.id } } } },
+      where: { id: query.task, team: { memberships: { some: { userId: user.id, status: "ACTIVE" } } } },
       include: taskInclude,
     }) : null,
     db.invite.findMany({
@@ -108,7 +108,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       commentsEnabled: task.team.featureSettings?.commentsEnabled ?? false,
       attachmentsEnabled: task.team.featureSettings?.attachmentsEnabled ?? false,
       attachmentLimitMb: task.team.featureSettings?.attachmentLimitMb ?? 5,
-      currentUserRole: (task.team.memberships ?? []).find(({ userId }: { userId: string }) => userId === user.id)?.role ?? "MEMBER" as const,
+      currentUserRole: ((task.team.memberships ?? []).find(({ userId }: { userId: string }) => userId === user.id)?.role === "OWNER" ? "OWNER" : "MEMBER") as "OWNER" | "MEMBER",
       members: (task.team.memberships ?? []).map(({ user: member }: { user: { id: string; name: string; email: string } }) => member),
     },
     comments: task.comments.map((comment) => ({

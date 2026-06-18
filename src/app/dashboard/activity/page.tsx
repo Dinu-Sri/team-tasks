@@ -37,7 +37,7 @@ function sizeLabel(bytes: number) {
 export default async function ActivityPage() {
   const user = await requireUser();
   const memberships = await db.membership.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, status: "ACTIVE" },
     include: { team: { include: { featureSettings: true } } },
     orderBy: { createdAt: "asc" },
   }) as DashboardMembership[];

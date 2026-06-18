@@ -21,7 +21,7 @@ async function accessibleAttachment(attachmentId: string, userId: string) {
   const membership = await db.membership.findUnique({
     where: { userId_teamId: { userId, teamId: attachment.task.teamId } },
   });
-  return membership ? { attachment, membership } : null;
+  return membership?.status === "ACTIVE" ? { attachment, membership } : null;
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ attachmentId: string }> }) {
@@ -58,7 +58,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ attachm
   }
   await db.taskAttachment.delete({ where: { id: attachmentId } });
   await removeStoredAttachment(access.attachment.storedName);
-  const members = await db.membership.findMany({ where: { teamId: access.attachment.task.teamId }, select: { userId: true } });
+  const members = await db.membership.findMany({ where: { teamId: access.attachment.task.teamId, status: "ACTIVE" }, select: { userId: true } });
   await publishRealtimeEvent(members.map(({ userId }) => userId), "attachment.deleted");
   return NextResponse.json({ ok: true });
 }

@@ -125,14 +125,16 @@ model Verification {
 }
 
 model OrganizationDomain {
-  id                   String   @id @default(cuid())
+  id                   String    @id @default(cuid())
   teamId               String
-  domain               String   @unique
-  autoJoin             Boolean  @default(false)
-  requireAdminApproval Boolean  @default(false)
-  team                 Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  domain               String    @unique
+  autoJoin             Boolean   @default(false)
+  requireAdminApproval Boolean   @default(false)
+  verificationEmail    String?
+  verifiedAt           DateTime?
+  team                 Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@index([teamId])
 }

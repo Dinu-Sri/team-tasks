@@ -21,7 +21,7 @@ export async function updateTeamFeaturesAction(_: FeatureState, formData: FormDa
     where: { userId_teamId: { userId: user.id, teamId } },
     include: { team: { select: { name: true } } },
   });
-  if (!membership || membership.role !== "OWNER") return { error: "Only the team owner can change features." };
+  if (!membership || membership.status !== "ACTIVE" || membership.role !== "OWNER") return { error: "Only the team owner can change features." };
 
   await db.teamFeatureSettings.upsert({
     where: { teamId },
@@ -29,7 +29,7 @@ export async function updateTeamFeaturesAction(_: FeatureState, formData: FormDa
     create: { teamId, commentsEnabled, attachmentsEnabled, memberTaskViewEnabled, finishedTaskViewEnabled, attachmentLimitMb },
   });
 
-  const members = await db.membership.findMany({ where: { teamId }, select: { userId: true } });
+  const members = await db.membership.findMany({ where: { teamId, status: "ACTIVE" }, select: { userId: true } });
   const recipients = members.map(({ userId }) => userId);
   const otherMembers = recipients.filter((id) => id !== user.id);
   if (otherMembers.length) {

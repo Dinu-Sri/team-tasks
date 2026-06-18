@@ -10,6 +10,18 @@ import { uploadDirectory } from "@/lib/attachments";
 
 export type AdminState = { error?: string; success?: string };
 
+export async function suspendUserSubmitAction(formData: FormData) {
+  await suspendUserAction({}, formData);
+}
+
+export async function deleteUserSubmitAction(formData: FormData) {
+  await deleteUserAction({}, formData);
+}
+
+export async function unsuspendUserSubmitAction(formData: FormData) {
+  await unsuspendUserAction({}, formData);
+}
+
 export async function suspendUserAction(_: AdminState, formData: FormData): Promise<AdminState> {
   const admin = await requireSuperAdmin();
   const targetUserId = String(formData.get("userId") ?? "").trim();
@@ -55,7 +67,7 @@ export async function deleteUserAction(_: AdminState, formData: FormData): Promi
     try {
       await unlink(path.join(uploadDir, path.basename(attachment.storedName)));
     } catch {
-      // File already gone — safe to ignore
+      // File already gone; safe to ignore.
     }
   }
 

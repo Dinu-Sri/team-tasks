@@ -6,11 +6,11 @@ import { db } from "@/lib/db";
 export default async function AnalyticsPage() {
   const user = await requireUser();
   const memberships = await db.membership.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, status: "ACTIVE" },
     include: {
       team: {
         include: {
-          memberships: { include: { user: { select: { id: true, name: true } } } },
+          memberships: { where: { status: "ACTIVE" }, include: { user: { select: { id: true, name: true } } } },
           tasks: { select: { status: true, assignees: { select: { userId: true } } } },
         },
       },

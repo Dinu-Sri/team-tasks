@@ -32,7 +32,7 @@ function sizeLabel(bytes: number) {
 export default async function FilesPage() {
   const user = await requireUser();
   const allMemberships = await db.membership.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, status: "ACTIVE" },
     include: { team: { include: { featureSettings: true } } },
     orderBy: { createdAt: "asc" },
   }) as FileMembership[];

@@ -25,7 +25,7 @@ type DiscussionComment = {
 export default async function DiscussionsPage() {
   const user = await requireUser();
   const memberships = await db.membership.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, status: "ACTIVE" },
     include: { team: { include: { featureSettings: true } } },
     orderBy: { createdAt: "asc" },
   }) as DiscussionMembership[];

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useActionState, useState } from "react";
 
 import { socialSignInAction, type AuthState } from "@/app/actions/auth";
+import { AuthLogo } from "@/components/auth/auth-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -16,10 +17,12 @@ export function AuthForm({
   mode,
   action,
   defaultEmail,
+  notice,
 }: {
   mode: "login" | "signup";
   action: AuthAction;
   defaultEmail?: string;
+  notice?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const [showPassword, setShowPassword] = useState(false);
@@ -28,6 +31,9 @@ export function AuthForm({
 
   return (
     <section className="w-full max-w-[448px]">
+      <div className="text-center">
+        <AuthLogo />
+      </div>
       <div className="mb-4 flex rounded-full border border-border bg-surface p-1 shadow-sm">
         <AuthTab href="/login" active={!signup}>
           Sign In
@@ -96,6 +102,7 @@ export function AuthForm({
           )}
 
           {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+          {notice ? <p className="text-sm text-success">{notice}</p> : null}
           {state.success ? <p className="text-sm text-success">{state.success}</p> : null}
 
           <Button className="h-11 w-full" disabled={pending}>
@@ -210,8 +217,12 @@ function PasswordInput({
 }
 
 function SocialButton({ provider, label }: { provider: "google" | "github"; label: string }) {
+  async function action(formData: FormData) {
+    await socialSignInAction(formData);
+  }
+
   return (
-    <form action={socialSignInAction}>
+    <form action={action}>
       <input type="hidden" name="provider" value={provider} />
       <Button className="h-10 w-full border-border bg-background text-foreground shadow-sm hover:bg-surface-subtle" variant="secondary" type="submit">
         {provider === "google" ? <GoogleLogo /> : <Github className="h-4 w-4" />}

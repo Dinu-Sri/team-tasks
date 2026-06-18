@@ -29,14 +29,18 @@ export async function autoJoinVerifiedEmailDomain(user: VerifiedDomainUser) {
   if (!rule?.autoJoin) return null;
 
   if (rule.requireAdminApproval) {
-    await db.productEvent.create({
-      data: {
-        name: "organization_domain_join_pending",
+    await db.membership.upsert({
+      where: { userId_teamId: { userId: user.id, teamId: rule.teamId } },
+      update: { source: "DOMAIN" },
+      create: {
         userId: user.id,
         teamId: rule.teamId,
-        properties: { domain },
+        role: "MEMBER",
+        status: "PENDING",
+        source: "DOMAIN",
       },
     });
+    await notifyDomainOwners(rule.teamId, user.id, domain);
     return null;
   }
 
@@ -66,4 +70,28 @@ export async function autoJoinVerifiedEmailDomain(user: VerifiedDomainUser) {
   });
 
   return rule.teamId;
+}
+
+async function notifyDomainOwners(teamId: string, userId: string, domain: string) {
+  const [team, requester] = await Promise.all([
+    db.team.findUnique({
+      where: { id: teamId },
+      select: { name: true, memberships: { where: { role: "OWNER" }, select: { userId: true } } },
+    }),
+    db.user.findUnique({ where: { id: userId }, select: { name: true, email: true } }),
+  ]);
+  if (!team || !requester) return;
+  if (!team.memberships.length) return;
+
+  await db.notification.createMany({
+    data: team.memberships.map(({ userId: ownerId }) => ({
+      recipientId: ownerId,
+      teamId,
+      kind: "TEAM" as const,
+      href: "/dashboard/features",
+      title: "Organization access request",
+      message: `${requester.name} (${requester.email}) wants to join ${team.name} using ${domain}.`,
+    })),
+    skipDuplicates: true,
+  });
 }

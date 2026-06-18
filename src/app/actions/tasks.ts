@@ -30,9 +30,9 @@ export async function createPersonalTaskAction(formData: FormData) {
       include: { team: { select: { name: true, timeZone: true, featureSettings: true } } },
     }),
     db.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } }),
-    db.membership.findUnique({ where: { userId_teamId: { userId: requestedAssigneeId, teamId } }, select: { userId: true } }),
+    db.membership.findUnique({ where: { userId_teamId: { userId: requestedAssigneeId, teamId } }, select: { userId: true, status: true } }),
   ]);
-  if (!membership || !assignee) return;
+  if (!membership || membership.status !== "ACTIVE" || !assignee || assignee.status !== "ACTIVE") return;
   const assigningAnotherPerson = requestedAssigneeId !== user.id;
   if (assigningAnotherPerson && (membership.role !== "OWNER" || !membership.team.featureSettings?.memberTaskViewEnabled)) return;
 
@@ -78,10 +78,10 @@ export async function createTeamTaskAction(formData: FormData) {
     where: { userId_teamId: { userId: user.id, teamId } },
     include: { team: { select: { name: true, timeZone: true } } },
   });
-  if (!owner || owner.role !== "OWNER") return;
+  if (!owner || owner.status !== "ACTIVE" || owner.role !== "OWNER") return;
 
   const validMembers = await db.membership.findMany({
-    where: { teamId, userId: { in: assigneeIds } },
+    where: { teamId, userId: { in: assigneeIds }, status: "ACTIVE" },
     select: { userId: true },
   });
   if (!validMembers.length) return;
@@ -191,13 +191,13 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
     assignment.task.creatorId,
   ]);
   if (result.questCompleted) {
-    const teamMembers = await db.membership.findMany({ where: { teamId: assignment.task.teamId }, select: { userId: true } });
+    const teamMembers = await db.membership.findMany({ where: { teamId: assignment.task.teamId, status: "ACTIVE" }, select: { userId: true } });
     teamMembers.forEach(({ userId }) => realtimeRecipients.add(userId));
   }
   result.adjustedUserIds.forEach((userId) => realtimeRecipients.add(userId));
   if (result.adjustedTeamIds.length) {
     const adjustedTeamMembers = await db.membership.findMany({
-      where: { teamId: { in: result.adjustedTeamIds } },
+      where: { teamId: { in: result.adjustedTeamIds }, status: "ACTIVE" },
       select: { userId: true },
     });
     adjustedTeamMembers.forEach(({ userId }) => realtimeRecipients.add(userId));
@@ -233,7 +233,7 @@ export async function updateTaskAction(_: unknown, formData: FormData) {
   const membership = await db.membership.findUnique({
     where: { userId_teamId: { userId: user.id, teamId: task.teamId } },
   });
-  if (!membership || membership.role !== "OWNER") return;
+  if (!membership || membership.status !== "ACTIVE" || membership.role !== "OWNER") return;
 
   const updates: Record<string, unknown> = { title, priority: priority === "HIGH" ? "HIGH" : "NORMAL" };
   if (due) {
@@ -244,7 +244,7 @@ export async function updateTaskAction(_: unknown, formData: FormData) {
   // Add audit trail on any edit
   const editedAt = new Date();
   const timeLabel = editedAt.toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-  updates.editNote = `Edited by ${user.name} · ${timeLabel}`;
+  updates.editNote = `Edited by ${user.name} - ${timeLabel}`;
   updates.editedById = user.id;
   updates.editedAt = editedAt;
 
@@ -271,11 +271,11 @@ export async function deleteTaskAction(_: unknown, formData: FormData) {
   const membership = await db.membership.findUnique({
     where: { userId_teamId: { userId: user.id, teamId: task.teamId } },
   });
-  if (!membership || membership.role !== "OWNER") return;
+  if (!membership || membership.status !== "ACTIVE" || membership.role !== "OWNER") return;
 
   await db.task.delete({ where: { id: taskId } });
 
-  const recipients = task.team.memberships.map(({ userId }) => userId);
+  const recipients = task.team.memberships.filter(({ status }) => status === "ACTIVE").map(({ userId }) => userId);
   await publishRealtimeEvent(recipients, "task.updated");
 
   revalidatePath("/");
@@ -291,12 +291,12 @@ export async function transferOwnershipAction(_: unknown, formData: FormData) {
   const ownerMembership = await db.membership.findUnique({
     where: { userId_teamId: { userId: user.id, teamId } },
   });
-  if (!ownerMembership || ownerMembership.role !== "OWNER") return;
+  if (!ownerMembership || ownerMembership.status !== "ACTIVE" || ownerMembership.role !== "OWNER") return;
 
   const targetMembership = await db.membership.findUnique({
     where: { userId_teamId: { userId: newOwnerId, teamId } },
   });
-  if (!targetMembership) return;
+  if (!targetMembership || targetMembership.status !== "ACTIVE") return;
 
   await db.$transaction([
     db.membership.update({ where: { id: ownerMembership.id }, data: { role: "MEMBER" } }),
@@ -315,4 +315,8 @@ export async function transferOwnershipAction(_: unknown, formData: FormData) {
 
   await publishRealtimeEvent([user.id, newOwnerId], "membership.updated");
   revalidatePath("/dashboard");
+}
+
+export async function transferOwnershipSubmitAction(formData: FormData) {
+  await transferOwnershipAction(undefined, formData);
 }

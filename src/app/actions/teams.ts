@@ -40,14 +40,15 @@ export async function inviteMemberAction(_: TeamState, formData: FormData): Prom
     where: { userId_teamId: { userId: user.id, teamId } },
     include: { team: true },
   });
-  if (!owner || owner.role !== "OWNER") return { error: "Only a team owner can invite people." };
+  if (!owner || owner.status !== "ACTIVE" || owner.role !== "OWNER") return { error: "Only a team owner can invite people." };
 
   const registered = await db.user.findUnique({ where: { email } });
   if (registered) {
     const member = await db.membership.findUnique({
       where: { userId_teamId: { userId: registered.id, teamId } },
     });
-    if (member) return { error: "This person is already in the team." };
+    if (member?.status === "ACTIVE") return { error: "This person is already in the team." };
+    if (member?.status === "PENDING") return { error: "This person is already waiting for access." };
   }
 
   const token = randomBytes(24).toString("hex");
@@ -105,8 +106,8 @@ export async function acceptInviteAction(formData: FormData) {
   await db.$transaction([
     db.membership.upsert({
       where: { userId_teamId: { userId: user.id, teamId: invite.teamId } },
-      update: {},
-      create: { userId: user.id, teamId: invite.teamId, role: invite.role },
+      update: { status: "ACTIVE", source: "INVITE", role: invite.role },
+      create: { userId: user.id, teamId: invite.teamId, role: invite.role, status: "ACTIVE", source: "INVITE" },
     }),
     db.invite.update({
       where: { id: invite.id },
@@ -129,7 +130,7 @@ export async function removeMemberAction(formData: FormData) {
     db.membership.findUnique({ where: { userId_teamId: { userId: user.id, teamId } }, include: { team: true } }),
     db.membership.findUnique({ where: { userId_teamId: { userId: memberId, teamId } }, include: { user: true } }),
   ]);
-  if (!owner || owner.role !== "OWNER" || !member || member.role === "OWNER" || member.userId === user.id) return;
+  if (!owner || owner.status !== "ACTIVE" || owner.role !== "OWNER" || !member || member.status !== "ACTIVE" || member.role === "OWNER" || member.userId === user.id) return;
 
   await db.$transaction([
     db.taskMember.deleteMany({ where: { userId: memberId, task: { teamId } } }),
@@ -157,7 +158,7 @@ export async function leaveTeamAction(formData: FormData) {
     where: { userId_teamId: { userId: user.id, teamId } },
     include: { team: { include: { memberships: { where: { role: "OWNER" }, select: { userId: true } } } } },
   });
-  if (!membership || membership.role === "OWNER") return;
+  if (!membership || membership.status !== "ACTIVE" || membership.role === "OWNER") return;
   const owners = membership.team.memberships.map(({ userId }) => userId);
 
   await db.$transaction(async (tx) => {

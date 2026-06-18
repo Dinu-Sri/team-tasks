@@ -333,7 +333,7 @@ async function recordQuestContributions(
   });
   if (!completed.count) return false;
 
-  const members = await tx.membership.findMany({ where: { teamId }, select: { userId: true } });
+  const members = await tx.membership.findMany({ where: { teamId, status: "ACTIVE" }, select: { userId: true } });
   const team = await tx.team.findUnique({ where: { id: teamId }, select: { name: true } });
   await tx.notification.createMany({
     data: members.map(({ userId }) => ({
@@ -569,7 +569,7 @@ export async function getMomentumSummary(userId: string): Promise<MomentumSummar
   const [days, achievements, memberships] = await Promise.all([
     db.momentumDay.findMany({ where: { userId, localDate: { in: dateKeys } } }),
     db.momentumAchievement.findMany({ where: { userId }, orderBy: { unlockedAt: "asc" } }),
-    db.membership.findMany({ where: { userId }, select: { teamId: true } }),
+    db.membership.findMany({ where: { userId, status: "ACTIVE" }, select: { teamId: true } }),
   ]);
   const dayMap = new Map(days.map((day) => [day.localDate, day.status]));
   const teamIds = memberships.map(({ teamId }) => teamId);

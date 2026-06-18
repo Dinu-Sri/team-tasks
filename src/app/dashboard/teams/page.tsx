@@ -1,7 +1,7 @@
 import { CheckCircle2, Crown, LogOut, Trophy, UserMinus, Users } from "lucide-react";
 
 import { acceptInviteAction, leaveTeamAction, removeMemberAction } from "@/app/actions/teams";
-import { transferOwnershipAction } from "@/app/actions/tasks";
+import { transferOwnershipSubmitAction } from "@/app/actions/tasks";
 import { ConfirmSubmitButton } from "@/components/dashboard/confirm-submit-button";
 import { AssignTaskForm, CreateTeamForm, InviteForm } from "@/components/dashboard/team-forms";
 import { Badge } from "@/components/ui/badge";
@@ -14,11 +14,11 @@ export default async function TeamsBoardPage() {
   const user = await requireUser();
   const [memberships, invitations] = await Promise.all([
     db.membership.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, status: "ACTIVE" },
       include: {
         team: {
           include: {
-            memberships: { include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } },
+            memberships: { where: { status: "ACTIVE" }, include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } },
             tasks: { where: { status: "OPEN" }, select: { id: true, assignees: { select: { userId: true } } } },
             invites: { where: { status: "PENDING" }, select: { id: true, email: true } },
           },
@@ -72,7 +72,7 @@ export default async function TeamsBoardPage() {
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{member.user.name}{member.userId === user.id ? " (you)" : ""}</p><p className="truncate text-xs text-muted-foreground">{member.role === "OWNER" ? "Owner" : `${openByMember.get(member.userId) ?? 0} open tasks`}</p></div>
                         {owner && member.role !== "OWNER" ? (
                           <div className="flex items-center gap-1">
-                            <form action={transferOwnershipAction}>
+                            <form action={transferOwnershipSubmitAction}>
                               <input type="hidden" name="teamId" value={team.id} />
                               <input type="hidden" name="newOwnerId" value={member.userId} />
                               <ConfirmSubmitButton

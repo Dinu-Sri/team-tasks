@@ -20,7 +20,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tas
   });
   if (!task) return NextResponse.json({ error: "Task not found." }, { status: 404 });
   const membership = await db.membership.findUnique({ where: { userId_teamId: { userId: user.id, teamId: task.teamId } } });
-  if (!membership) return NextResponse.json({ error: "You no longer belong to this team." }, { status: 403 });
+  if (!membership || membership.status !== "ACTIVE") return NextResponse.json({ error: "You no longer belong to this team." }, { status: 403 });
   if (!task.team.featureSettings?.attachmentsEnabled) return NextResponse.json({ error: "Files are not enabled for this team." }, { status: 403 });
 
   const formData = await request.formData();

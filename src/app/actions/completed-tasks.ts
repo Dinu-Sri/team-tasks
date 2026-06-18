@@ -18,7 +18,7 @@ export async function getCompletedMemberTasksAction(teamId: string): Promise<Com
   const membership = await db.membership.findUnique({
     where: { userId_teamId: { userId: user.id, teamId } },
   });
-  if (!membership || membership.role !== "OWNER") return [];
+  if (!membership || membership.status !== "ACTIVE" || membership.role !== "OWNER") return [];
 
   const tasks = await db.task.findMany({
     where: {

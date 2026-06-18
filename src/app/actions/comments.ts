@@ -24,7 +24,7 @@ export async function addTaskCommentAction(_: CommentState, formData: FormData):
       team: {
         include: {
           featureSettings: true,
-          memberships: { include: { user: { select: { id: true, name: true } } } },
+          memberships: { where: { status: "ACTIVE" }, include: { user: { select: { id: true, name: true } } } },
         },
       },
     },

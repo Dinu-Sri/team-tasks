@@ -2,6 +2,7 @@ import { LockKeyhole, SlidersHorizontal } from "lucide-react";
 
 import { TeamSettingsPicker, type TeamSettingsOption } from "@/components/dashboard/team-settings-picker";
 import { FeatureSettingsForm } from "@/components/dashboard/feature-settings-form";
+import { OrganizationAccessPanel } from "@/components/dashboard/organization-access-panel";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -15,16 +16,34 @@ type TeamSettings = {
 };
 
 type SettingsMembership = {
-  role: "OWNER" | "MEMBER";
-  team: { id: string; name: string; featureSettings: TeamSettings | null };
+  role: "OWNER" | "ADMIN" | "MEMBER";
+  team: {
+    id: string;
+    name: string;
+    featureSettings: TeamSettings | null;
+    organizationDomains: Array<{ id: string; domain: string; autoJoin: boolean; requireAdminApproval: boolean; verifiedAt: Date | null }>;
+    memberships: Array<{ userId: string; createdAt: Date; user: { name: string; email: string } }>;
+  };
 };
 
 export default async function FeaturesPage({ searchParams }: { searchParams: Promise<{ team?: string }> }) {
   const user = await requireUser();
   const { team: requestedTeamId } = await searchParams;
   const memberships = await db.membership.findMany({
-    where: { userId: user.id },
-    include: { team: { include: { featureSettings: true } } },
+    where: { userId: user.id, status: "ACTIVE" },
+    include: {
+      team: {
+        include: {
+          featureSettings: true,
+          organizationDomains: { orderBy: { createdAt: "asc" } },
+          memberships: {
+            where: { status: "PENDING", source: "DOMAIN" },
+            include: { user: { select: { name: true, email: true } } },
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      },
+    },
     orderBy: { createdAt: "asc" },
   }) as SettingsMembership[];
 
@@ -44,6 +63,14 @@ export default async function FeaturesPage({ searchParams }: { searchParams: Pro
   const settings: TeamSettings = selectedMembership?.team.featureSettings ?? { commentsEnabled: false, attachmentsEnabled: false, memberTaskViewEnabled: false, finishedTaskViewEnabled: false, attachmentLimitMb: 5 };
   const activeCount = [settings.commentsEnabled, settings.attachmentsEnabled, settings.memberTaskViewEnabled, settings.finishedTaskViewEnabled].filter(Boolean).length;
   const role = selectedMembership?.role ?? "MEMBER";
+  const domainIds = selectedMembership?.team.organizationDomains.map(({ id }) => id) ?? [];
+  const pendingVerifications = domainIds.length
+    ? await db.verification.findMany({
+        where: { value: { in: domainIds }, identifier: { startsWith: "organization-domain:" }, expiresAt: { gt: new Date() } },
+        select: { value: true },
+      })
+    : [];
+  const pendingVerificationIds = new Set(pendingVerifications.map(({ value }) => value));
 
   return (
     <div className="space-y-5">
@@ -68,6 +95,21 @@ export default async function FeaturesPage({ searchParams }: { searchParams: Pro
               {role === "OWNER" ? <FeatureSettingsForm teamId={selectedTeamId} {...settings} /> : <div className="flex gap-3 text-sm text-muted-foreground"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" /><p>The team owner manages these settings. You can still use any tools that are already on for this team.</p></div>}
             </div>
           </section>
+          <OrganizationAccessPanel
+            teamId={selectedTeamId}
+            teamName={selectedMembership.team.name}
+            owner={role === "OWNER"}
+            domains={selectedMembership.team.organizationDomains.map((domain) => ({
+              ...domain,
+              pendingVerification: !domain.verifiedAt || pendingVerificationIds.has(domain.id),
+            }))}
+            pendingMembers={selectedMembership.team.memberships.map((member) => ({
+              userId: member.userId,
+              name: member.user.name,
+              email: member.user.email,
+              createdAt: member.createdAt.toISOString(),
+            }))}
+          />
         </>
       ) : (
         <div className="rounded-lg border border-border bg-surface p-5 text-sm text-muted-foreground">Create or join a team to manage workspace settings.</div>

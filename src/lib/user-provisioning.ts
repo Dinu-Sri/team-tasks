@@ -15,7 +15,7 @@ export async function provisionUserWorkspace(user: { id: string; name: string })
 
   const membership = await db.membership.create({
     data: {
-      userId: user.id,
+      user: { connect: { id: user.id } },
       role: "OWNER",
       source: "MANUAL",
       team: { create: { name: `${user.name}'s team` } },

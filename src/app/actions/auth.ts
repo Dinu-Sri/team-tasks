@@ -5,10 +5,11 @@ import { redirect } from "next/navigation";
 import { hash } from "bcryptjs";
 import { createHash, randomBytes } from "crypto";
 
-import { clearSession, createSession } from "@/lib/auth";
+import { clearSession } from "@/lib/auth";
 import { auth } from "@/lib/better-auth";
 import { db } from "@/lib/db";
-import { sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/mail";
+import { sendDirectEmailVerification } from "@/lib/email-verification";
+import { sendPasswordResetEmail } from "@/lib/mail";
 import { autoJoinVerifiedEmailDomain } from "@/lib/organization-domains";
 import { provisionUserWorkspace } from "@/lib/user-provisioning";
 
@@ -37,21 +38,22 @@ export async function signupAction(_: AuthState, formData: FormData): Promise<Au
         name,
         email,
         password,
-        callbackURL: "/",
+        callbackURL: "/login?verified=1",
       },
     });
   } catch (error) {
     console.error("Better Auth signup failed; falling back to direct signup", error);
     try {
-      const user = await createCredentialUser({ name, email, password });
-      await createSession(user.id);
+      const user = await db.user.findUnique({ where: { email } }) ?? await createCredentialUser({ name, email, password });
+      await provisionUserWorkspace(user);
+      await sendDirectEmailVerification(user);
     } catch (fallbackError) {
       console.error("Direct signup fallback failed", fallbackError);
       return { error: "We could not create that account. Try again in a moment." };
     }
   }
 
-  redirect("/");
+  return { success: "Account created. Please check your email and verify your address before signing in." };
 }
 
 export async function loginAction(_: AuthState, formData: FormData): Promise<AuthState> {
@@ -73,13 +75,14 @@ export async function loginAction(_: AuthState, formData: FormData): Promise<Aut
     });
     await autoJoinVerifiedEmailDomain(result.user);
   } catch {
-    const user = await db.user.findUnique({ where: { email }, select: { passwordHash: true } });
+    const user = await db.user.findUnique({ where: { email }, select: { passwordHash: true, emailVerified: true } });
     if (user?.passwordHash.startsWith("__SUSPENDED__")) {
       return { error: "This account has been suspended. Contact support for assistance." };
     }
     if (user?.passwordHash.startsWith("__REINSTATED__")) {
       return { error: "This account has been reinstated but requires a password reset. Contact support." };
     }
+    if (user && !user.emailVerified) return { error: "Please verify your email before signing in." };
     return { error: "Email or password is incorrect." };
   }
 
@@ -210,7 +213,6 @@ async function createCredentialUser({ name, email, password }: { name: string; e
   });
 
   await provisionUserWorkspace(user);
-  await sendWelcomeEmail({ to: user.email, name: user.name });
   return user;
 }
 

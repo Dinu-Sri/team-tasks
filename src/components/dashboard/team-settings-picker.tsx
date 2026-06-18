@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 export type TeamSettingsOption = {
   id: string;
   name: string;
-  role: "OWNER" | "MEMBER";
+  role: "OWNER" | "ADMIN" | "MEMBER";
   summary: string;
 };
 

@@ -1,7 +1,7 @@
 import { Shield, Trash2, UserX, UserCheck, Users, CalendarDays, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
-import { deleteUserAction, suspendUserAction, unsuspendUserAction } from "@/app/actions/admin";
+import { deleteUserSubmitAction, suspendUserSubmitAction, unsuspendUserSubmitAction } from "@/app/actions/admin";
 import { ConfirmSubmitButton } from "@/components/dashboard/confirm-submit-button";
 import { Button } from "@/components/ui/button";
 import { requireSuperAdmin, SUPER_ADMIN_EMAIL } from "@/lib/auth";
@@ -37,7 +37,7 @@ export default async function AdminPage() {
           <p className="mt-1 text-sm text-muted-foreground">Manage all user accounts. Signed in as {admin.email}.</p>
         </div>
         <Link href="/dashboard">
-          <Button variant="quiet" size="sm">← Back to Dashboard</Button>
+          <Button variant="quiet" size="sm">Back to Dashboard</Button>
         </Link>
       </header>
 
@@ -73,7 +73,7 @@ export default async function AdminPage() {
                       </p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                       {isSuspended ? <p className="mt-0.5 text-xs font-medium text-danger">Suspended</p> : null}
-                      {reinstated(user.passwordHash) ? <p className="mt-0.5 text-xs font-medium text-warning">Reinstated — needs password reset</p> : null}
+                      {reinstated(user.passwordHash) ? <p className="mt-0.5 text-xs font-medium text-warning">Reinstated - needs password reset</p> : null}
                     </div>
                   </td>
                   <td className="hidden whitespace-nowrap px-4 py-3 text-muted-foreground sm:table-cell">
@@ -88,17 +88,17 @@ export default async function AdminPage() {
                     {user.email !== SUPER_ADMIN_EMAIL ? (
                       <div className="flex items-center justify-end gap-1">
                         {isSuspended ? (
-                          <form action={unsuspendUserAction}>
+                          <form action={unsuspendUserSubmitAction}>
                             <input type="hidden" name="userId" value={user.id} />
                             <Button size="sm" variant="quiet" title="Unsuspend"><UserCheck className="h-4 w-4" /></Button>
                           </form>
                         ) : (
-                          <form action={suspendUserAction}>
+                          <form action={suspendUserSubmitAction}>
                             <input type="hidden" name="userId" value={user.id} />
                             <Button size="sm" variant="quiet" title="Suspend"><UserX className="h-4 w-4" /></Button>
                           </form>
                         )}
-                        <form action={deleteUserAction}>
+                        <form action={deleteUserSubmitAction}>
                           <input type="hidden" name="userId" value={user.id} />
                           <ConfirmSubmitButton
                             type="submit"
@@ -112,7 +112,7 @@ export default async function AdminPage() {
                         </form>
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </td>
                 </tr>

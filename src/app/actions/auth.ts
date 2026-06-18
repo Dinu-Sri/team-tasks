@@ -2,11 +2,15 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { hash } from "bcryptjs";
+import { createHash, randomBytes } from "crypto";
 
-import { clearSession } from "@/lib/auth";
+import { clearSession, createSession } from "@/lib/auth";
 import { auth } from "@/lib/better-auth";
 import { db } from "@/lib/db";
+import { sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/mail";
 import { autoJoinVerifiedEmailDomain } from "@/lib/organization-domains";
+import { provisionUserWorkspace } from "@/lib/user-provisioning";
 
 export type AuthState = { error?: string; success?: string };
 
@@ -36,8 +40,15 @@ export async function signupAction(_: AuthState, formData: FormData): Promise<Au
         callbackURL: "/",
       },
     });
-  } catch {
-    return { error: "We could not create that account. Try again in a moment." };
+  } catch (error) {
+    console.error("Better Auth signup failed; falling back to direct signup", error);
+    try {
+      const user = await createCredentialUser({ name, email, password });
+      await createSession(user.id);
+    } catch (fallbackError) {
+      console.error("Direct signup fallback failed", fallbackError);
+      return { error: "We could not create that account. Try again in a moment." };
+    }
   }
 
   redirect("/");
@@ -91,14 +102,18 @@ export async function requestPasswordResetAction(_: AuthState, formData: FormDat
 
   try {
     await auth.api.requestPasswordReset({
-      headers: await headers(),
       body: {
         email,
         redirectTo: "/login",
       },
     });
-  } catch {
-    // Always show success to prevent email enumeration.
+  } catch (error) {
+    console.error("Better Auth password reset request failed; falling back to direct reset email", error);
+    try {
+      await createAndSendPasswordReset(email);
+    } catch (fallbackError) {
+      console.error("Direct password reset fallback failed", fallbackError);
+    }
   }
 
   return { success: "If that email is registered, we sent a reset link." };
@@ -120,8 +135,10 @@ export async function resetPasswordAction(_: AuthState, formData: FormData): Pro
         newPassword: password,
       },
     });
-  } catch {
-    return { error: "This reset link is invalid or has expired." };
+  } catch (error) {
+    console.error("Better Auth password reset failed; trying direct reset fallback", error);
+    const reset = await consumeDirectPasswordReset(token, password);
+    if (!reset) return { error: "This reset link is invalid or has expired." };
   }
 
   await clearSession();
@@ -167,4 +184,97 @@ export async function socialSignInAction(formData: FormData): Promise<AuthState 
 
   if (result.url) redirect(result.url);
   return { error: "This sign-in provider is not configured yet." };
+}
+
+async function createCredentialUser({ name, email, password }: { name: string; email: string; password: string }) {
+  const passwordHash = await hash(password, 12);
+  const user = await db.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        name,
+        email,
+        emailVerified: false,
+        passwordHash,
+      },
+    });
+
+    await tx.account.createMany({
+      data: [
+        { providerId: "credential", accountId: created.id, userId: created.id, password: passwordHash },
+        { providerId: "email-password", accountId: created.id, userId: created.id, password: passwordHash },
+      ],
+      skipDuplicates: true,
+    });
+
+    return created;
+  });
+
+  await provisionUserWorkspace(user);
+  await sendWelcomeEmail({ to: user.email, name: user.name });
+  return user;
+}
+
+function appBaseUrl() {
+  return (process.env.APP_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
+function resetTokenHash(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+async function createAndSendPasswordReset(email: string) {
+  const user = await db.user.findUnique({ where: { email }, select: { id: true, email: true } });
+  if (!user) return;
+
+  const token = randomBytes(32).toString("hex");
+  const identifier = `password-reset:${resetTokenHash(token)}`;
+  await db.verification.deleteMany({ where: { value: user.id, identifier: { startsWith: "password-reset:" } } });
+  await db.verification.create({
+    data: {
+      identifier,
+      value: user.id,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    },
+  });
+
+  await sendPasswordResetEmail({ to: user.email, resetUrl: `${appBaseUrl()}/login?token=${token}` });
+}
+
+async function consumeDirectPasswordReset(token: string, password: string) {
+  const verification = await db.verification.findFirst({
+    where: {
+      identifier: `password-reset:${resetTokenHash(token)}`,
+      expiresAt: { gt: new Date() },
+    },
+  });
+  if (!verification) return false;
+
+  const passwordHash = await hash(password, 12);
+  await db.$transaction([
+    db.account.upsert({
+      where: { providerId_accountId: { providerId: "credential", accountId: verification.value } },
+      update: { password: passwordHash },
+      create: {
+        providerId: "credential",
+        accountId: verification.value,
+        userId: verification.value,
+        password: passwordHash,
+      },
+    }),
+    db.account.upsert({
+      where: { providerId_accountId: { providerId: "email-password", accountId: verification.value } },
+      update: { password: passwordHash },
+      create: {
+        providerId: "email-password",
+        accountId: verification.value,
+        userId: verification.value,
+        password: passwordHash,
+      },
+    }),
+    db.user.update({ where: { id: verification.value }, data: { passwordHash: "" } }),
+    db.session.deleteMany({ where: { userId: verification.value } }),
+    db.verification.deleteMany({ where: { identifier: verification.identifier } }),
+  ]);
+
+  return true;
 }

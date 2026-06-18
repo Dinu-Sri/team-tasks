@@ -3,7 +3,7 @@
 import { Check, ChevronDown, Globe } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type WorkspaceOption = { id: string; name: string; role: "OWNER" | "MEMBER" };
+export type WorkspaceOption = { id: string; name: string; role: "OWNER" | "ADMIN" | "MEMBER"; organizationName?: string | null; useOrganizationIcon?: boolean; organizationLogo?: string | null };
 
 const ALL_ID = "__all__";
 const COOKIE_NAME = "tw_ws";
@@ -16,9 +16,11 @@ function setWorkspaceCookie(id: string) {
 export function WorkspaceSelector({
   workspaces,
   selectedId,
+  allowAll = true,
 }: {
   workspaces: WorkspaceOption[];
   selectedId: string;
+  allowAll?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -63,10 +65,14 @@ export function WorkspaceSelector({
       {open ? (
         <div role="listbox" className="absolute left-0 top-full z-50 mt-1.5 w-56 overflow-hidden rounded-lg border border-border bg-surface shadow-soft">
           <div className="max-h-[min(60vh,20rem)] overflow-y-auto overscroll-contain py-1">
-            <button role="option" aria-selected={allSelected} type="button" onClick={() => handleSelect(ALL_ID)} className={`flex w-full items-center gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-surface-subtle ${allSelected ? "font-semibold" : ""}`}>
-              <Globe className="h-4 w-4 text-muted-foreground" /><span className="flex-1 text-left">All workspaces</span>{allSelected ? <Check className="h-4 w-4 text-brand" /> : null}
-            </button>
-            <div className="my-1 border-t border-border" />
+            {allowAll ? (
+              <>
+                <button role="option" aria-selected={allSelected} type="button" onClick={() => handleSelect(ALL_ID)} className={`flex w-full items-center gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-surface-subtle ${allSelected ? "font-semibold" : ""}`}>
+                  <Globe className="h-4 w-4 text-muted-foreground" /><span className="flex-1 text-left">All workspaces</span>{allSelected ? <Check className="h-4 w-4 text-brand" /> : null}
+                </button>
+                <div className="my-1 border-t border-border" />
+              </>
+            ) : null}
             {workspaces.map((ws) => {
               const isSelected = ws.id === selectedId;
               return (

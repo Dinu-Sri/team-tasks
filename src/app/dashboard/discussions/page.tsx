@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { redirectIfRestrictedOrganizationMember } from "@/lib/workspace-access";
 
 type DiscussionMembership = {
   teamId: string;
@@ -24,6 +25,7 @@ type DiscussionComment = {
 
 export default async function DiscussionsPage() {
   const user = await requireUser();
+  await redirectIfRestrictedOrganizationMember(user.id);
   const memberships = await db.membership.findMany({
     where: { userId: user.id, status: "ACTIVE" },
     include: { team: { include: { featureSettings: true } } },

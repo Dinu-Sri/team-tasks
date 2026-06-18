@@ -6,6 +6,7 @@ import { OrganizationAccessPanel } from "@/components/dashboard/organization-acc
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { redirectIfRestrictedOrganizationMember } from "@/lib/workspace-access";
 
 type TeamSettings = {
   commentsEnabled: boolean;
@@ -21,13 +22,14 @@ type SettingsMembership = {
     id: string;
     name: string;
     featureSettings: TeamSettings | null;
-    organizationDomains: Array<{ id: string; domain: string; autoJoin: boolean; requireAdminApproval: boolean; verifiedAt: Date | null }>;
+    organizationDomains: Array<{ id: string; domain: string; autoJoin: boolean; requireAdminApproval: boolean; dnsTxtName: string | null; dnsTxtValue: string | null; verifiedAt: Date | null }>;
     memberships: Array<{ userId: string; createdAt: Date; user: { name: string; email: string } }>;
   };
 };
 
 export default async function FeaturesPage({ searchParams }: { searchParams: Promise<{ team?: string }> }) {
   const user = await requireUser();
+  await redirectIfRestrictedOrganizationMember(user.id);
   const { team: requestedTeamId } = await searchParams;
   const memberships = await db.membership.findMany({
     where: { userId: user.id, status: "ACTIVE" },

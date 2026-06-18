@@ -4,6 +4,7 @@ import { reopenTaskAction } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { redirectIfRestrictedOrganizationMember } from "@/lib/workspace-access";
 
 function monthKey(date: Date) { return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`; }
 function monthLabel(date: Date) { return new Intl.DateTimeFormat("en", { month: "long", year: "numeric", timeZone: "UTC" }).format(date); }
@@ -11,6 +12,7 @@ function dayLabel(date: Date) { return new Intl.DateTimeFormat("en", { month: "s
 
 export default async function ArchivePage() {
   const user = await requireUser();
+  await redirectIfRestrictedOrganizationMember(user.id);
   const completedTasks = await db.task.findMany({
     where: { status: "DONE", completedAt: { not: null }, assignees: { some: { userId: user.id } } },
     include: { team: { select: { name: true } } },

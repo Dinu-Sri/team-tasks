@@ -1,6 +1,6 @@
 import { CheckCircle2, Crown, LogOut, Trophy, UserMinus, Users } from "lucide-react";
 
-import { acceptInviteAction, leaveTeamAction, removeMemberAction } from "@/app/actions/teams";
+import { acceptInviteAction, leaveTeamAction, removeMemberAction, updateMemberRoleAction } from "@/app/actions/teams";
 import { transferOwnershipSubmitAction } from "@/app/actions/tasks";
 import { ConfirmSubmitButton } from "@/components/dashboard/confirm-submit-button";
 import { AssignTaskForm, CreateTeamForm, InviteForm } from "@/components/dashboard/team-forms";
@@ -9,12 +9,15 @@ import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getTeamQuestSummaries } from "@/lib/momentum";
+import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
 export default async function TeamsBoardPage() {
   const user = await requireUser();
+  const access = await getActiveMembershipAccess(user.id);
+  const visibleTeamIds = access.visibleMemberships.map((membership) => membership.teamId);
   const [memberships, invitations] = await Promise.all([
     db.membership.findMany({
-      where: { userId: user.id, status: "ACTIVE" },
+      where: { userId: user.id, status: "ACTIVE", teamId: { in: visibleTeamIds } },
       include: {
         team: {
           include: {
@@ -38,7 +41,7 @@ export default async function TeamsBoardPage() {
     <div className="space-y-5" id="onborda-teams-board">
       <header className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div><h1 className="text-2xl font-semibold">Teams</h1><p className="mt-1 text-sm text-muted-foreground">People, invitations and assignments.</p></div>
-        <div className="w-full sm:w-80"><CreateTeamForm /></div>
+        {!access.restricted ? <div className="w-full sm:w-80"><CreateTeamForm /></div> : null}
       </header>
 
       {invitations.map((invite) => (
@@ -69,9 +72,15 @@ export default async function TeamsBoardPage() {
                   <div className="divide-y divide-border rounded-lg border border-border">
                     {team.memberships.map((member) => (
                       <div key={member.userId} className="flex min-h-14 items-center gap-3 px-3 py-2.5">
-                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{member.user.name}{member.userId === user.id ? " (you)" : ""}</p><p className="truncate text-xs text-muted-foreground">{member.role === "OWNER" ? "Owner" : `${openByMember.get(member.userId) ?? 0} open tasks`}</p></div>
+                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{member.user.name}{member.userId === user.id ? " (you)" : ""}</p><p className="truncate text-xs text-muted-foreground">{member.role === "OWNER" ? "Owner" : member.role === "ADMIN" ? "Admin" : `${openByMember.get(member.userId) ?? 0} open tasks`}</p></div>
                         {owner && member.role !== "OWNER" ? (
                           <div className="flex items-center gap-1">
+                            <form action={updateMemberRoleAction}>
+                              <input type="hidden" name="teamId" value={team.id} />
+                              <input type="hidden" name="memberId" value={member.userId} />
+                              <input type="hidden" name="role" value={member.role === "ADMIN" ? "MEMBER" : "ADMIN"} />
+                              <Button type="submit" size="sm" variant="quiet">{member.role === "ADMIN" ? "Make member" : "Make admin"}</Button>
+                            </form>
                             <form action={transferOwnershipSubmitAction}>
                               <input type="hidden" name="teamId" value={team.id} />
                               <input type="hidden" name="newOwnerId" value={member.userId} />

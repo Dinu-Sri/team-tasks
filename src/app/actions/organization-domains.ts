@@ -1,6 +1,7 @@
 "use server";
 
 import { randomBytes } from "crypto";
+import { resolveTxt } from "dns/promises";
 import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth";
@@ -28,12 +29,14 @@ export async function claimOrganizationDomainAction(_: DomainState, formData: Fo
   const user = await requireUser();
   const teamId = String(formData.get("teamId") ?? "");
   const domain = normalizeDomain(String(formData.get("domain") ?? ""));
+  const verificationMethod = String(formData.get("verificationMethod") ?? "email");
   const verificationEmail = String(formData.get("verificationEmail") ?? "").trim().toLowerCase();
   const requireAdminApproval = formData.get("requireAdminApproval") === "on";
 
   if (!domain) return { error: "Enter a valid organization domain." };
   if (PUBLIC_EMAIL_DOMAINS.has(domain)) return { error: "Use an organization-owned domain, not a public email domain." };
-  if (!verificationEmail.endsWith(`@${domain}`)) return { error: `Use an admin email address on ${domain}.` };
+  if (!["email", "dns"].includes(verificationMethod)) return { error: "Choose a verification method." };
+  if (verificationMethod === "email" && !verificationEmail.endsWith(`@${domain}`)) return { error: `Use an admin email address on ${domain}.` };
 
   const owner = await db.membership.findUnique({
     where: { userId_teamId: { userId: user.id, teamId } },
@@ -46,18 +49,41 @@ export async function claimOrganizationDomainAction(_: DomainState, formData: Fo
 
   const token = randomBytes(32).toString("hex");
   const tokenHash = domainTokenHash(token);
+  const dnsTxtName = `_tuduvia.${domain}`;
+  const dnsTxtValue = `tuduvia-domain-verification=${randomBytes(24).toString("hex")}`;
   const domainRow = existing
     ? await db.organizationDomain.update({
         where: { id: existing.id },
-        data: { autoJoin: false, requireAdminApproval, verificationEmail, verifiedAt: null },
+        data: {
+          autoJoin: false,
+          requireAdminApproval,
+          verificationEmail: verificationMethod === "email" ? verificationEmail : null,
+          dnsTxtName,
+          dnsTxtValue,
+          verifiedAt: null,
+        },
       })
     : await db.organizationDomain.create({
-        data: { teamId, domain, autoJoin: false, requireAdminApproval, verificationEmail },
+        data: {
+          teamId,
+          domain,
+          autoJoin: false,
+          requireAdminApproval,
+          verificationEmail: verificationMethod === "email" ? verificationEmail : null,
+          dnsTxtName,
+          dnsTxtValue,
+        },
       });
 
   await db.verification.deleteMany({
     where: { value: domainRow.id, identifier: { startsWith: "organization-domain:" } },
   });
+
+  revalidatePath("/dashboard/features");
+  if (verificationMethod === "dns") {
+    return { success: `Domain claim created. Add TXT ${dnsTxtName} with value ${dnsTxtValue}, then use Verify DNS.` };
+  }
+
   await db.verification.create({
     data: {
       identifier: `organization-domain:${tokenHash}`,
@@ -74,10 +100,37 @@ export async function claimOrganizationDomainAction(_: DomainState, formData: Fo
     verificationUrl,
   });
 
-  revalidatePath("/dashboard/features");
   return sent
     ? { success: `Verification email sent to ${verificationEmail}.` }
     : { success: `Domain claim created. Share this verification link with ${verificationEmail}: ${verificationUrl}` };
+}
+
+export async function verifyOrganizationDomainDnsAction(_: DomainState, formData: FormData): Promise<DomainState> {
+  const user = await requireUser();
+  const domainId = String(formData.get("domainId") ?? "");
+  const domain = await db.organizationDomain.findUnique({ where: { id: domainId }, include: { team: true } });
+  if (!domain) return { error: "Domain not found." };
+  const owner = await db.membership.findUnique({ where: { userId_teamId: { userId: user.id, teamId: domain.teamId } } });
+  if (!owner || owner.status !== "ACTIVE" || owner.role !== "OWNER") return { error: "Only the workspace owner can verify this domain." };
+  if (!domain.dnsTxtName || !domain.dnsTxtValue) return { error: "Generate DNS verification values first." };
+
+  try {
+    const records = await resolveTxt(domain.dnsTxtName);
+    const values = records.map((record) => record.join(""));
+    if (!values.includes(domain.dnsTxtValue)) {
+      return { error: "TXT record not found yet. DNS changes can take a little time to appear." };
+    }
+  } catch (error) {
+    console.error("DNS TXT verification failed", error);
+    return { error: "Could not read that TXT record yet. Check the name/value and try again." };
+  }
+
+  await db.organizationDomain.update({
+    where: { id: domain.id },
+    data: { verifiedAt: new Date(), autoJoin: true },
+  });
+  revalidatePath("/dashboard/features");
+  return { success: `${domain.domain} is verified.` };
 }
 
 export async function updateOrganizationDomainSettingsAction(_: DomainState, formData: FormData): Promise<DomainState> {

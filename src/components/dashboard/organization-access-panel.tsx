@@ -9,6 +9,7 @@ import {
   rejectDomainMemberAction,
   removeOrganizationDomainAction,
   updateOrganizationDomainSettingsAction,
+  verifyOrganizationDomainDnsAction,
 } from "@/app/actions/organization-domains";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,8 @@ type DomainInfo = {
   domain: string;
   autoJoin: boolean;
   requireAdminApproval: boolean;
+  dnsTxtName: string | null;
+  dnsTxtValue: string | null;
   pendingVerification: boolean;
 };
 
@@ -54,7 +57,7 @@ export function OrganizationAccessPanel({
     <section className="rounded-lg border border-border bg-surface">
       <div className="border-b border-border px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="h-4 w-4 text-brand" />Organization access</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Claim a verified email domain so matching users can join this workspace with minimum clicks.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Claim a verified organization domain so matching users can join this workspace with minimum clicks.</p>
       </div>
       <div className="space-y-5 p-4">
         <ClaimDomainForm teamId={teamId} />
@@ -82,12 +85,22 @@ function ClaimDomainForm({ teamId }: { teamId: string }) {
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <label htmlFor="organization-domain" className="mb-1 block text-xs font-medium uppercase text-muted-foreground">Domain</label>
-          <Input id="organization-domain" name="domain" placeholder="wusl.ac.lk" required />
+          <Input id="organization-domain" name="domain" placeholder="acme.org" required />
         </div>
         <div>
           <label htmlFor="verification-email" className="mb-1 block text-xs font-medium uppercase text-muted-foreground">Admin email</label>
-          <Input id="verification-email" name="verificationEmail" type="email" placeholder="admin@wusl.ac.lk" required />
+          <Input id="verification-email" name="verificationEmail" type="email" placeholder="admin@acme.org" />
         </div>
+      </div>
+      <div className="grid gap-2 min-[520px]:grid-cols-2">
+        <label className="flex min-h-10 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm">
+          <input name="verificationMethod" type="radio" value="email" defaultChecked />
+          Verify by admin email
+        </label>
+        <label className="flex min-h-10 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm">
+          <input name="verificationMethod" type="radio" value="dns" />
+          Verify by DNS TXT
+        </label>
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input name="requireAdminApproval" type="checkbox" defaultChecked className="h-4 w-4 rounded border-border" />
@@ -95,13 +108,14 @@ function ClaimDomainForm({ teamId }: { teamId: string }) {
       </label>
       {state.error ? <p className="text-xs text-danger">{state.error}</p> : null}
       {state.success ? <p className="text-xs text-success">{state.success}</p> : null}
-      <Button disabled={pending} type="submit"><ShieldCheck />{pending ? "Sending" : "Claim domain"}</Button>
+      <Button disabled={pending} type="submit"><ShieldCheck />{pending ? "Claiming" : "Claim domain"}</Button>
     </form>
   );
 }
 
 function DomainSettingsForm({ domain, teamName }: { domain: DomainInfo; teamName: string }) {
   const [state, action, pending] = useActionState(updateOrganizationDomainSettingsAction, {});
+  const [dnsState, dnsAction, dnsPending] = useActionState(verifyOrganizationDomainDnsAction, {});
 
   return (
     <div className="rounded-lg border border-border p-3">
@@ -116,6 +130,21 @@ function DomainSettingsForm({ domain, teamName }: { domain: DomainInfo; teamName
       </div>
 
       <div className="mt-3 space-y-3">
+        {domain.pendingVerification && domain.dnsTxtName && domain.dnsTxtValue ? (
+          <div className="rounded-lg bg-surface-subtle p-3 text-xs text-muted-foreground">
+            <p className="font-medium text-foreground">DNS TXT verification</p>
+            <p className="mt-2">Name</p>
+            <code className="mt-1 block overflow-x-auto rounded-md bg-background px-2 py-1 text-foreground">{domain.dnsTxtName}</code>
+            <p className="mt-2">Value</p>
+            <code className="mt-1 block overflow-x-auto rounded-md bg-background px-2 py-1 text-foreground">{domain.dnsTxtValue}</code>
+            <form action={dnsAction} className="mt-3 space-y-2">
+              <input type="hidden" name="domainId" value={domain.id} />
+              {dnsState.error ? <p className="text-xs text-danger">{dnsState.error}</p> : null}
+              {dnsState.success ? <p className="text-xs text-success">{dnsState.success}</p> : null}
+              <Button type="submit" size="sm" disabled={dnsPending}>Verify DNS</Button>
+            </form>
+          </div>
+        ) : null}
         <form action={action} className="space-y-3">
           <input type="hidden" name="domainId" value={domain.id} />
           <label className="flex items-center gap-2 text-sm">

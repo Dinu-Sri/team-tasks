@@ -3,11 +3,12 @@ import { cn } from "@/lib/utils";
 type AvatarProps = {
   initials: string;
   label: string;
+  image?: string | null;
   tone?: string;
   className?: string;
 };
 
-export function Avatar({ initials, label, tone = "bg-brand/15 text-brand", className }: AvatarProps) {
+export function Avatar({ initials, label, image, tone = "bg-brand/15 text-brand", className }: AvatarProps) {
   return (
     <span
       aria-label={label}
@@ -18,7 +19,7 @@ export function Avatar({ initials, label, tone = "bg-brand/15 text-brand", class
         className,
       )}
     >
-      {initials}
+      {image ? <img src={image} alt="" referrerPolicy="no-referrer" className="h-full w-full rounded-full object-cover" /> : initials}
     </span>
   );
 }

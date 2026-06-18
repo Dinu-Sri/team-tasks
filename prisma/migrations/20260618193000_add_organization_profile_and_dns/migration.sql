@@ -1,0 +1,6 @@
+ALTER TABLE "Team" ADD COLUMN IF NOT EXISTS "organizationName" TEXT;
+ALTER TABLE "Team" ADD COLUMN IF NOT EXISTS "organizationLogo" TEXT;
+ALTER TABLE "Team" ADD COLUMN IF NOT EXISTS "useOrganizationIcon" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "OrganizationDomain" ADD COLUMN IF NOT EXISTS "dnsTxtName" TEXT;
+ALTER TABLE "OrganizationDomain" ADD COLUMN IF NOT EXISTS "dnsTxtValue" TEXT;

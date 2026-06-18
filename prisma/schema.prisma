@@ -54,6 +54,9 @@ model Team {
   name                String
   description         String?
   timeZone            String               @default("UTC")
+  organizationName    String?
+  organizationLogo    String?
+  useOrganizationIcon Boolean              @default(false)
   memberships         Membership[]
   organizationDomains OrganizationDomain[]
   tasks               Task[]
@@ -131,6 +134,8 @@ model OrganizationDomain {
   autoJoin             Boolean   @default(false)
   requireAdminApproval Boolean   @default(false)
   verificationEmail    String?
+  dnsTxtName           String?
+  dnsTxtValue          String?
   verifiedAt           DateTime?
   team                 Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdAt            DateTime  @default(now())

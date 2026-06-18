@@ -2,9 +2,11 @@ import { BarChart3, CheckCircle2, Circle, Users } from "lucide-react";
 
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { redirectIfRestrictedOrganizationMember } from "@/lib/workspace-access";
 
 export default async function AnalyticsPage() {
   const user = await requireUser();
+  await redirectIfRestrictedOrganizationMember(user.id);
   const memberships = await db.membership.findMany({
     where: { userId: user.id, status: "ACTIVE" },
     include: {

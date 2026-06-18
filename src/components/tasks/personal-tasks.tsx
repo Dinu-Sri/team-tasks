@@ -60,7 +60,7 @@ export function PersonalTasks({
   initialTaskId?: string;
   focusedTask?: TaskItem;
   workspaceId?: string;
-  workspaceRole?: "OWNER" | "MEMBER" | null;
+  workspaceRole?: "OWNER" | "ADMIN" | "MEMBER" | null;
   isCurrentWorkspaceOwner?: boolean;
 }) {
   const router = useRouter();

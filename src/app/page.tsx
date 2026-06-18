@@ -7,15 +7,22 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { personalTourSteps } from "@/lib/onboarding-tours";
+import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string; workspace?: string }> }) {
   const user = await getSessionUser();
   if (!user) return <PublicHome />;
   const query = await searchParams;
-  const activeWorkspace = query.workspace ?? undefined;
+  const access = await getActiveMembershipAccess(user.id);
+  const visibleTeamIds = access.visibleMemberships.map((membership) => membership.teamId);
+  const activeWorkspace = access.restricted
+    ? query.workspace && visibleTeamIds.includes(query.workspace)
+      ? query.workspace
+      : visibleTeamIds[0]
+    : query.workspace ?? undefined;
 
   const taskInclude = {
-    team: { include: { featureSettings: true, memberships: { where: { status: "ACTIVE" as const }, include: { user: { select: { id: true, name: true, email: true } } } } } },
+    team: { include: { featureSettings: true, organizationDomains: { where: { verifiedAt: { not: null } }, select: { id: true } }, memberships: { where: { status: "ACTIVE" as const }, include: { user: { select: { id: true, name: true, email: true } } } } } },
     assignees: { select: { userId: true } },
     comments: {
       include: {
@@ -28,7 +35,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   };
 
   const buildTaskWhere = (extra: Record<string, unknown> = {}) => {
-    const base: Record<string, unknown> = { team: { memberships: { some: { userId: user.id, status: "ACTIVE" } } }, ...extra };
+    const base: Record<string, unknown> = { teamId: { in: visibleTeamIds }, team: { memberships: { some: { userId: user.id, status: "ACTIVE" } } }, ...extra };
     if (activeWorkspace && activeWorkspace !== "__all__") {
       base.teamId = activeWorkspace;
     }
@@ -50,11 +57,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       orderBy: { createdAt: "desc" },
     }),
     db.membership.findMany({
-      where: { userId: user.id, status: "ACTIVE" },
+      where: { userId: user.id, status: "ACTIVE", teamId: { in: visibleTeamIds } },
       include: {
         team: {
           include: {
             featureSettings: true,
+            organizationDomains: { where: { verifiedAt: { not: null } }, select: { id: true } },
             memberships: { include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" as const } },
           },
         },
@@ -63,10 +71,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     }),
     getHeaderData(user.id),
     query.task ? db.task.findFirst({
-      where: { id: query.task, team: { memberships: { some: { userId: user.id, status: "ACTIVE" } } } },
+      where: { id: query.task, teamId: { in: visibleTeamIds }, team: { memberships: { some: { userId: user.id, status: "ACTIVE" } } } },
       include: taskInclude,
     }) : null,
-    db.invite.findMany({
+    access.restricted ? Promise.resolve([]) : db.invite.findMany({
       where: { email: user.email, status: "PENDING", expiresAt: { gt: new Date() } },
       include: { team: true, invitedBy: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
@@ -141,13 +149,30 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   const workspaces: WorkspaceOption[] = memberships.map(({ team, role }) => ({
     id: team.id,
     name: team.name,
-    role: role as "OWNER" | "MEMBER",
+    role: role as "OWNER" | "ADMIN" | "MEMBER",
+    organizationName: team.organizationName,
+    organizationLogo: team.organizationLogo,
+    useOrganizationIcon: team.useOrganizationIcon,
   }));
+
+  const selectedMembershipForHeader = activeWorkspace && activeWorkspace !== "__all__"
+    ? memberships.find(({ teamId }) => teamId === activeWorkspace)
+    : access.restricted
+      ? memberships[0]
+      : undefined;
+  const organizationBrand = selectedMembershipForHeader && selectedMembershipForHeader.team.organizationDomains.length
+    ? {
+        teamId: selectedMembershipForHeader.team.id,
+        name: selectedMembershipForHeader.team.organizationName ?? selectedMembershipForHeader.team.name,
+        logo: selectedMembershipForHeader.team.organizationLogo,
+        useOrganizationIcon: selectedMembershipForHeader.team.useOrganizationIcon,
+      }
+    : null;
 
   // Determine workspace role
   const workspaceRole = !activeWorkspace || activeWorkspace === "__all__"
     ? null
-    : (memberships.find((m) => m.teamId === activeWorkspace)?.role as "OWNER" | "MEMBER") ?? null;
+    : (memberships.find((m) => m.teamId === activeWorkspace)?.role as "OWNER" | "ADMIN" | "MEMBER") ?? null;
 
   // Only show member task view toggle for the selected workspace if user is owner there
   const canViewMemberTasks = workspaceRole === "OWNER" && memberTaskGroups.length > 0;
@@ -160,7 +185,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       completedInDb={Boolean(personalTourCompleted)}
     >
       <main className="min-h-screen bg-background">
-        <AppHeader user={user} {...headerData} memberTaskViewEnabled={canViewMemberTasks} workspaces={workspaces} selectedWorkspaceId={activeWorkspace ?? "__all__"} />
+        <AppHeader
+          user={user}
+          {...headerData}
+          memberTaskViewEnabled={canViewMemberTasks}
+          workspaces={workspaces}
+          selectedWorkspaceId={activeWorkspace ?? "__all__"}
+          allowAllWorkspaces={!access.restricted}
+          organizationBrand={organizationBrand}
+        />
         <PersonalTasks
           tasks={tasks.map(serializeTask)}
           discussionUpdates={discussionUpdates.map(serializeTask)}

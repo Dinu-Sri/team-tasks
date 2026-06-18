@@ -1,4 +1,5 @@
-import { ListTodo } from "lucide-react";
+import { Building2, ListTodo } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 import { MemberTaskViewToggle, MomentumMenu, NotificationMenu, ProfileMenu } from "@/components/header-menus";
@@ -19,8 +20,10 @@ export function AppHeader({
   memberTaskViewEnabled = false,
   workspaces,
   selectedWorkspaceId,
+  allowAllWorkspaces = true,
+  organizationBrand,
 }: {
-  user: { name: string; email: string };
+  user: { name: string; email: string; image?: string | null };
   notifications: HeaderNotification[];
   notificationCount: number;
   momentum: MomentumSummary;
@@ -28,7 +31,10 @@ export function AppHeader({
   memberTaskViewEnabled?: boolean;
   workspaces?: WorkspaceOption[];
   selectedWorkspaceId?: string;
+  allowAllWorkspaces?: boolean;
+  organizationBrand?: { teamId: string; name: string; logo?: string | null; useOrganizationIcon: boolean } | null;
 }) {
+  const showOrganizationBrand = organizationBrand?.useOrganizationIcon;
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur-lg">
       <TabIndicator level={ledLevel} />
@@ -38,15 +44,24 @@ export function AppHeader({
         <div className="w-[120px] sm:w-[140px] flex-shrink-0">
           <Link href="/" className="flex items-center gap-2.5 font-semibold" id="onborda-header">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-brand-foreground">
-              <ListTodo className="h-4 w-4" />
+              {showOrganizationBrand && organizationBrand.logo ? (
+                <Image src={`/api/organization-logo/${organizationBrand.teamId}`} alt="" width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
+              ) : showOrganizationBrand ? (
+                <Building2 className="h-4 w-4" />
+              ) : (
+                <ListTodo className="h-4 w-4" />
+              )}
             </span>
-            <span className="hidden min-[360px]:inline">Tasks</span>
+            <span className="hidden min-[360px]:inline">
+              <span className="block leading-4">Tasks</span>
+              {showOrganizationBrand ? <span className="block max-w-28 truncate text-[11px] font-medium leading-3 text-muted-foreground">{organizationBrand.name}</span> : null}
+            </span>
           </Link>
         </div>
 
         <div className="flex-1 flex justify-center">
           {workspaces && workspaces.length > 0 ? (
-            <WorkspaceSelector workspaces={workspaces} selectedId={selectedWorkspaceId ?? "__all__"} />
+            <WorkspaceSelector workspaces={workspaces} selectedId={selectedWorkspaceId ?? "__all__"} allowAll={allowAllWorkspaces} />
           ) : null}
         </div>
 
@@ -55,7 +70,7 @@ export function AppHeader({
           <MomentumMenu momentum={momentum} />
           <NotificationMenu notifications={notifications} notificationCount={notificationCount} />
           <ThemeButton />
-          <ProfileMenu name={user.name} email={user.email} />
+          <ProfileMenu name={user.name} email={user.email} image={user.image} />
         </div>
       </div>
     </header>

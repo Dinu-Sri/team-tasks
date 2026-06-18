@@ -260,7 +260,7 @@ export function NotificationMenu({
   );
 }
 
-export function ProfileMenu({ name, email }: { name: string; email: string }) {
+export function ProfileMenu({ name, email, image }: { name: string; email: string; image?: string | null }) {
   const menu = useHeaderMenu("profile");
   const initials = name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
@@ -273,7 +273,7 @@ export function ProfileMenu({ name, email }: { name: string; email: string }) {
         aria-haspopup="menu"
         className="flex h-9 w-9 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-10 sm:w-10"
       >
-        <Avatar initials={initials} label={`${name} menu`} />
+        <Avatar initials={initials} label={`${name} menu`} image={image} />
       </button>
 
       {menu.open ? (

@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendInviteEmail } from "@/lib/mail";
 import { publishRealtimeEvent } from "@/lib/realtime";
+import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
 export type TeamState = { error?: string; success?: string };
 
@@ -15,6 +16,8 @@ export async function createTeamAction(_: TeamState, formData: FormData): Promis
   const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
   if (name.length < 2) return { error: "Enter a team name." };
+  const access = await getActiveMembershipAccess(user.id);
+  if (access.restricted) return { error: "Ask an organization owner to make you an admin before creating teams." };
 
   await db.team.create({
     data: {
@@ -143,6 +146,37 @@ export async function removeMemberAction(formData: FormData) {
         href: "/",
         title: "Team access removed",
         message: `${user.name} removed you from ${owner.team.name}.`,
+      },
+    }),
+  ]);
+  await publishRealtimeEvent([user.id, memberId], "membership.updated");
+  revalidatePath("/");
+  revalidatePath("/dashboard", "layout");
+}
+
+export async function updateMemberRoleAction(formData: FormData) {
+  const user = await requireUser();
+  const teamId = String(formData.get("teamId") ?? "");
+  const memberId = String(formData.get("memberId") ?? "");
+  const role = String(formData.get("role") ?? "MEMBER");
+  if (!["ADMIN", "MEMBER"].includes(role)) return;
+
+  const [owner, member] = await Promise.all([
+    db.membership.findUnique({ where: { userId_teamId: { userId: user.id, teamId } }, include: { team: true } }),
+    db.membership.findUnique({ where: { userId_teamId: { userId: memberId, teamId } }, include: { user: true } }),
+  ]);
+  if (!owner || owner.status !== "ACTIVE" || owner.role !== "OWNER" || !member || member.status !== "ACTIVE" || member.role === "OWNER") return;
+
+  await db.$transaction([
+    db.membership.update({ where: { id: member.id }, data: { role: role as "ADMIN" | "MEMBER" } }),
+    db.notification.create({
+      data: {
+        recipientId: memberId,
+        teamId,
+        kind: "TEAM",
+        href: "/dashboard/teams",
+        title: "Workspace role updated",
+        message: `${user.name} changed your role in ${owner.team.name} to ${role.toLowerCase()}.`,
       },
     }),
   ]);

@@ -13,11 +13,13 @@
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",
+    "@radix-ui/react-portal": "^1.1.1",
     "@sentry/nextjs": "^9",
     "better-auth": "^1.6.19",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^12.0.0",
     "jose": "^6.0.11",
     "lucide-react": "^0.468.0",
     "next": "^15.3.4",

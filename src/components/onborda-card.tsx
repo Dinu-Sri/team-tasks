@@ -31,7 +31,7 @@ export function OnbordaCard({ step, currentStep, totalSteps, nextStep, prevStep,
   const isLast = currentStep === totalSteps - 1;
 
   return (
-    <div className="w-[calc(100vw-2rem)] max-w-80 rounded-xl border border-border bg-surface p-4 shadow-lg sm:w-80 sm:p-5">
+    <div className="max-h-[min(72vh,24rem)] w-[calc(100vw-2rem)] max-w-80 overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-lg sm:w-80 sm:p-5">
       <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
         <span>
           {currentStep + 1} of {totalSteps}

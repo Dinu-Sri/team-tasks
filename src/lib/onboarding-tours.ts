@@ -26,7 +26,7 @@ export const personalTourSteps: Step[] = [
     title: "Your Task List",
     content: "All your personal tasks live here. Click a task to see details, comments, and attachments. Mark tasks done when finished.",
     selector: "#onborda-task-list",
-    side: "top",
+    side: "bottom",
     showControls: false,
     pointerPadding: 8,
     pointerRadius: 10,

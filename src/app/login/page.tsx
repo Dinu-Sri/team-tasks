@@ -26,15 +26,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   }
 
   return (
-    <main
-      className="flex min-h-[100svh] items-center justify-center bg-background px-4 py-8"
-      style={{
-        backgroundImage:
-          "linear-gradient(hsl(var(--border) / 0.35) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border) / 0.35) 1px, transparent 1px)",
-        backgroundSize: "56px 56px",
-      }}
-    >
-      <AuthForm mode={authMode} action={authMode === "signup" ? signupAction : loginAction} defaultEmail={email} />
+    <main className="flex min-h-[100svh] items-center justify-center bg-background px-4 py-8">
+      <AuthForm key={authMode} mode={authMode} action={authMode === "signup" ? signupAction : loginAction} defaultEmail={email} />
     </main>
   );
 }
@@ -51,7 +44,7 @@ function ResetPasswordForm({ token }: { token: string }) {
         <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium">Confirm password</label>
         <input id="confirmPassword" name="confirmPassword" type="password" required minLength={8} className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm" placeholder="Repeat your password" />
       </div>
-      <button type="submit" className="w-full rounded-none bg-[#1c1c1f] py-2.5 text-sm font-medium text-white hover:bg-[#111113]">Reset password</button>
+      <button type="submit" className="w-full rounded-full bg-brand py-2.5 text-sm font-medium text-brand-foreground hover:bg-brand/90">Reset password</button>
     </form>
   );
 }

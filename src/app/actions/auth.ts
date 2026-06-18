@@ -91,6 +91,7 @@ export async function requestPasswordResetAction(_: AuthState, formData: FormDat
 
   try {
     await auth.api.requestPasswordReset({
+      headers: await headers(),
       body: {
         email,
         redirectTo: "/login",

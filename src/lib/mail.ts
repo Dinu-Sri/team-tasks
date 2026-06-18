@@ -61,21 +61,26 @@ async function assertEmailRateLimit(type: EmailType, to: string) {
   const key = recipientHash(to);
   const name = `email.${type}.${key}`;
   const since = new Date(Date.now() - EMAIL_WINDOW_MS);
-  const count = await db.productEvent.count({
-    where: {
-      name,
-      createdAt: { gte: since },
-    },
-  });
+  try {
+    const count = await db.productEvent.count({
+      where: {
+        name,
+        createdAt: { gte: since },
+      },
+    });
 
-  if (count >= EMAIL_LIMIT) return false;
+    if (count >= EMAIL_LIMIT) return false;
 
-  await db.productEvent.create({
-    data: {
-      name,
-      properties: { type, key },
-    },
-  });
+    await db.productEvent.create({
+      data: {
+        name,
+        properties: { type, key },
+      },
+    });
+  } catch (error) {
+    console.error("Email rate limit check failed", error);
+    return false;
+  }
 
   return true;
 }
@@ -85,32 +90,42 @@ async function sendEmail({ type, to, rateLimitTo, subject, text, html, replyTo }
   if (resendApiKey) {
     if (!(await assertEmailRateLimit(type, rateLimitTo ?? to))) return false;
 
-    const resend = new Resend(resendApiKey);
-    const { error } = await resend.emails.send({
-      from: mailFrom(),
-      to: normalizedRecipient(to),
-      subject,
-      text,
-      html,
-      replyTo: replyTo ?? mailReplyTo(),
-    });
-    return !error;
+    try {
+      const resend = new Resend(resendApiKey);
+      const { error } = await resend.emails.send({
+        from: mailFrom(),
+        to: normalizedRecipient(to),
+        subject,
+        text,
+        html,
+        replyTo: replyTo ?? mailReplyTo(),
+      });
+      if (error) console.error("Resend email failed", error);
+      return !error;
+    } catch (error) {
+      console.error("Resend email failed", error);
+      return false;
+    }
   }
 
   const transporter = createTransporter();
   if (!transporter) return false;
   if (!(await assertEmailRateLimit(type, rateLimitTo ?? to))) return false;
 
-  await transporter.sendMail({
-    from: mailFrom(),
-    replyTo: replyTo ?? mailReplyTo(),
-    to,
-    subject,
-    text,
-    html,
-  });
-
-  return true;
+  try {
+    await transporter.sendMail({
+      from: mailFrom(),
+      replyTo: replyTo ?? mailReplyTo(),
+      to,
+      subject,
+      text,
+      html,
+    });
+    return true;
+  } catch (error) {
+    console.error("SMTP email failed", error);
+    return false;
+  }
 }
 
 export async function sendInviteEmail({ to, inviterName, teamName, inviteUrl }: InviteMail) {

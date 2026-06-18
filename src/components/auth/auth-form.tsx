@@ -28,7 +28,7 @@ export function AuthForm({
 
   return (
     <section className="w-full max-w-[448px]">
-      <div className="flex">
+      <div className="mb-4 flex rounded-full border border-border bg-surface p-1 shadow-sm">
         <AuthTab href="/login" active={!signup}>
           Sign In
         </AuthTab>
@@ -37,7 +37,7 @@ export function AuthForm({
         </AuthTab>
       </div>
 
-      <div className="border border-border bg-surface px-6 py-7 shadow-sm sm:px-6">
+      <div className="rounded-lg border border-border bg-surface px-6 py-7 shadow-soft sm:px-7">
         <h1 className="text-2xl font-semibold text-foreground">{signup ? "Sign Up" : "Sign In"}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {signup ? "Enter your email below to create an account" : "Enter your email below to login to your account"}
@@ -98,7 +98,7 @@ export function AuthForm({
           {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
           {state.success ? <p className="text-sm text-success">{state.success}</p> : null}
 
-          <Button className="h-11 w-full rounded-none bg-[#1c1c1f] text-white hover:bg-[#111113]" disabled={pending}>
+          <Button className="h-11 w-full" disabled={pending}>
             {pending ? "Please wait" : signup ? "Create an account" : "Login"}
           </Button>
         </form>
@@ -125,8 +125,8 @@ function AuthTab({ href, active, children }: { href: string; active: boolean; ch
     <Link
       href={href}
       className={cn(
-        "flex h-10 min-w-24 items-center justify-center border border-border px-4 text-base",
-        active ? "border-b-surface bg-surface font-semibold text-foreground" : "bg-surface-subtle text-muted-foreground hover:text-foreground",
+        "flex h-10 flex-1 items-center justify-center rounded-full px-4 text-sm font-medium transition-colors",
+        active ? "bg-brand text-brand-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-subtle hover:text-foreground",
       )}
     >
       {children}
@@ -164,7 +164,7 @@ function Field({
         autoComplete={autoComplete}
         defaultValue={defaultValue}
         required={required}
-        className="h-10 rounded-none bg-background shadow-sm"
+        className="h-11 bg-background shadow-sm"
       />
     </div>
   );
@@ -195,7 +195,7 @@ function PasswordInput({
         autoComplete={autoComplete}
         minLength={8}
         required
-        className="h-10 rounded-none bg-background pr-11 shadow-sm"
+        className="h-11 bg-background pr-11 shadow-sm"
       />
       <button
         type="button"
@@ -213,11 +213,22 @@ function SocialButton({ provider, label }: { provider: "google" | "github"; labe
   return (
     <form action={socialSignInAction}>
       <input type="hidden" name="provider" value={provider} />
-      <Button className="h-9 w-full rounded-none border-border bg-background text-foreground shadow-sm hover:bg-surface-subtle" variant="secondary" type="submit">
-        {provider === "google" ? <span className="text-base font-semibold text-brand">G</span> : <Github className="h-4 w-4" />}
+      <Button className="h-10 w-full border-border bg-background text-foreground shadow-sm hover:bg-surface-subtle" variant="secondary" type="submit">
+        {provider === "google" ? <GoogleLogo /> : <Github className="h-4 w-4" />}
         {label}
       </Button>
     </form>
+  );
+}
+
+function GoogleLogo() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4">
+      <path fill="#4285F4" d="M21.8 12.2c0-.7-.1-1.3-.2-1.9H12v3.6h5.5c-.2 1.2-.9 2.2-2 2.9v2.4h3.2c1.9-1.7 3.1-4.2 3.1-7Z" />
+      <path fill="#34A853" d="M12 22c2.7 0 5-0.9 6.7-2.5l-3.2-2.4c-.9.6-2 1-3.5 1-2.7 0-4.9-1.8-5.7-4.2H3v2.5C4.7 19.7 8.1 22 12 22Z" />
+      <path fill="#FBBC05" d="M6.3 13.9c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9V7.6H3A10 10 0 0 0 3 16.4l3.3-2.5Z" />
+      <path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.8-2.8C17 3 14.7 2 12 2 8.1 2 4.7 4.3 3 7.6l3.3 2.5C7.1 7.7 9.3 5.9 12 5.9Z" />
+    </svg>
   );
 }
 

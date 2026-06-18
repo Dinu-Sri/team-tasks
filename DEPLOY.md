@@ -79,6 +79,9 @@ Recommended:
 
 Optional email:
 
+- `RESEND_API_KEY`
+- `RESEND_FROM`
+- `RESEND_REPLY_TO`
 - `SMTP_HOST`
 - `SMTP_PORT`
 - `SMTP_SECURE`
@@ -92,17 +95,20 @@ Auth providers:
 - `GOOGLE_CLIENT_SECRET`
 - `GITHUB_CLIENT_ID`
 - `GITHUB_CLIENT_SECRET`
-- `FACEBOOK_CLIENT_ID`
-- `FACEBOOK_CLIENT_SECRET`
 - `BETTER_AUTH_TRUSTED_ORIGINS` (optional comma-separated extra origins)
 
 Auth callback URLs:
 
-- Google: `https://your-domain.com/api/auth/callback/google`
-- GitHub: `https://your-domain.com/api/auth/callback/github`
-- Facebook: `https://your-domain.com/api/auth/callback/facebook`
+- Google: `https://tuduvia.com/api/auth/callback/google`
+- GitHub: `https://tuduvia.com/api/auth/callback/github`
 
-Magic links, email verification, and password reset require working SMTP variables.
+Email delivery:
+
+- Resend is preferred when `RESEND_API_KEY` is set.
+- Recommended production sender: `RESEND_FROM=Tuduvia <noreply@mail.tuduvia.com>`.
+- Recommended reply-to: `RESEND_REPLY_TO=support@tuduvia.com`.
+- SMTP variables remain as fallback only.
+- Verification, reset, magic login, welcome, invite, contact, and system alert emails are rate limited to 3 sends per recipient per type per hour.
 
 Domain-based organization login:
 

@@ -1,4 +1,8 @@
 import nodemailer from "nodemailer";
+import { createHash } from "crypto";
+import { Resend } from "resend";
+
+import { db } from "@/lib/db";
 
 type InviteMail = {
   to: string;
@@ -6,6 +10,21 @@ type InviteMail = {
   teamName: string;
   inviteUrl: string;
 };
+
+type EmailType = "verification" | "password_reset" | "magic_link" | "welcome" | "invite" | "system_alert" | "contact";
+
+type EmailPayload = {
+  type: EmailType;
+  to: string;
+  rateLimitTo?: string;
+  subject: string;
+  text: string;
+  html: string;
+  replyTo?: string;
+};
+
+const EMAIL_LIMIT = 3;
+const EMAIL_WINDOW_MS = 60 * 60 * 1000;
 
 function createTransporter() {
   const host = process.env.SMTP_HOST;
@@ -23,67 +42,135 @@ function createTransporter() {
 }
 
 function mailFrom() {
-  return process.env.SMTP_FROM ?? process.env.SMTP_USER ?? "";
+  return process.env.RESEND_FROM ?? process.env.SMTP_FROM ?? process.env.SMTP_USER ?? "";
 }
 
-export async function sendInviteEmail({ to, inviterName, teamName, inviteUrl }: InviteMail) {
+function mailReplyTo() {
+  return process.env.RESEND_REPLY_TO ?? undefined;
+}
+
+function normalizedRecipient(to: string) {
+  return to.trim().toLowerCase();
+}
+
+function recipientHash(to: string) {
+  return createHash("sha256").update(normalizedRecipient(to)).digest("hex").slice(0, 24);
+}
+
+async function assertEmailRateLimit(type: EmailType, to: string) {
+  const key = recipientHash(to);
+  const name = `email.${type}.${key}`;
+  const since = new Date(Date.now() - EMAIL_WINDOW_MS);
+  const count = await db.productEvent.count({
+    where: {
+      name,
+      createdAt: { gte: since },
+    },
+  });
+
+  if (count >= EMAIL_LIMIT) return false;
+
+  await db.productEvent.create({
+    data: {
+      name,
+      properties: { type, key },
+    },
+  });
+
+  return true;
+}
+
+async function sendEmail({ type, to, rateLimitTo, subject, text, html, replyTo }: EmailPayload) {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (resendApiKey) {
+    if (!(await assertEmailRateLimit(type, rateLimitTo ?? to))) return false;
+
+    const resend = new Resend(resendApiKey);
+    const { error } = await resend.emails.send({
+      from: mailFrom(),
+      to: normalizedRecipient(to),
+      subject,
+      text,
+      html,
+      replyTo: replyTo ?? mailReplyTo(),
+    });
+    return !error;
+  }
+
   const transporter = createTransporter();
   if (!transporter) return false;
+  if (!(await assertEmailRateLimit(type, rateLimitTo ?? to))) return false;
 
   await transporter.sendMail({
     from: mailFrom(),
+    replyTo: replyTo ?? mailReplyTo(),
+    to,
+    subject,
+    text,
+    html,
+  });
+
+  return true;
+}
+
+export async function sendInviteEmail({ to, inviterName, teamName, inviteUrl }: InviteMail) {
+  return sendEmail({
+    type: "invite",
     to,
     subject: `${inviterName} invited you to ${teamName}`,
     text: `${inviterName} invited you to join ${teamName}. Open ${inviteUrl} to accept.`,
     html: `<p><strong>${inviterName}</strong> invited you to join <strong>${teamName}</strong>.</p><p><a href="${inviteUrl}">Accept invitation</a></p>`,
   });
-
-  return true;
 }
 
 export async function sendPasswordResetEmail({ to, resetUrl }: { to: string; resetUrl: string }) {
-  const transporter = createTransporter();
-  if (!transporter) return false;
-
-  await transporter.sendMail({
-    from: mailFrom(),
+  return sendEmail({
+    type: "password_reset",
     to,
     subject: "Reset your password",
     text: `Click this link to reset your password: ${resetUrl} (expires in 1 hour)`,
     html: `<p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetUrl}">Reset password</a></p>`,
   });
-
-  return true;
 }
 
 export async function sendVerificationEmail({ to, verificationUrl }: { to: string; verificationUrl: string }) {
-  const transporter = createTransporter();
-  if (!transporter) return false;
-
-  await transporter.sendMail({
-    from: mailFrom(),
+  return sendEmail({
+    type: "verification",
     to,
     subject: "Verify your Tuduvia email",
     text: `Open this link to verify your email: ${verificationUrl}`,
     html: `<p>Open the link below to verify your email.</p><p><a href="${verificationUrl}">Verify email</a></p>`,
   });
-
-  return true;
 }
 
 export async function sendMagicLinkEmail({ to, signInUrl }: { to: string; signInUrl: string }) {
-  const transporter = createTransporter();
-  if (!transporter) return false;
-
-  await transporter.sendMail({
-    from: mailFrom(),
+  return sendEmail({
+    type: "magic_link",
     to,
     subject: "Your Tuduvia sign-in link",
     text: `Open this link to sign in: ${signInUrl}`,
     html: `<p>Open the link below to sign in.</p><p><a href="${signInUrl}">Sign in to Tuduvia</a></p>`,
   });
+}
 
-  return true;
+export async function sendWelcomeEmail({ to, name }: { to: string; name: string }) {
+  return sendEmail({
+    type: "welcome",
+    to,
+    subject: "Welcome to Tuduvia",
+    text: `Hi ${name}, welcome to Tuduvia. Your workspace is ready.`,
+    html: `<p>Hi ${escapeHtml(name)},</p><p>Welcome to Tuduvia. Your workspace is ready.</p>`,
+  });
+}
+
+export async function sendSystemAlertEmail({ to, subject, message }: { to: string; subject: string; message: string }) {
+  return sendEmail({
+    type: "system_alert",
+    to,
+    subject,
+    text: message,
+    html: `<p>${escapeHtml(message).replace(/\n/g, "<br />")}</p>`,
+  });
 }
 
 export async function sendContactEmail({
@@ -99,16 +186,14 @@ export async function sendContactEmail({
   topic: string;
   message: string;
 }) {
-  const transporter = createTransporter();
-  if (!transporter) return false;
-
   const to = process.env.CONTACT_TO_EMAIL ?? mailFrom();
   const safeTopic = topic || "General question";
 
-  await transporter.sendMail({
-    from: mailFrom(),
+  return sendEmail({
+    type: "contact",
     replyTo: email,
     to,
+    rateLimitTo: email,
     subject: `Tuduvia contact: ${safeTopic}`,
     text: [
       `Name: ${name}`,
@@ -126,8 +211,6 @@ export async function sendContactEmail({
       <p>${escapeHtml(message).replace(/\n/g, "<br />")}</p>
     `,
   });
-
-  return true;
 }
 
 function escapeHtml(value: string) {

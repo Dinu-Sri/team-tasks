@@ -11,12 +11,14 @@ import { autoJoinVerifiedEmailDomain } from "@/lib/organization-domains";
 export type AuthState = { error?: string; success?: string };
 
 export async function signupAction(_: AuthState, formData: FormData): Promise<AuthState> {
-  const name = String(formData.get("name") ?? "").trim();
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
+  const name = String(formData.get("name") ?? `${firstName} ${lastName}`).trim().replace(/\s+/g, " ");
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (name.length < 2) return { error: "Enter your name." };
+  if (firstName.length < 1 || lastName.length < 1) return { error: "Enter your first and last name." };
   if (!email.includes("@")) return { error: "Enter a valid email address." };
   if (password.length < 8) return { error: "Use at least 8 characters for your password." };
   if (password !== confirmPassword) return { error: "Passwords do not match." };
@@ -44,6 +46,7 @@ export async function signupAction(_: AuthState, formData: FormData): Promise<Au
 export async function loginAction(_: AuthState, formData: FormData): Promise<AuthState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
+  const rememberMe = formData.get("rememberMe") === "on";
   if (!email.includes("@")) return { error: "Enter a valid email address." };
   if (!password) return { error: "Enter your password." };
 
@@ -54,6 +57,7 @@ export async function loginAction(_: AuthState, formData: FormData): Promise<Aut
         email,
         password,
         callbackURL: "/",
+        rememberMe,
       },
     });
     await autoJoinVerifiedEmailDomain(result.user);
@@ -145,14 +149,14 @@ export async function magicLinkAction(_: AuthState, formData: FormData): Promise
 
 export async function socialSignInAction(formData: FormData): Promise<AuthState | void> {
   const provider = String(formData.get("provider") ?? "");
-  if (!["google", "github", "facebook"].includes(provider)) return { error: "Choose a supported provider." };
+  if (!["google", "github"].includes(provider)) return { error: "Choose a supported provider." };
 
   let result: { url?: string };
   try {
     result = await auth.api.signInSocial({
       headers: await headers(),
       body: {
-        provider: provider as "google" | "github" | "facebook",
+        provider: provider as "google" | "github",
         callbackURL: "/",
       },
     });

@@ -6,7 +6,7 @@ import { compare, hash } from "bcryptjs";
 
 import { isBlockedPasswordMarker } from "@/lib/account-status";
 import { db } from "@/lib/db";
-import { sendMagicLinkEmail, sendPasswordResetEmail, sendVerificationEmail } from "@/lib/mail";
+import { sendMagicLinkEmail, sendPasswordResetEmail, sendVerificationEmail, sendWelcomeEmail } from "@/lib/mail";
 import { autoJoinVerifiedEmailDomain } from "@/lib/organization-domains";
 import { provisionUserWorkspace } from "@/lib/user-provisioning";
 
@@ -38,13 +38,6 @@ function socialProviders() {
     providers.github = {
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    };
-  }
-
-  if (process.env.FACEBOOK_CLIENT_ID && process.env.FACEBOOK_CLIENT_SECRET) {
-    providers.facebook = {
-      clientId: process.env.FACEBOOK_CLIENT_ID,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
     };
   }
 
@@ -93,6 +86,7 @@ export const auth = betterAuth({
         after: async (user) => {
           await autoJoinVerifiedEmailDomain(user);
           await provisionUserWorkspace(user);
+          await sendWelcomeEmail({ to: user.email, name: user.name });
         },
       },
     },

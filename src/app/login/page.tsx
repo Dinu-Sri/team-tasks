@@ -5,6 +5,14 @@ import { AuthLogo } from "@/components/auth/auth-logo";
 import { AuthForm } from "@/components/auth/auth-form";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 import { getSessionUser } from "@/lib/auth";
+import { pageMetadata } from "@/lib/seo/schema";
+
+export const metadata = pageMetadata({
+  title: "Sign in to Tuduvia",
+  description: "Sign in to Tuduvia to manage personal tasks, teams, comments, files, and notifications.",
+  path: "/login",
+  noIndex: true,
+});
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ reset?: string; token?: string; mode?: string; email?: string; verified?: string }> }) {
   if (await getSessionUser()) redirect("/");

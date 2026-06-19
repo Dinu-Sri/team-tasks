@@ -4,19 +4,47 @@ import Link from "next/link";
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { useCases } from "@/lib/marketing/use-cases";
+import { breadcrumbSchema, collectionPageSchema, faqSchema, itemListSchema, pageMetadata } from "@/lib/seo/schema";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: "Use Cases",
-  description: "Explore Tuduvia workflows for personal to-do lists, school projects, home tasks, small businesses, non-IT teams, temporary teams, and more.",
-};
+const pageTitle = "Tuduvia Use Cases - Simple Tasks for Personal Life and Small Teams";
+const pageDescription = "Explore Tuduvia use cases for personal to-do lists, school projects, home tasks, small businesses, non-IT teams, temporary teams, freelancers, events, and more.";
+
+export const metadata: Metadata = pageMetadata({
+  title: pageTitle,
+  description: pageDescription,
+  path: "/use-cases",
+});
+
+const faqs = [
+  { question: "What can I use Tuduvia for?", answer: "Use Tuduvia for personal tasks, school projects, home tasks, friend plans, small business work, non-IT team workflows, and short-term teams." },
+  { question: "Is Tuduvia only for work teams?", answer: "No. Tuduvia starts as a personal to-do list and becomes a shared team space only when the task needs other people." },
+  { question: "Which use case should I start with?", answer: "Start with the page closest to your real situation. The workflow stays simple across all use cases: write the task, add an owner when needed, and finish it." },
+  { question: "Do these workflows need setup or training?", answer: "No. Tuduvia is designed for people who need a clear task list without boards, project management language, or training." },
+];
 
 export default function UseCasesPage() {
   return (
     <main className="min-h-screen bg-background">
+      <JsonLd
+        data={[
+          collectionPageSchema({ path: "/use-cases", name: pageTitle, description: pageDescription }),
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Use cases", path: "/use-cases" },
+          ]),
+          itemListSchema(useCases.map((useCase) => ({
+            name: useCase.title,
+            path: `/use-cases/${useCase.slug}`,
+            description: useCase.description,
+          }))),
+          faqSchema(faqs),
+        ]}
+      />
       <MarketingHeader />
       <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
         <div className="max-w-3xl">
@@ -41,6 +69,17 @@ export default function UseCasesPage() {
           <p className="mt-3 text-sm leading-6 text-muted-foreground">Write the task, add the owner when needed, finish the work.</p>
           <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "mt-6 px-7")}>Start free</Link>
         </div>
+        <section className="mt-14">
+          <h2 className="text-center text-3xl font-semibold">Use case questions</h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {faqs.map((faq) => (
+              <article key={faq.question} className="rounded-lg border border-border bg-surface/75 p-5">
+                <h3 className="font-semibold">{faq.question}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
+              </article>
+            ))}
+          </div>
+        </section>
       </section>
       <MarketingFooter />
     </main>

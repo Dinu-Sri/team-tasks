@@ -5,12 +5,18 @@ import Link from "next/link";
 import { ContactForm } from "@/components/marketing/contact-form";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { JsonLd } from "@/components/seo/json-ld";
 import { siteConfig } from "@/lib/marketing/site";
+import { breadcrumbSchema, contactPageSchema, organizationSchema, pageMetadata } from "@/lib/seo/schema";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description: "Contact Tuduvia for product support, business questions, legal/privacy requests, security reports, and feedback.",
-};
+const pageTitle = "Contact Tuduvia";
+const pageDescription = "Contact Tuduvia for product support, business questions, legal and privacy requests, security reports, and feedback.";
+
+export const metadata: Metadata = pageMetadata({
+  title: pageTitle,
+  description: pageDescription,
+  path: "/contact",
+});
 
 const contactPaths = [
   { icon: LifeBuoy, title: "Product support", text: "Questions about accounts, tasks, invites, or using Tuduvia with your team." },
@@ -22,6 +28,16 @@ const contactPaths = [
 export default function ContactPage() {
   return (
     <main className="min-h-screen bg-background">
+      <JsonLd
+        data={[
+          contactPageSchema({ path: "/contact", name: pageTitle, description: pageDescription }),
+          organizationSchema(),
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Contact", path: "/contact" },
+          ]),
+        ]}
+      />
       <MarketingHeader />
       <section className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[0.9fr_1.1fr]">
         <div>

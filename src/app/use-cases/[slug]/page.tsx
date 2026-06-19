@@ -5,9 +5,11 @@ import Link from "next/link";
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getUseCase, useCases } from "@/lib/marketing/use-cases";
+import { breadcrumbSchema, faqSchema, pageMetadata, webPageSchema } from "@/lib/seo/schema";
 import { cn } from "@/lib/utils";
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -20,11 +22,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const useCase = getUseCase(slug);
   if (!useCase) return { title: "Use case" };
-  return {
-    title: useCase.title,
+  return pageMetadata({
+    title: `${useCase.title} - Tuduvia`,
     description: useCase.description,
-    alternates: { canonical: `/use-cases/${useCase.slug}` },
-  };
+    path: `/use-cases/${useCase.slug}`,
+  });
 }
 
 export default async function UseCasePage({ params }: PageProps) {
@@ -34,6 +36,21 @@ export default async function UseCasePage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-background">
+      <JsonLd
+        data={[
+          webPageSchema({
+            path: `/use-cases/${useCase.slug}`,
+            name: useCase.title,
+            description: useCase.description,
+          }),
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Use cases", path: "/use-cases" },
+            { name: useCase.audience, path: `/use-cases/${useCase.slug}` },
+          ]),
+          faqSchema(useCase.faq),
+        ]}
+      />
       <MarketingHeader />
       <section className="border-b border-border bg-surface/50">
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_0.8fr] lg:items-center">
@@ -110,7 +127,7 @@ export default async function UseCasePage({ params }: PageProps) {
         </div>
         <div className="mt-10 rounded-lg border border-border bg-surface p-6 text-center">
           <h2 className="text-2xl font-semibold">No Boards. No Training.</h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">Start with one task. Invite people only when the work becomes shared.</p>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">Start with one task. Invite people only when the work becomes shared. You can also <Link href="/use-cases" className="font-semibold text-foreground hover:text-brand">explore more Tuduvia use cases</Link>.</p>
           <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "mt-6 px-7")}>Start free <ArrowRight /></Link>
         </div>
       </section>

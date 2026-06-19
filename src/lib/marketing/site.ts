@@ -10,19 +10,21 @@ export const siteConfig = {
 };
 
 export const marketingNav = [
+  { href: "/features", label: "Features" },
   { href: "/use-cases", label: "Use cases" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
 
 export const publicMarketingRoutes = [
   { path: "/", priority: 1, changeFrequency: "weekly" as const },
+  { path: "/features", priority: 0.85, changeFrequency: "monthly" as const },
   { path: "/use-cases", priority: 0.9, changeFrequency: "weekly" as const },
   { path: "/pricing", priority: 0.8, changeFrequency: "monthly" as const },
+  { path: "/about", priority: 0.7, changeFrequency: "monthly" as const },
   { path: "/contact", priority: 0.7, changeFrequency: "monthly" as const },
   { path: "/privacy", priority: 0.5, changeFrequency: "yearly" as const },
   { path: "/terms", priority: 0.5, changeFrequency: "yearly" as const },
   { path: "/cookies", priority: 0.5, changeFrequency: "yearly" as const },
-  { path: "/login", priority: 0.4, changeFrequency: "monthly" as const },
-  { path: "/signup", priority: 0.7, changeFrequency: "monthly" as const },
 ];

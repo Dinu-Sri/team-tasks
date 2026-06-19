@@ -4,9 +4,11 @@ import Link from "next/link";
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { highPriorityUseCases } from "@/lib/marketing/use-cases";
+import { faqSchema, organizationSchema, softwareApplicationSchema, websiteSchema } from "@/lib/seo/schema";
 import { cn } from "@/lib/utils";
 
 const pains = [
@@ -52,6 +54,7 @@ const faqs = [
 export function PublicHome() {
   return (
     <main className="min-h-screen bg-background">
+      <JsonLd data={[organizationSchema(), websiteSchema(), softwareApplicationSchema(), faqSchema(faqs)]} />
       <MarketingHeader />
 
       {/* ── Hero ── */}

@@ -7,7 +7,14 @@ import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { personalTourSteps } from "@/lib/onboarding-tours";
+import { pageMetadata } from "@/lib/seo/schema";
 import { getActiveMembershipAccess } from "@/lib/workspace-access";
+
+export const metadata = pageMetadata({
+  title: "Tuduvia - Simple to-do lists for personal life and small teams",
+  description: "A simple task app for personal to-do lists, temporary teams, and small teams that want clear work without boards, setup, or training.",
+  path: "/",
+});
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ task?: string; workspace?: string }> }) {
   const user = await getSessionUser();

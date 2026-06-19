@@ -4,16 +4,30 @@ import Link from "next/link";
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { JsonLd } from "@/components/seo/json-ld";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { breadcrumbSchema, faqSchema, freePlanOfferSchema, pageMetadata, webPageSchema } from "@/lib/seo/schema";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: "Pricing",
-  description: "Start Tuduvia free. Simple personal tasks, temporary teams, and small-team task management with future paid and credit-based plans planned later.",
-};
+const pageTitle = "Tuduvia Pricing - Start Free With Simple Tasks and Teams";
+const pageDescription = "Start Tuduvia free with personal task lists, temporary teams, assignments, due dates, comments, files, notifications, and mobile-friendly access. No hidden fees today.";
+
+export const metadata: Metadata = pageMetadata({
+  title: pageTitle,
+  description: pageDescription,
+  path: "/pricing",
+});
 
 const freeFeatures = ["Personal task list", "Temporary teams", "Team invites", "Task assignment", "Due dates and priorities", "Comments and files", "Notifications", "Momentum", "Mobile-friendly web app"];
+const freeUseCases = [
+  { label: "Personal users", href: "/use-cases/simple-personal-todo-list" },
+  { label: "Students", href: "/use-cases/school-project-task-list" },
+  { label: "Families", href: "/use-cases/home-family-task-list" },
+  { label: "Small businesses", href: "/use-cases/small-business-task-management" },
+  { label: "Non-IT teams", href: "/use-cases/non-it-team-task-management" },
+  { label: "Temporary teams", href: "/use-cases/temporary-team-task-management" },
+];
 
 const faqs = [
   { question: "Is Tuduvia free?", answer: "Yes. All features are free — personal tasks, team tasks, comments, files, notifications, momentum, and mobile access. No hidden fees." },
@@ -25,6 +39,17 @@ const faqs = [
 export default function PricingPage() {
   return (
     <main className="min-h-screen bg-background">
+      <JsonLd
+        data={[
+          webPageSchema({ path: "/pricing", name: "Start free. Keep it simple.", description: pageDescription }),
+          freePlanOfferSchema(),
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Pricing", path: "/pricing" },
+          ]),
+          faqSchema(faqs),
+        ]}
+      />
       <MarketingHeader />
       <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
@@ -82,6 +107,25 @@ export default function PricingPage() {
             <CheckCircle2 className="h-5 w-5 text-success" />
             <h2 className="mt-3 font-semibold">No hidden fees</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">No credit card needed. No surprise charges. Just a simple task app that works.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+          <div>
+            <h2 className="text-3xl font-semibold leading-tight">Who can use the free plan?</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              The free plan is enough to test Tuduvia in real life: start with your own list, create a temporary group for one project, or invite a small team when the work becomes shared.
+            </p>
+            <Link href="/use-cases" className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "mt-5")}>Explore all use cases</Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {freeUseCases.map((item) => (
+              <Link key={item.href} href={item.href} className="rounded-lg border border-border bg-surface/75 p-4 text-sm font-semibold transition-colors hover:border-brand/50 hover:bg-surface">
+                {item.label}
+              </Link>
+            ))}
           </div>
         </div>
       </section>

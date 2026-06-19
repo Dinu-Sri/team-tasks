@@ -11,6 +11,7 @@ import { ThemeButton } from "@/components/theme-button";
 import { WorkspaceSelector, type WorkspaceOption } from "@/components/workspace-selector";
 import type { HeaderNotification } from "@/lib/header-data";
 import type { MomentumSummary } from "@/lib/momentum-shared";
+import { cn } from "@/lib/utils";
 
 export function AppHeader({
   user,
@@ -45,10 +46,10 @@ export function AppHeader({
       <TabIndicator level={ledLevel} />
       <RealtimeRefresh />
       <MomentumCelebrationListener />
-      <div className="mx-auto flex min-h-16 max-w-5xl flex-wrap items-center gap-x-2 gap-y-2 px-3 py-2 sm:h-16 sm:flex-nowrap sm:px-6 sm:py-0">
-        <div className="min-w-0 flex-1 sm:w-[140px] sm:flex-none">
+      <div className="flex min-h-16 w-full flex-wrap items-center gap-x-2 gap-y-2 px-3 py-2 sm:h-16 sm:flex-nowrap sm:px-6 sm:py-0">
+        <div className="min-w-0 flex-1 sm:w-[160px] sm:flex-none">
           <Link href="/" className="flex items-center gap-2.5 font-semibold" id="onborda-header">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground">
+            <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", showOrganizationIcon && organizationLogoSrc ? "border border-border bg-white text-foreground" : "bg-brand text-brand-foreground")}>
               {showOrganizationIcon && organizationLogoSrc ? (
                 <Image src={organizationLogoSrc} alt="" width={36} height={36} className="h-9 w-9 rounded-full object-cover" unoptimized />
               ) : showOrganizationIcon ? (
@@ -70,7 +71,7 @@ export function AppHeader({
           </div>
         ) : null}
 
-        <div className="flex shrink-0 items-center justify-end gap-0.5 sm:gap-1" id="onborda-header-actions">
+        <div className="ml-auto flex shrink-0 items-center justify-end gap-0.5 sm:gap-1" id="onborda-header-actions">
           {memberTaskViewEnabled ? <MemberTaskViewToggle /> : null}
           <MomentumMenu momentum={momentum} />
           <NotificationMenu notifications={notifications} notificationCount={notificationCount} />

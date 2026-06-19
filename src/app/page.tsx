@@ -159,7 +159,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     ? memberships.find(({ teamId }) => teamId === activeWorkspace)
     : access.restricted
       ? memberships[0]
-      : undefined;
+      : memberships.find(({ team }) => team.organizationDomains.length);
   const organizationBrand = selectedMembershipForHeader && selectedMembershipForHeader.team.organizationDomains.length
     ? {
         teamId: selectedMembershipForHeader.team.id,

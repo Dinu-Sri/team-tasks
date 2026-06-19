@@ -38,6 +38,7 @@ export default async function OrganizationPage() {
         teamId={team.id}
         organizationName={team.organizationName ?? team.name}
         useOrganizationIcon={team.useOrganizationIcon}
+        organizationLogo={team.organizationLogo}
       />
     </div>
   );

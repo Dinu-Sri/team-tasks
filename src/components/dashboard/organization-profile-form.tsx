@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Building2, ImageUp } from "lucide-react";
+import Image from "next/image";
 
 import { updateOrganizationProfileAction } from "@/app/actions/organization-profile";
 import { Button } from "@/components/ui/button";
@@ -11,15 +12,18 @@ export function OrganizationProfileForm({
   teamId,
   organizationName,
   useOrganizationIcon,
+  organizationLogo,
 }: {
   teamId: string;
   organizationName: string;
   useOrganizationIcon: boolean;
+  organizationLogo?: string | null;
 }) {
   const [state, action, pending] = useActionState(updateOrganizationProfileAction, {});
+  const logoSrc = organizationLogo ? `/api/organization-logo/${teamId}?v=${encodeURIComponent(organizationLogo)}` : null;
 
   return (
-    <form action={action} className="space-y-5 rounded-lg border border-border bg-surface p-4">
+    <form action={action} encType="multipart/form-data" className="space-y-5 rounded-lg border border-border bg-surface p-4">
       <input type="hidden" name="teamId" value={teamId} />
       <div>
         <label htmlFor="organizationName" className="mb-1 block text-sm font-medium">Organization name</label>
@@ -27,6 +31,15 @@ export function OrganizationProfileForm({
       </div>
       <div>
         <label htmlFor="logo" className="mb-1 block text-sm font-medium">Organization logo</label>
+        {logoSrc ? (
+          <div className="mb-3 flex items-center gap-3 rounded-lg bg-surface-subtle p-3">
+            <Image src={logoSrc} alt="" width={48} height={48} className="h-12 w-12 rounded-full object-cover" unoptimized />
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Current logo</p>
+              <p className="truncate text-xs text-muted-foreground">{organizationLogo}</p>
+            </div>
+          </div>
+        ) : null}
         <Input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" className="pt-2" />
         <p className="mt-1 text-xs text-muted-foreground">Recommended: square PNG, JPG, or WebP, 512 x 512 px, under 1 MB.</p>
       </div>

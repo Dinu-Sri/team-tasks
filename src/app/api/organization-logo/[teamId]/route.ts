@@ -31,7 +31,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ teamId: st
     return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "Content-Type": CONTENT_TYPES[path.extname(team.organizationLogo).toLowerCase()] ?? "application/octet-stream",
-        "Cache-Control": "private, max-age=300",
+        "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
       },
     });

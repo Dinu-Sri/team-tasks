@@ -64,5 +64,6 @@ export async function updateOrganizationProfileAction(_: OrganizationProfileStat
 
   revalidatePath("/");
   revalidatePath("/dashboard", "layout");
+  revalidatePath("/dashboard/organization");
   return { success: "Organization profile updated." };
 }

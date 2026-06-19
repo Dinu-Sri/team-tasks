@@ -21,6 +21,33 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     getActiveMembershipAccess(user.id),
   ]);
   const hasOrganizationAdmin = access.memberships.some((membership) => membership.source === "DOMAIN" && (membership.role === "OWNER" || membership.role === "ADMIN"));
+  const visibleTeamIds = access.visibleMemberships.map((membership) => membership.teamId);
+  const organizationMembership = visibleTeamIds.length
+    ? await db.membership.findFirst({
+        where: {
+          userId: user.id,
+          status: "ACTIVE",
+          teamId: { in: visibleTeamIds },
+          team: { organizationDomains: { some: { verifiedAt: { not: null } } } },
+        },
+        include: {
+          team: {
+            include: {
+              organizationDomains: { where: { verifiedAt: { not: null } }, select: { id: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: "asc" },
+      })
+    : null;
+  const organizationBrand = organizationMembership
+    ? {
+        teamId: organizationMembership.team.id,
+        name: organizationMembership.team.organizationName ?? organizationMembership.team.name,
+        logo: organizationMembership.team.organizationLogo,
+        useOrganizationIcon: organizationMembership.team.useOrganizationIcon,
+      }
+    : null;
 
   return (
     <OnboardingProvider
@@ -31,7 +58,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       completedInDb={Boolean(teamTourCompleted)}
     >
       <main className="min-h-screen bg-background">
-        <AppHeader user={user} {...headerData} />
+        <AppHeader user={user} {...headerData} organizationBrand={organizationBrand} />
         <KeyboardShortcutsProvider />
         <DashboardShell
           isSuperAdmin={isSuperAdmin(user.email)}

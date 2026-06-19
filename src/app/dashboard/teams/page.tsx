@@ -71,15 +71,15 @@ export default async function TeamsBoardPage() {
                   <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">People</p>
                   <div className="divide-y divide-border rounded-lg border border-border">
                     {team.memberships.map((member) => (
-                      <div key={member.userId} className="flex min-h-14 items-center gap-3 px-3 py-2.5">
+                      <div key={member.userId} className="flex min-h-14 flex-col gap-3 px-3 py-2.5 min-[520px]:flex-row min-[520px]:items-center">
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{member.user.name}{member.userId === user.id ? " (you)" : ""}</p><p className="truncate text-xs text-muted-foreground">{member.role === "OWNER" ? "Owner" : member.role === "ADMIN" ? "Admin" : `${openByMember.get(member.userId) ?? 0} open tasks`}</p></div>
                         {owner && member.role !== "OWNER" ? (
-                          <div className="flex items-center gap-1">
+                          <div className="flex flex-wrap items-center gap-1 self-stretch min-[520px]:self-auto">
                             <form action={updateMemberRoleAction}>
                               <input type="hidden" name="teamId" value={team.id} />
                               <input type="hidden" name="memberId" value={member.userId} />
                               <input type="hidden" name="role" value={member.role === "ADMIN" ? "MEMBER" : "ADMIN"} />
-                              <Button type="submit" size="sm" variant="quiet">{member.role === "ADMIN" ? "Make member" : "Make admin"}</Button>
+                              <Button type="submit" size="sm" variant="quiet" className="whitespace-normal">{member.role === "ADMIN" ? "Make member" : "Make admin"}</Button>
                             </form>
                             <form action={transferOwnershipSubmitAction}>
                               <input type="hidden" name="teamId" value={team.id} />

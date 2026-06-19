@@ -174,7 +174,7 @@ export function PersonalTasks({
             <option value="week">Next week</option>
             <option value="none">No date</option>
           </select>
-          <Button className="w-full" type="submit"><Check />Add</Button>
+          <Button className="w-full sm:col-span-2 lg:col-span-1" type="submit"><Check />Add</Button>
         </form>
       ) : null}
 
@@ -182,7 +182,7 @@ export function PersonalTasks({
         {pendingInvites.length ? (
           <section className="mb-4 space-y-2">
             {pendingInvites.map((invite) => (
-              <div key={invite.id} className="flex items-center justify-between gap-3 rounded-lg border border-brand/30 bg-brand/5 px-4 py-3">
+              <div key={invite.id} className="flex flex-col gap-3 rounded-lg border border-brand/30 bg-brand/5 px-4 py-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{invite.inviterName} invited you to {invite.teamName}</p>
                 </div>
@@ -222,7 +222,7 @@ export function PersonalTasks({
             {tasks.map((task) => {
               const due = dueLabel(task.dueAt);
               return (
-                <div key={task.id} className={cn("relative flex min-h-24 items-start gap-3 px-4 py-5 sm:items-center sm:gap-4 sm:px-6", task.hasMentionAttention && "task-mention-attention")}>
+                <div key={task.id} className={cn("relative flex min-h-24 items-start gap-3 px-3 py-4 sm:items-center sm:gap-4 sm:px-6 sm:py-5", task.hasMentionAttention && "task-mention-attention")}>
                   <CompleteTaskButton taskId={task.id} title={task.title} onCompleted={() => onTaskCompleted(task.id, task.title)} />
                   <div className="min-w-0 flex-1">
                     <p className="break-words text-base font-semibold leading-6 sm:text-lg">{task.title}</p>
@@ -239,7 +239,7 @@ export function PersonalTasks({
                       ) : null}
                     </div>
                   </div>
-                  {task.team.commentsEnabled || task.team.attachmentsEnabled ? <button type="button" onClick={() => openTask(task)} className="flex min-h-10 shrink-0 items-center gap-2 rounded-full px-2.5 text-sm text-muted-foreground hover:bg-surface-subtle hover:text-foreground" aria-label={`Open details for ${task.title}`}>{task.team.commentsEnabled ? <span className="relative flex items-center gap-1"><MessageCircleMore className={cn("h-4 w-4", task.unreadCommentCount > 0 && "text-brand")} /><span>{task.comments.length || ""}</span>{task.unreadCommentCount ? <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-semibold text-white">{task.unreadCommentCount}</span> : null}</span> : null}{task.team.attachmentsEnabled ? <span className="flex items-center gap-1"><Paperclip className="h-4 w-4" /><span>{task.attachments.length || ""}</span></span> : null}</button> : null}
+                  {task.team.commentsEnabled || task.team.attachmentsEnabled ? <button type="button" onClick={() => openTask(task)} className="flex min-h-10 shrink-0 items-center gap-2 rounded-full px-2 text-sm text-muted-foreground hover:bg-surface-subtle hover:text-foreground sm:px-2.5" aria-label={`Open details for ${task.title}`}>{task.team.commentsEnabled ? <span className="relative flex items-center gap-1"><MessageCircleMore className={cn("h-4 w-4", task.unreadCommentCount > 0 && "text-brand")} /><span>{task.comments.length || ""}</span>{task.unreadCommentCount ? <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-semibold text-white">{task.unreadCommentCount}</span> : null}</span> : null}{task.team.attachmentsEnabled ? <span className="flex items-center gap-1"><Paperclip className="h-4 w-4" /><span>{task.attachments.length || ""}</span></span> : null}</button> : null}
                   {task.priority === "HIGH" ? <Badge className="hidden shrink-0 sm:inline-flex" variant="danger">Important</Badge> : null}
                 </div>
               );
@@ -330,7 +330,7 @@ function MemberTaskCarousel({ groups, index, onIndexChange, isOwner }: { groups:
                   <div className="min-w-0 flex-1">
                     {isEditing && isOwner ? (
                       <div className="flex items-center gap-2">
-                        <Input name="title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-9 text-sm" autoFocus onKeyDown={(e) => { if (e.key === "Enter") handleSave(task.id); }} />
+                        <Input name="title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-10 sm:h-9" autoFocus onKeyDown={(e) => { if (e.key === "Enter") handleSave(task.id); }} />
                         <Button type="button" size="sm" className="h-9" disabled={saving} onClick={() => handleSave(task.id)}>{saving ? "Saving..." : "Save"}</Button>
                         <Button type="button" size="sm" variant="secondary" className="h-9" onClick={cancelEdit} disabled={saving}>Cancel</Button>
                       </div>

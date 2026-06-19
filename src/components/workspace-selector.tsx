@@ -56,14 +56,14 @@ export function WorkspaceSelector({
   }, []);
 
   return (
-    <div ref={rootRef} className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="listbox" className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-surface-subtle">
+    <div ref={rootRef} className="relative w-full sm:w-auto">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-haspopup="listbox" className="flex h-10 w-full items-center justify-between gap-2 rounded-full border border-border px-3 text-sm font-medium transition-colors hover:bg-surface-subtle sm:w-auto sm:justify-start sm:py-1.5">
         <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="max-w-[120px] truncate sm:max-w-[160px]">{allSelected ? "All workspaces" : current?.name ?? "All workspaces"}</span>
+        <span className="min-w-0 flex-1 truncate text-left sm:max-w-[160px] sm:flex-none">{allSelected ? "All workspaces" : current?.name ?? "All workspaces"}</span>
         <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open ? (
-        <div role="listbox" className="absolute left-0 top-full z-50 mt-1.5 w-56 overflow-hidden rounded-lg border border-border bg-surface shadow-soft">
+        <div role="listbox" className="fixed left-3 right-3 top-[var(--header-menu-top,6.75rem)] z-50 overflow-hidden rounded-lg border border-border bg-surface shadow-soft sm:absolute sm:left-0 sm:right-auto sm:top-full sm:mt-1.5 sm:w-56">
           <div className="max-h-[min(60vh,20rem)] overflow-y-auto overscroll-contain py-1">
             {allowAll ? (
               <>

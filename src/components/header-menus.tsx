@@ -75,7 +75,7 @@ function useHeaderMenu(id: string) {
   return { open, rootRef, toggle, close, cancelClose, scheduleClose };
 }
 
-const panelClass = "fixed left-3 right-3 top-[4.25rem] z-50 overflow-hidden rounded-lg border border-border bg-surface shadow-soft sm:absolute sm:left-auto sm:right-0 sm:top-12";
+const panelClass = "fixed left-3 right-3 top-[var(--header-menu-top,4.25rem)] z-50 overflow-hidden rounded-lg border border-border bg-surface shadow-soft sm:absolute sm:left-auto sm:right-0 sm:top-12";
 const momentumPanelClass = "fixed inset-x-3 bottom-3 z-50 overflow-hidden rounded-lg border border-border bg-surface shadow-soft sm:absolute sm:bottom-auto sm:left-auto sm:right-0 sm:top-12 sm:w-80";
 
 function dayInitial(value: string) {

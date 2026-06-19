@@ -103,7 +103,7 @@ export function TaskDetailPanel({ task, currentUserId, onClose }: { task: TaskDe
   const isOwner = task.team.currentUserRole === "OWNER";
   return createPortal(
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-foreground/20 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section role="dialog" aria-modal="true" aria-label={task.title} className="flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-lg border border-border bg-surface shadow-soft sm:max-h-[84vh] sm:rounded-lg">
+      <section role="dialog" aria-modal="true" aria-label={task.title} className="flex max-h-[calc(100dvh-0.75rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-lg border border-border bg-surface shadow-soft sm:max-h-[84vh] sm:rounded-lg">
         <header className="flex items-start gap-3 border-b border-border px-4 py-3 sm:px-5 sm:py-4">
           <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold sm:text-lg">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.team.name}</p>{task.note ? <p className="mt-2 text-sm leading-5 text-muted-foreground">{task.note}</p> : null}</div>
           <div className="flex shrink-0 items-center gap-1">
@@ -118,7 +118,7 @@ export function TaskDetailPanel({ task, currentUserId, onClose }: { task: TaskDe
           {tab === "comments" && task.team.commentsEnabled ? <Discussion task={task} currentUserId={currentUserId} /> : null}
           {tab === "files" && task.team.attachmentsEnabled ? (
             <div className="p-4 sm:p-5">
-              <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold">Task files</h2><p className="text-xs text-muted-foreground">Up to {task.team.attachmentLimitMb} MB each.</p></div><input ref={fileRef} type="file" className="hidden" accept={ACCEPTED_ATTACHMENT_TYPES} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadFile(file); }} /><Button type="button" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}><FileUp />{uploading ? "Uploading..." : "Add file"}</Button></div>
+              <div className="mb-4 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between"><div><h2 className="text-sm font-semibold">Task files</h2><p className="text-xs text-muted-foreground">Up to {task.team.attachmentLimitMb} MB each.</p></div><input ref={fileRef} type="file" className="hidden" accept={ACCEPTED_ATTACHMENT_TYPES} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadFile(file); }} /><Button type="button" size="sm" className="w-full min-[420px]:w-auto" disabled={uploading} onClick={() => fileRef.current?.click()}><FileUp />{uploading ? "Uploading..." : "Add file"}</Button></div>
               {fileError ? <p className="mb-3 text-sm text-danger">{fileError}</p> : null}
               {task.attachments.length ? <div className="divide-y divide-border rounded-lg border border-border">{task.attachments.map((file) => { const canDelete = file.uploader.id === currentUserId || task.team.currentUserRole === "OWNER"; const image = file.mimeType.startsWith("image/"); return <div key={file.id} className="flex min-h-14 items-center gap-3 px-3 py-2.5">{image ? <ImageIcon className="h-4 w-4 shrink-0 text-brand" /> : <Files className="h-4 w-4 shrink-0 text-brand" />}<div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.originalName}</p><p className="truncate text-xs text-muted-foreground">{sizeLabel(file.size)} - {file.uploader.name}</p></div>{image ? <ImagePreview attachmentId={file.id} name={file.originalName} /> : null}<a href={`/api/attachments/${file.id}`} className={cn(buttonVariants({ variant: "quiet", size: "icon" }), "h-9 w-9")} aria-label={`Download ${file.originalName}`}><Download /></a>{canDelete ? <button type="button" onClick={() => void removeFile(file.id)} className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-danger/10 hover:text-danger" aria-label={`Remove ${file.originalName}`}><Trash2 className="h-4 w-4" /></button> : null}</div>; })}</div> : <div className="py-16 text-center"><Paperclip className="mx-auto h-5 w-5 text-muted-foreground" /><p className="mt-2 text-sm text-muted-foreground">No files yet.</p></div>}
             </div>
@@ -162,26 +162,28 @@ function EditTaskButton({ task }: { task: TaskDetail }) {
 
   if (editing) {
     return (
-      <div className="flex items-center gap-1">
-        <div className="flex flex-col gap-1">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded border border-border bg-surface px-2 py-1 text-sm" placeholder="Task title" />
-          <div className="flex gap-1">
-            <select value={due} onChange={(e) => setDue(e.target.value)} className="rounded border border-border bg-surface px-1.5 py-0.5 text-xs">
+      <div className="fixed left-3 right-3 top-3 z-[140] rounded-lg border border-border bg-surface p-3 shadow-soft sm:static sm:w-80 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+        <div className="flex flex-col gap-2">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-base sm:h-auto sm:rounded sm:px-2 sm:py-1 sm:text-sm" placeholder="Task title" />
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1">
+            <select value={due} onChange={(e) => setDue(e.target.value)} className="h-10 min-w-0 rounded-lg border border-border bg-surface px-2 text-base sm:h-auto sm:rounded sm:px-1.5 sm:py-0.5 sm:text-xs">
               <option value="">Keep date</option>
               <option value="today">Today</option>
               <option value="tomorrow">Tomorrow</option>
               <option value="week">Next week</option>
               <option value="none">No date</option>
             </select>
-            <select value={priority} onChange={(e) => setPriority(e.target.value)} className="rounded border border-border bg-surface px-1.5 py-0.5 text-xs">
+            <select value={priority} onChange={(e) => setPriority(e.target.value)} className="h-10 min-w-0 rounded-lg border border-border bg-surface px-2 text-base sm:h-auto sm:rounded sm:px-1.5 sm:py-0.5 sm:text-xs">
               <option value="NORMAL">Normal</option>
               <option value="HIGH">High</option>
             </select>
           </div>
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 sm:flex sm:items-center sm:gap-1">
+            <button onClick={handleSave} disabled={pending || !title.trim()} className="h-10 rounded-full bg-brand px-3 text-sm font-medium text-brand-foreground hover:opacity-90 disabled:opacity-50 sm:h-auto sm:rounded sm:px-2 sm:py-1 sm:text-xs">{pending ? "..." : "Save"}</button>
+            <button onClick={() => setEditing(false)} className="h-10 rounded-full px-3 text-sm text-muted-foreground hover:bg-surface-subtle hover:text-foreground sm:h-auto sm:rounded sm:px-2 sm:py-1 sm:text-xs">Cancel</button>
+            <button onClick={handleDelete} className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-danger/10 hover:text-danger sm:h-8 sm:w-8" title="Delete task"><Trash2 className="h-3.5 w-3.5" /></button>
+          </div>
         </div>
-        <button onClick={handleSave} disabled={pending || !title.trim()} className="rounded bg-brand px-2 py-1 text-xs font-medium text-brand-foreground hover:opacity-90 disabled:opacity-50">{pending ? "..." : "Save"}</button>
-        <button onClick={() => setEditing(false)} className="rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground">Cancel</button>
-        <button onClick={handleDelete} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-danger/10 hover:text-danger" title="Delete task"><Trash2 className="h-3.5 w-3.5" /></button>
       </div>
     );
   }
@@ -194,7 +196,7 @@ function TabButton({ active, onClick, icon, label, unread = 0 }: { active: boole
 }
 
 function Discussion({ task, currentUserId }: { task: TaskDetail; currentUserId: string }) {
-  return <div className="flex min-h-[22rem] flex-col"><div className="flex-1 space-y-4 p-4 sm:p-5">{task.comments.length ? task.comments.map((comment) => { const own = comment.author.id === currentUserId; const attentionReceipts = comment.receipts.filter(({ requiresAttention }) => requiresAttention); const relevantReceipts = attentionReceipts.length ? attentionReceipts : comment.receipts; const readCount = relevantReceipts.filter(({ readAt }) => readAt).length; const allRead = relevantReceipts.length > 0 && readCount === relevantReceipts.length; return <article key={comment.id} className={cn("max-w-[88%]", own && "ml-auto")}><div className={cn("rounded-lg px-3 py-2.5", own ? "bg-brand text-brand-foreground" : "bg-surface-subtle")}><p className="whitespace-pre-wrap break-words text-sm leading-5">{comment.body}</p></div><div className={cn("mt-1 flex items-center gap-1 px-1 text-xs text-muted-foreground", own && "justify-end text-right")}><span>{comment.author.name} - {new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(comment.createdAt))}</span>{own && relevantReceipts.length ? <span className={cn("flex items-center gap-1", allRead && "text-blue-600 dark:text-blue-300")} title={`${readCount} of ${relevantReceipts.length} read`}><CheckCheck className="h-3.5 w-3.5" />{readCount}/{relevantReceipts.length}</span> : null}</div></article>; }) : <div className="py-14 text-center"><MessageCircleMore className="mx-auto h-5 w-5 text-muted-foreground" /><p className="mt-2 text-sm text-muted-foreground">Ask for clarification here.</p></div>}</div><MentionComposer taskId={task.id} members={task.team.members.filter((member) => member.id !== currentUserId)} /></div>;
+  return <div className="flex min-h-[18rem] flex-col sm:min-h-[22rem]"><div className="flex-1 space-y-4 p-4 sm:p-5">{task.comments.length ? task.comments.map((comment) => { const own = comment.author.id === currentUserId; const attentionReceipts = comment.receipts.filter(({ requiresAttention }) => requiresAttention); const relevantReceipts = attentionReceipts.length ? attentionReceipts : comment.receipts; const readCount = relevantReceipts.filter(({ readAt }) => readAt).length; const allRead = relevantReceipts.length > 0 && readCount === relevantReceipts.length; return <article key={comment.id} className={cn("max-w-[88%]", own && "ml-auto")}><div className={cn("rounded-lg px-3 py-2.5", own ? "bg-brand text-brand-foreground" : "bg-surface-subtle")}><p className="whitespace-pre-wrap break-words text-sm leading-5">{comment.body}</p></div><div className={cn("mt-1 flex items-center gap-1 px-1 text-xs text-muted-foreground", own && "justify-end text-right")}><span>{comment.author.name} - {new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(comment.createdAt))}</span>{own && relevantReceipts.length ? <span className={cn("flex items-center gap-1", allRead && "text-blue-600 dark:text-blue-300")} title={`${readCount} of ${relevantReceipts.length} read`}><CheckCheck className="h-3.5 w-3.5" />{readCount}/{relevantReceipts.length}</span> : null}</div></article>; }) : <div className="py-14 text-center"><MessageCircleMore className="mx-auto h-5 w-5 text-muted-foreground" /><p className="mt-2 text-sm text-muted-foreground">Ask for clarification here.</p></div>}</div><MentionComposer taskId={task.id} members={task.team.members.filter((member) => member.id !== currentUserId)} /></div>;
 }
 
 function ImagePreview({ attachmentId, name }: { attachmentId: string; name: string }) {
@@ -260,5 +262,78 @@ function MentionComposer({ taskId, members }: { taskId: string; members: TaskDet
     requestAnimationFrame(() => { textareaRef.current?.focus(); textareaRef.current?.setSelectionRange(nextCursor, nextCursor); });
   }
 
-  return <form action={action} className="relative border-t border-border p-3 sm:p-4"><input type="hidden" name="taskId" value={taskId} />{validSelected.filter(({ id }) => id !== "__all__").map((member) => <input key={member.id} type="hidden" name="mentionedUserIds" value={member.id} />)}{suggestions.length ? <div id={`mentions-${taskId}`} role="listbox" className="absolute bottom-full left-3 right-3 mb-1 max-h-52 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-soft sm:left-4 sm:right-auto sm:w-80">{suggestions.map((member, index) => <button key={member.id} type="button" role="option" aria-selected={index === activeIndex} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(member)} className={cn("flex w-full items-center gap-3 rounded-md px-3 py-2 text-left", index === activeIndex ? "bg-surface-subtle" : "hover:bg-surface-subtle")}><span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand">{member.id === "__all__" ? "ALL" : member.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</span><span className="min-w-0"><span className="block truncate text-sm font-medium">@{member.name}</span><span className="block truncate text-xs text-muted-foreground">{member.email}</span></span></button>)}</div> : null}<div className="flex items-end gap-2"><textarea ref={textareaRef} name="body" value={text} onChange={(event) => { setText(event.target.value); setCursor(event.target.selectionStart); }} onClick={(event) => setCursor(event.currentTarget.selectionStart)} onKeyUp={(event) => setCursor(event.currentTarget.selectionStart)} onKeyDown={(event) => { if (!suggestions.length) return; if (event.key === "ArrowDown") { event.preventDefault(); setActiveIndex((value) => (value + 1) % suggestions.length); } else if (event.key === "ArrowUp") { event.preventDefault(); setActiveIndex((value) => (value - 1 + suggestions.length) % suggestions.length); } else if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); choose(suggestions[activeIndex]); } else if (event.key === "Escape") { setCursor(0); } }} role="combobox" aria-autocomplete="list" aria-expanded={suggestions.length > 0} aria-controls={`mentions-${taskId}`} rows={2} maxLength={2000} placeholder="Write a comment. @ is optional." className="min-h-12 flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" required /><Button type="submit" size="icon" disabled={pending || !text.trim()} aria-label="Post comment"><Send /></Button></div>{state.error ? <p className="mt-2 text-xs text-danger">{state.error}</p> : null}</form>;
+  return (
+    <form action={action} className="relative border-t border-border p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4">
+      <input type="hidden" name="taskId" value={taskId} />
+      {validSelected
+        .filter(({ id }) => id !== "__all__")
+        .map((member) => <input key={member.id} type="hidden" name="mentionedUserIds" value={member.id} />)}
+
+      {suggestions.length ? (
+        <div id={`mentions-${taskId}`} role="listbox" className="absolute bottom-full left-3 right-3 mb-1 max-h-52 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-soft sm:left-4 sm:right-auto sm:w-80">
+          {suggestions.map((member, index) => (
+            <button
+              key={member.id}
+              type="button"
+              role="option"
+              aria-selected={index === activeIndex}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => choose(member)}
+              className={cn("flex w-full items-center gap-3 rounded-md px-3 py-2 text-left", index === activeIndex ? "bg-surface-subtle" : "hover:bg-surface-subtle")}
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand">
+                {member.id === "__all__" ? "ALL" : member.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">@{member.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">{member.email}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="flex items-end gap-2">
+        <textarea
+          ref={textareaRef}
+          name="body"
+          value={text}
+          onChange={(event) => {
+            setText(event.target.value);
+            setCursor(event.target.selectionStart);
+          }}
+          onClick={(event) => setCursor(event.currentTarget.selectionStart)}
+          onKeyUp={(event) => setCursor(event.currentTarget.selectionStart)}
+          onKeyDown={(event) => {
+            if (!suggestions.length) return;
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setActiveIndex((value) => (value + 1) % suggestions.length);
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              setActiveIndex((value) => (value - 1 + suggestions.length) % suggestions.length);
+            } else if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              choose(suggestions[activeIndex]);
+            } else if (event.key === "Escape") {
+              setCursor(0);
+            }
+          }}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={suggestions.length > 0}
+          aria-controls={`mentions-${taskId}`}
+          rows={2}
+          maxLength={2000}
+          placeholder="Write a comment. @ is optional."
+          className="min-h-12 flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-base outline-none focus:ring-2 focus:ring-ring sm:text-sm"
+          required
+        />
+        <Button type="submit" size="icon" disabled={pending || !text.trim()} aria-label="Post comment">
+          <Send />
+        </Button>
+      </div>
+      {state.error ? <p className="mt-2 text-xs text-danger">{state.error}</p> : null}
+    </form>
+  );
 }

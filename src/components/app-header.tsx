@@ -1,3 +1,5 @@
+"use client";
+
 import { Building2, ListTodo } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,6 +12,7 @@ import { TabIndicator, type LedLevel } from "@/components/tab-indicator";
 import { ThemeButton } from "@/components/theme-button";
 import { WorkspaceSelector, type WorkspaceOption } from "@/components/workspace-selector";
 import type { HeaderNotification } from "@/lib/header-data";
+import { MEMBER_TASK_VIEW_EVENT } from "@/lib/member-task-view";
 import type { MomentumSummary } from "@/lib/momentum-shared";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +51,7 @@ export function AppHeader({
       <MomentumCelebrationListener />
       <div className="mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center gap-x-2 gap-y-2 px-3 py-2 sm:h-16 sm:flex-nowrap sm:px-6 sm:py-0">
         <div className="min-w-0 flex-1 sm:w-[160px] sm:flex-none">
-          <Link href="/" className="flex items-center gap-2.5 font-semibold" id="onborda-header">
+          <Link href="/" onClick={() => window.dispatchEvent(new CustomEvent(MEMBER_TASK_VIEW_EVENT, { detail: false }))} className="flex items-center gap-2.5 font-semibold" id="onborda-header">
             <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", showOrganizationIcon && organizationLogoSrc ? "border border-border bg-white text-foreground" : "bg-brand text-brand-foreground")}>
               {showOrganizationIcon && organizationLogoSrc ? (
                 <Image src={organizationLogoSrc} alt="" width={36} height={36} className="h-9 w-9 rounded-full object-cover" unoptimized />

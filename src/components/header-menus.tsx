@@ -85,6 +85,12 @@ function dayInitial(value: string) {
 export function MemberTaskViewToggle() {
   const [active, setActive] = useState(false);
 
+  useEffect(() => {
+    const sync = (event: Event) => setActive(Boolean((event as CustomEvent<boolean>).detail));
+    window.addEventListener(MEMBER_TASK_VIEW_EVENT, sync);
+    return () => window.removeEventListener(MEMBER_TASK_VIEW_EVENT, sync);
+  }, []);
+
   function toggle() {
     const next = !active;
     setActive(next);

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -259,6 +260,7 @@ export async function reopenTaskAction(taskId: string): Promise<void> {
   revalidatePath("/dashboard/archive");
   revalidatePath("/analytics");
   revalidatePath("/momentum");
+  redirect("/");
 }
 
 export async function updateTaskAction(_: unknown, formData: FormData) {

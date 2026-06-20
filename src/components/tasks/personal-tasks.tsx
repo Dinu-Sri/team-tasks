@@ -23,6 +23,7 @@ type TaskItem = {
   status: "OPEN" | "DONE";
   priority: "NORMAL" | "HIGH";
   dueAt: string | null;
+  creatorId: string;
   editNote?: string | null;
   editedAt?: string | null;
 } & TaskDetail;
@@ -72,6 +73,11 @@ export function PersonalTasks({
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [lastCompleted, setLastCompleted] = useState<{ id: string; title: string } | null>(null);
   const [showCompletedToast, setShowCompletedToast] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDue, setEditDue] = useState("");
+  const [editPriority, setEditPriority] = useState<"NORMAL" | "HIGH">("NORMAL");
+  const [savingEdit, setSavingEdit] = useState(false);
   const selectedTeam = teams.find(({ id }) => id === selectedTeamId);
 
   const isOwnerInWorkspace = isCurrentWorkspaceOwner === true;
@@ -101,6 +107,37 @@ export function PersonalTasks({
       try { await toggleTaskAction(taskId); router.refresh(); } catch { /* ignore */ }
     });
   }, [lastCompleted, router]);
+
+  function startSelfEdit(task: TaskItem) {
+    setEditingTaskId(task.id);
+    setEditTitle(task.title);
+    setEditDue("");
+    setEditPriority(task.priority);
+  }
+
+  function cancelSelfEdit() {
+    setEditingTaskId(null);
+    setEditTitle("");
+    setEditDue("");
+    setEditPriority("NORMAL");
+  }
+
+  async function saveSelfEdit(taskId: string) {
+    if (!editTitle.trim() || savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const formData = new FormData();
+      formData.set("taskId", taskId);
+      formData.set("title", editTitle.trim());
+      if (editDue) formData.set("due", editDue);
+      formData.set("priority", editPriority);
+      await updateTaskAction(undefined, formData);
+      cancelSelfEdit();
+      router.refresh();
+    } finally {
+      setSavingEdit(false);
+    }
+  }
 
   useEffect(() => {
     const handleToggle = (event: Event) => {
@@ -208,7 +245,7 @@ export function PersonalTasks({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block break-words text-base font-semibold leading-6">{task.title}</span>
-                  <span className="mt-0.5 block text-sm text-muted-foreground">{task.team.name} - {task.status === "DONE" ? "Archived task - " : ""}{task.hasMentionAttention ? "Your attention was requested" : "New discussion"}</span>
+                  <span className="mt-0.5 block text-sm text-muted-foreground">{task.team.name} - {task.status === "DONE" ? "Finished task - " : ""}{task.hasMentionAttention ? "Your attention was requested" : "New discussion"}</span>
                 </span>
               </button>
             ))}
@@ -224,22 +261,44 @@ export function PersonalTasks({
               return (
                 <div key={task.id} className={cn("relative flex min-h-24 items-start gap-3 px-3 py-4 sm:items-center sm:gap-4 sm:px-6 sm:py-5", task.hasMentionAttention && "task-mention-attention")}>
                   <CompleteTaskButton taskId={task.id} title={task.title} onCompleted={() => onTaskCompleted(task.id, task.title)} />
-                  <div className="min-w-0 flex-1">
-                    <p className="break-words text-base font-semibold leading-6 sm:text-lg">{task.title}</p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                      {isAllWorkspaces ? <span>{task.team.name}</span> : null}
-                      {isAllWorkspaces && due ? <span>-</span> : null}
-                      {due ? <span className={due === "Today" ? "text-warning" : ""}><CalendarDays className="mr-1 inline h-4 w-4" />{due}</span> : null}
-                      {task.priority === "HIGH" ? <Badge className="sm:hidden" variant="danger">Important</Badge> : null}
-                      {task.editNote ? (
-                        <span className="flex items-center gap-1 text-xs text-brand">
-                          <Pencil className="h-3 w-3" />
-                          {task.editNote}
-                        </span>
-                      ) : null}
+                  {editingTaskId === task.id ? (
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} className="h-11" autoFocus onKeyDown={(event) => { if (event.key === "Enter") void saveSelfEdit(task.id); if (event.key === "Escape") cancelSelfEdit(); }} />
+                      <div className="grid gap-2 min-[520px]:grid-cols-[1fr_1fr_auto_auto]">
+                        <select value={editDue} onChange={(event) => setEditDue(event.target.value)} className="h-10 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
+                          <option value="">Keep date</option>
+                          <option value="today">Today</option>
+                          <option value="tomorrow">Tomorrow</option>
+                          <option value="week">Next week</option>
+                          <option value="none">No date</option>
+                        </select>
+                        <select value={editPriority} onChange={(event) => setEditPriority(event.target.value === "HIGH" ? "HIGH" : "NORMAL")} className="h-10 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
+                          <option value="NORMAL">Normal</option>
+                          <option value="HIGH">Important</option>
+                        </select>
+                        <Button type="button" size="sm" disabled={savingEdit || !editTitle.trim()} onClick={() => void saveSelfEdit(task.id)}>{savingEdit ? "Saving" : "Save"}</Button>
+                        <Button type="button" size="sm" variant="secondary" disabled={savingEdit} onClick={cancelSelfEdit}>Cancel</Button>
+                      </div>
                     </div>
-                  </div>
-                  {task.team.commentsEnabled || task.team.attachmentsEnabled ? <button type="button" onClick={() => openTask(task)} className="flex min-h-10 shrink-0 items-center gap-2 rounded-full px-2 text-sm text-muted-foreground hover:bg-surface-subtle hover:text-foreground sm:px-2.5" aria-label={`Open details for ${task.title}`}>{task.team.commentsEnabled ? <span className="relative flex items-center gap-1"><MessageCircleMore className={cn("h-4 w-4", task.unreadCommentCount > 0 && "text-brand")} /><span>{task.comments.length || ""}</span>{task.unreadCommentCount ? <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-semibold text-white">{task.unreadCommentCount}</span> : null}</span> : null}{task.team.attachmentsEnabled ? <span className="flex items-center gap-1"><Paperclip className="h-4 w-4" /><span>{task.attachments.length || ""}</span></span> : null}</button> : null}
+                  ) : (
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-base font-semibold leading-6 sm:text-lg">{task.title}</p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        {isAllWorkspaces ? <span>{task.team.name}</span> : null}
+                        {isAllWorkspaces && due ? <span>-</span> : null}
+                        {due ? <span className={due === "Today" ? "text-warning" : ""}><CalendarDays className="mr-1 inline h-4 w-4" />{due}</span> : null}
+                        {task.priority === "HIGH" ? <Badge className="sm:hidden" variant="danger">Important</Badge> : null}
+                        {task.editNote ? (
+                          <span className="flex items-center gap-1 text-xs text-brand">
+                            <Pencil className="h-3 w-3" />
+                            {task.editNote}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+                  {showAdd && task.creatorId === currentUserId && editingTaskId !== task.id ? <button type="button" onClick={() => startSelfEdit(task)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand" aria-label={`Edit ${task.title}`} title="Edit this task"><Pencil className="h-4 w-4" /></button> : null}
+                  {editingTaskId !== task.id && (task.team.commentsEnabled || task.team.attachmentsEnabled) ? <button type="button" onClick={() => openTask(task)} className="flex min-h-10 shrink-0 items-center gap-2 rounded-full px-2 text-sm text-muted-foreground hover:bg-surface-subtle hover:text-foreground sm:px-2.5" aria-label={`Open details for ${task.title}`}>{task.team.commentsEnabled ? <span className="relative flex items-center gap-1"><MessageCircleMore className={cn("h-4 w-4", task.unreadCommentCount > 0 && "text-brand")} /><span>{task.comments.length || ""}</span>{task.unreadCommentCount ? <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-semibold text-white">{task.unreadCommentCount}</span> : null}</span> : null}{task.team.attachmentsEnabled ? <span className="flex items-center gap-1"><Paperclip className="h-4 w-4" /><span>{task.attachments.length || ""}</span></span> : null}</button> : null}
                   {task.priority === "HIGH" ? <Badge className="hidden shrink-0 sm:inline-flex" variant="danger">Important</Badge> : null}
                 </div>
               );
@@ -252,10 +311,10 @@ export function PersonalTasks({
       {selectedTask ? <TaskDetailPanel task={selectedTask} currentUserId={currentUserId} onClose={closeTask} /> : null}
 
       <FloatingActionMenu
-        actions={
-          lastCompleted ? [{ id: "undo", icon: <Undo2 className="h-4 w-4" />, label: "Undo last complete", onClick: handleUndoLast }] : []
-        }
-        isOwner={isOwnerInWorkspace}
+        actions={[
+          { id: "finished", icon: <ListChecks className="h-4 w-4" />, label: "Finished tasks", onClick: () => router.push("/dashboard/archive") },
+          ...(lastCompleted ? [{ id: "undo", icon: <Undo2 className="h-4 w-4" />, label: "Undo last finished", onClick: handleUndoLast }] : []),
+        ]}
       />
 
       {showCompletedToast && lastCompleted ? (

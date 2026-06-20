@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCheck, Ellipsis, ListChecks, Undo2, X } from "lucide-react";
+import { CheckCheck, Ellipsis, Undo2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 type MenuAction = {
@@ -12,12 +12,8 @@ type MenuAction = {
 
 export function FloatingActionMenu({
   actions,
-  isOwner = false,
-  hasLastCompleted = false,
 }: {
   actions: MenuAction[];
-  isOwner?: boolean;
-  hasLastCompleted?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -37,15 +33,12 @@ export function FloatingActionMenu({
     };
   }, []);
 
-  // Always show at least one action for undo (the "undo last complete" always available when hasLastCompleted)
-  const effectiveActions = actions.length > 0 ? actions : [];
-
   return (
     <div ref={rootRef} className="fixed bottom-4 right-4 z-40 sm:bottom-6 sm:right-6">
       {/* Expandable menu items */}
       {open ? (
         <div className="mb-3 flex flex-col-reverse gap-2">
-          {effectiveActions.map((action) => (
+          {actions.map((action) => (
             <button
               key={action.id}
               type="button"
@@ -73,7 +66,7 @@ export function FloatingActionMenu({
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
       >
-        {open ? <X className="h-5 w-5" /> : isOwner ? <Ellipsis className="h-5 w-5" /> : <Undo2 className="h-5 w-5" />}
+        {open ? <X className="h-5 w-5" /> : <Ellipsis className="h-5 w-5" />}
       </button>
     </div>
   );

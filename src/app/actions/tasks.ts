@@ -62,6 +62,7 @@ export async function createPersonalTaskAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/archive");
   revalidatePath("/analytics");
 }
 
@@ -114,6 +115,7 @@ export async function createTeamTaskAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/archive");
   revalidatePath("/analytics");
 }
 
@@ -175,7 +177,7 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
           recipientId: assignment.task.creatorId,
           teamId: assignment.task.teamId,
           kind: "TASK",
-          href: "/analytics",
+          href: `/dashboard/archive?task=${encodeURIComponent(taskId)}#task-${taskId}`,
           dedupeKey: `task-completed:${taskId}`,
           title: "Task completed",
           message: `${user.name} completed "${assignment.task.title}".`,
@@ -212,7 +214,51 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
 }
 
 export async function reopenTaskAction(taskId: string): Promise<void> {
-  await toggleTaskAction(taskId);
+  const user = await requireUser();
+  const task = await db.task.findUnique({
+    where: { id: taskId },
+    include: {
+      assignees: { select: { userId: true } },
+      team: { include: { memberships: { where: { userId: user.id, status: "ACTIVE" } } } },
+    },
+  });
+  const membership = task?.team.memberships[0];
+  if (!task || task.status !== "DONE" || !membership) return;
+
+  const isAssignee = task.assignees.some(({ userId }) => userId === user.id);
+  const canReopen = isAssignee || task.creatorId === user.id || membership.role === "OWNER" || membership.role === "ADMIN";
+  if (!canReopen) return;
+
+  const reopenedAt = new Date();
+  const adjusted = await db.$transaction(async (tx) => {
+    const changed = await tx.task.updateMany({
+      where: { id: taskId, status: "DONE" },
+      data: { status: "OPEN", completedAt: null, completedById: null },
+    });
+    if (!changed.count) return { adjustedUserIds: [], adjustedTeamIds: [] };
+    return revokeTaskMomentum(tx, {
+      taskId,
+      teamId: task.teamId,
+      assigneeIds: task.assignees.map(({ userId }) => userId),
+      reopenedAt,
+    });
+  });
+
+  const realtimeRecipients = new Set([task.creatorId, ...task.assignees.map(({ userId }) => userId), ...adjusted.adjustedUserIds]);
+  if (adjusted.adjustedTeamIds.length) {
+    const adjustedTeamMembers = await db.membership.findMany({
+      where: { teamId: { in: adjusted.adjustedTeamIds }, status: "ACTIVE" },
+      select: { userId: true },
+    });
+    adjustedTeamMembers.forEach(({ userId }) => realtimeRecipients.add(userId));
+  }
+  await publishRealtimeEvent([...realtimeRecipients], "task.updated");
+
+  revalidatePath("/");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/archive");
+  revalidatePath("/analytics");
+  revalidatePath("/momentum");
 }
 
 export async function updateTaskAction(_: unknown, formData: FormData) {
@@ -233,7 +279,10 @@ export async function updateTaskAction(_: unknown, formData: FormData) {
   const membership = await db.membership.findUnique({
     where: { userId_teamId: { userId: user.id, teamId: task.teamId } },
   });
-  if (!membership || membership.status !== "ACTIVE" || membership.role !== "OWNER") return;
+  if (!membership || membership.status !== "ACTIVE") return;
+  const isCreator = task.creatorId === user.id;
+  const isOwner = membership.role === "OWNER";
+  if (!isOwner && !isCreator) return;
 
   const updates: Record<string, unknown> = { title, priority: priority === "HIGH" ? "HIGH" : "NORMAL" };
   if (due) {
@@ -241,12 +290,17 @@ export async function updateTaskAction(_: unknown, formData: FormData) {
     updates.dueAt = dueDateForSelection(due, profile?.timeZone ?? task.team.timeZone ?? "UTC");
   }
 
-  // Add audit trail on any edit
-  const editedAt = new Date();
-  const timeLabel = editedAt.toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-  updates.editNote = `Edited by ${user.name} - ${timeLabel}`;
-  updates.editedById = user.id;
-  updates.editedAt = editedAt;
+  if (isCreator) {
+    updates.editNote = null;
+    updates.editedById = null;
+    updates.editedAt = null;
+  } else {
+    const editedAt = new Date();
+    const timeLabel = editedAt.toLocaleString("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    updates.editNote = `Edited by ${user.name} - ${timeLabel}`;
+    updates.editedById = user.id;
+    updates.editedAt = editedAt;
+  }
 
   await db.task.update({ where: { id: taskId }, data: updates as Parameters<typeof db.task.update>[0]["data"] });
 
@@ -255,6 +309,7 @@ export async function updateTaskAction(_: unknown, formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/archive");
   revalidatePath("/analytics");
 }
 

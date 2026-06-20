@@ -16,6 +16,7 @@ export type TaskDetail = {
   id: string;
   title: string;
   note: string | null;
+  creatorId: string;
   team: {
     id: string;
     name: string;
@@ -100,14 +101,14 @@ export function TaskDetailPanel({ task, currentUserId, onClose }: { task: TaskDe
 
   if (!mounted) return null;
   const hasBoth = task.team.commentsEnabled && task.team.attachmentsEnabled;
-  const isOwner = task.team.currentUserRole === "OWNER";
+  const canEdit = task.team.currentUserRole === "OWNER" || task.creatorId === currentUserId;
   return createPortal(
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-foreground/20 p-0 backdrop-blur-[2px] sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section role="dialog" aria-modal="true" aria-label={task.title} className="flex max-h-[calc(100dvh-0.75rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-lg border border-border bg-surface shadow-soft sm:max-h-[84vh] sm:rounded-lg">
         <header className="flex items-start gap-3 border-b border-border px-4 py-3 sm:px-5 sm:py-4">
           <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold sm:text-lg">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.team.name}</p>{task.note ? <p className="mt-2 text-sm leading-5 text-muted-foreground">{task.note}</p> : null}</div>
           <div className="flex shrink-0 items-center gap-1">
-            {isOwner ? <EditTaskButton task={task} /> : null}
+            {canEdit ? <EditTaskButton task={task} /> : null}
             <button type="button" onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle" aria-label="Close task"><X className="h-4 w-4" /></button>
           </div>
         </header>

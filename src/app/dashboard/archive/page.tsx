@@ -56,7 +56,6 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-5">
-      <header className="border-b border-border pb-5"><h1 className="flex items-center gap-2 text-2xl font-semibold"><CheckCheck className="h-5 w-5 text-brand" />Finished tasks</h1><p className="mt-1 text-sm text-muted-foreground">Completed work you finished, created, or were assigned to.</p></header>
       <FinishedTaskFilters teams={filterTeams} selectedTeamId={selectedTeamId} selectedMemberId={selectedMemberId} />
       {groups.size ? [...groups.entries()].map(([key, group]) => (
         <section key={key} className="overflow-hidden rounded-lg border border-border bg-surface">

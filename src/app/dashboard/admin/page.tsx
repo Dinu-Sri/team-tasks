@@ -8,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { requireSuperAdmin, SUPER_ADMIN_EMAIL } from "@/lib/auth";
 import { ensureDefaultBillingPlans, getWorkspaceBillingSummaries, storageMb } from "@/lib/billing";
 import { db } from "@/lib/db";
+import { payHereConfigStatus } from "@/lib/payhere";
 
 export default async function AdminPage() {
   const admin = await requireSuperAdmin();
   await ensureDefaultBillingPlans();
 
-  const [users, teams, plans] = await Promise.all([
+  const payHereStatus = payHereConfigStatus();
+  const [users, teams, plans, invoices, billingEvents] = await Promise.all([
     db.user.findMany({
       select: {
         id: true,
@@ -39,6 +41,16 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
     }),
     db.billingPlan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+    db.invoice.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 25,
+      include: { team: { select: { name: true, organizationName: true } }, plan: { select: { name: true } } },
+    }),
+    db.billingEvent.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 25,
+      include: { team: { select: { name: true, organizationName: true } } },
+    }),
   ]);
   const billingByTeam = await getWorkspaceBillingSummaries(teams.map((team) => team.id));
 
@@ -153,6 +165,19 @@ export default async function AdminPage() {
           <p className="text-sm text-muted-foreground">Manually adjust customer plans while PayHere automation is being prepared.</p>
         </header>
 
+        <div className="grid gap-2 rounded-lg border border-border bg-surface p-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          <AdminStatus label="Checkout" ok={payHereStatus.checkoutConfigured} />
+          <AdminStatus label="Manager API" ok={payHereStatus.managerConfigured} />
+          <div>
+            <p className="text-xs font-medium uppercase text-muted-foreground">Mode</p>
+            <p className="font-medium">{payHereStatus.mode}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium uppercase text-muted-foreground">Notify URL</p>
+            <p className="break-all text-xs text-muted-foreground">{payHereStatus.notifyUrl}</p>
+          </div>
+        </div>
+
         <div className="grid gap-3">
           {teams.map((team) => {
             const billing = billingByTeam.get(team.id);
@@ -206,7 +231,59 @@ export default async function AdminPage() {
             );
           })}
         </div>
+
+        <div className="grid gap-4 xl:grid-cols-2">
+          <section className="rounded-lg border border-border bg-surface">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="font-semibold">Recent invoices</h3>
+              <p className="text-xs text-muted-foreground">Latest customer billing records and payment status.</p>
+            </div>
+            <div className="divide-y divide-border">
+              {invoices.map((invoice) => (
+                <div key={invoice.id} className="grid gap-2 px-4 py-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-medium">{invoice.number}</p>
+                    <Badge variant={invoice.status === "PAID" ? "default" : "secondary"}>{invoice.status.toLowerCase()}</Badge>
+                  </div>
+                  <p className="text-muted-foreground">{invoice.team.organizationName ?? invoice.team.name} - {invoice.plan?.name ?? "Custom"} - LKR {invoice.amountLkr.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Cycle {invoice.billingCycle.toLowerCase()} - created {invoice.createdAt.toLocaleString()} {invoice.paidAt ? `- paid ${invoice.paidAt.toLocaleString()}` : ""}</p>
+                  {invoice.providerPaymentId ? <p className="text-xs text-muted-foreground">Payment ID: {invoice.providerPaymentId}</p> : null}
+                </div>
+              ))}
+              {!invoices.length ? <p className="px-4 py-3 text-sm text-muted-foreground">No invoices yet.</p> : null}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-border bg-surface">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="font-semibold">Recent billing events</h3>
+              <p className="text-xs text-muted-foreground">PayHere notifications and Subscription Manager sync results.</p>
+            </div>
+            <div className="divide-y divide-border">
+              {billingEvents.map((event) => (
+                <div key={event.id} className="grid gap-1 px-4 py-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-medium">{event.eventType}</p>
+                    <Badge variant={event.verified ? "default" : "secondary"}>{event.verified ? "verified" : "unverified"}</Badge>
+                  </div>
+                  <p className="truncate text-muted-foreground">{event.team ? event.team.organizationName ?? event.team.name : "No workspace"} - {event.providerEventId}</p>
+                  <p className="text-xs text-muted-foreground">{event.createdAt.toLocaleString()} {event.processedAt ? `- processed ${event.processedAt.toLocaleString()}` : ""}</p>
+                </div>
+              ))}
+              {!billingEvents.length ? <p className="px-4 py-3 text-sm text-muted-foreground">No billing events yet.</p> : null}
+            </div>
+          </section>
+        </div>
       </section>
+    </div>
+  );
+}
+
+function AdminStatus({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+      <p className={ok ? "font-medium text-success" : "font-medium text-warning"}>{ok ? "configured" : "missing env"}</p>
     </div>
   );
 }

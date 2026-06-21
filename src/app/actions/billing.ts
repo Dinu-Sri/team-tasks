@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 import { requireSuperAdmin, requireUser } from "@/lib/auth";
 import { ensureDefaultBillingPlans, ensureTeamBillingSubscription, refreshWorkspaceUsage } from "@/lib/billing";
 import { db } from "@/lib/db";
-import { createBillingInvoiceNumber, cycleAmount, payHereConfigured } from "@/lib/payhere";
+import { sendBillingEmail } from "@/lib/mail";
+import { cancelPayHereSubscription, createBillingInvoiceNumber, cycleAmount, payHereConfigured, payHereManagerConfigured } from "@/lib/payhere";
 
 export type BillingAdminState = { error?: string; success?: string };
 
@@ -14,6 +15,79 @@ const billingStatuses = new Set(["TRIALING", "ACTIVE", "GRACE", "PAST_DUE", "CAN
 
 export async function updateWorkspaceBillingSubmitAction(formData: FormData) {
   await updateWorkspaceBillingAction({}, formData);
+}
+
+export async function cancelWorkspaceSubscriptionAction(formData: FormData) {
+  const user = await requireUser();
+  const teamId = String(formData.get("teamId") ?? "").trim();
+  const membership = await db.membership.findUnique({
+    where: { userId_teamId: { userId: user.id, teamId } },
+    include: { team: { select: { name: true, organizationName: true } } },
+  });
+  if (!membership || membership.status !== "ACTIVE" || !["OWNER", "ADMIN"].includes(membership.role)) redirect("/dashboard/billing?payment=forbidden");
+
+  const subscription = await ensureTeamBillingSubscription(teamId);
+  let note = "Subscription cancellation requested.";
+  if (subscription.billingProvider === "PAYHERE" && subscription.providerSubscriptionId && payHereManagerConfigured()) {
+    const result = await cancelPayHereSubscription(subscription.providerSubscriptionId);
+    note = result.ok && result.data?.status === 1 ? "PayHere subscription cancellation requested." : `Cancellation recorded locally. PayHere response: ${result.data?.msg ?? result.error ?? "not available"}`;
+  }
+
+  await db.billingSubscription.update({
+    where: { teamId },
+    data: {
+      cancelAtPeriodEnd: true,
+      status: subscription.status === "ACTIVE" ? "GRACE" : subscription.status,
+      graceUntil: subscription.currentPeriodEnd ?? subscription.graceUntil,
+      overrideReason: note,
+    },
+  });
+  await notifyWorkspaceOwners(teamId, {
+    subject: "Subscription cancellation requested",
+    title: "Subscription cancellation requested",
+    intro: `${membership.team.organizationName ?? membership.team.name} has been marked to stop renewal.`,
+    body: "Existing work remains available. New billing-sensitive actions may be limited when the current paid period ends.",
+  });
+  revalidatePath("/dashboard/billing");
+  redirect("/dashboard/billing?payment=cancel-requested");
+}
+
+export async function downgradeWorkspaceToFreeAction(formData: FormData) {
+  const user = await requireUser();
+  const teamId = String(formData.get("teamId") ?? "").trim();
+  const membership = await db.membership.findUnique({
+    where: { userId_teamId: { userId: user.id, teamId } },
+    include: { team: { select: { name: true, organizationName: true } } },
+  });
+  if (!membership || membership.status !== "ACTIVE" || membership.role !== "OWNER") redirect("/dashboard/billing?payment=forbidden");
+
+  const subscription = await ensureTeamBillingSubscription(teamId);
+  if (subscription.billingProvider === "PAYHERE" && subscription.providerSubscriptionId && payHereManagerConfigured()) {
+    await cancelPayHereSubscription(subscription.providerSubscriptionId);
+  }
+  await db.billingSubscription.update({
+    where: { teamId },
+    data: {
+      planId: "plan_free",
+      status: "ACTIVE",
+      billingProvider: "MANUAL",
+      cancelAtPeriodEnd: false,
+      providerSubscriptionId: null,
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: null,
+      graceUntil: null,
+      overrideReason: "Workspace owner downgraded to Free.",
+    },
+  });
+  await notifyWorkspaceOwners(teamId, {
+    subject: "Workspace moved to Free",
+    title: "Workspace moved to the Free plan",
+    intro: `${membership.team.organizationName ?? membership.team.name} is now on the Free plan.`,
+    body: "Existing work was not deleted. Free plan limits apply to new members, tasks, file uploads, and paid workspace features when enforcement is enabled.",
+  });
+  await refreshWorkspaceUsage(teamId);
+  revalidatePath("/dashboard/billing");
+  redirect("/dashboard/billing?payment=downgraded");
 }
 
 export async function startPayHereSubscriptionAction(formData: FormData) {
@@ -121,8 +195,22 @@ export async function updateWorkspaceBillingAction(_: BillingAdminState, formDat
   ]);
 
   await refreshWorkspaceUsage(teamId);
+  await notifyWorkspaceOwners(teamId, {
+    subject: "Workspace billing updated",
+    title: "Workspace billing updated",
+    intro: `${team.name} is now on ${plan.name}.`,
+    body: `A Tuduvia super admin changed this workspace billing status to ${status.toLowerCase().replace("_", " ")}. Reason: ${reason}`,
+  });
   revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/billing");
   revalidatePath("/dashboard", "layout");
   return { success: `${team.name} is now on ${plan.name}.` };
+}
+
+async function notifyWorkspaceOwners(teamId: string, message: { subject: string; title: string; intro: string; body: string }) {
+  const owners = await db.membership.findMany({
+    where: { teamId, status: "ACTIVE", role: { in: ["OWNER", "ADMIN"] } },
+    select: { user: { select: { email: true } } },
+  });
+  await Promise.all(owners.map(({ user }) => sendBillingEmail({ to: user.email, ...message })));
 }

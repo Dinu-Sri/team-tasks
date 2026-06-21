@@ -97,8 +97,8 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href={plan.name === "Free" ? "/signup" : "/contact"} className={cn(buttonVariants({ variant: plan.name === "Free" ? "default" : "secondary" }), "mt-6 w-full")}>
-                {plan.name === "Free" ? "Start free" : "Talk to Tuduvia"} <ArrowRight />
+              <Link href={plan.name === "Free" ? "/signup" : "/dashboard/billing"} className={cn(buttonVariants({ variant: plan.name === "Free" ? "default" : "secondary" }), "mt-6 w-full")}>
+                {plan.name === "Free" ? "Start free" : "Upgrade in app"} <ArrowRight />
               </Link>
             </article>
           ))}

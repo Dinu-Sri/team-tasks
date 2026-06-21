@@ -12,16 +12,37 @@ export type PayHereNotification = Record<string, string>;
 
 const CHECKOUT_PATH = "/pay/checkout";
 
+function firstEnv(...names: string[]) {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  return "";
+}
+
 export function payHereConfigured() {
-  return Boolean(process.env.PAYHERE_MERCHANT_ID?.trim() && process.env.PAYHERE_MERCHANT_SECRET?.trim());
+  return Boolean(payHereMerchantId() && merchantSecret());
 }
 
 export function payHereMerchantId() {
-  return process.env.PAYHERE_MERCHANT_ID?.trim() ?? "";
+  return firstEnv("PAYHERE_MERCHANT_ID", "PAYHERE_MERCHANTID");
 }
 
 function merchantSecret() {
-  return process.env.PAYHERE_MERCHANT_SECRET?.trim() ?? "";
+  return firstEnv("PAYHERE_MERCHANT_SECRET", "PAYHERE_SECRET", "PAYHERE_MERCHANT_SECRET_KEY", "PAYHERE_MD5_SECRET");
+}
+
+export function payHereConfigStatus() {
+  return {
+    checkoutConfigured: payHereConfigured(),
+    managerConfigured: payHereManagerConfigured(),
+    mode: payHereBaseUrl().includes("sandbox") ? "sandbox" : "live",
+    hasMerchantId: Boolean(payHereMerchantId()),
+    hasMerchantSecret: Boolean(merchantSecret()),
+    hasAppId: Boolean(payHereAppId()),
+    hasAppSecret: Boolean(payHereAppSecret()),
+    notifyUrl: `${appBaseUrl()}/api/billing/payhere/notify`,
+  };
 }
 
 export function payHereBaseUrl() {
@@ -32,6 +53,18 @@ export function payHereBaseUrl() {
 
 export function payHereCheckoutUrl() {
   return `${payHereBaseUrl()}${CHECKOUT_PATH}`;
+}
+
+function payHereAppId() {
+  return firstEnv("PAYHERE_APP_ID", "PAYHERE_BUSINESS_APP_ID", "PAYHERE_OAUTH_APP_ID");
+}
+
+function payHereAppSecret() {
+  return firstEnv("PAYHERE_APP_SECRET", "PAYHERE_BUSINESS_APP_SECRET", "PAYHERE_OAUTH_APP_SECRET");
+}
+
+export function payHereManagerConfigured() {
+  return Boolean(payHereAppId() && payHereAppSecret());
 }
 
 export function appBaseUrl() {
@@ -150,4 +183,53 @@ export async function createBillingInvoiceNumber() {
     where: { createdAt: { gte: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())) } },
   });
   return `TDV-${stamp}-${String(count + 1).padStart(5, "0")}`;
+}
+
+async function payHereAccessToken() {
+  if (!payHereManagerConfigured()) return null;
+  const response = await fetch(`${payHereBaseUrl()}/merchant/v1/oauth/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${payHereAppId()}:${payHereAppSecret()}`).toString("base64")}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({ grant_type: "client_credentials" }),
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+  const data = await response.json() as { access_token?: string };
+  return data.access_token ?? null;
+}
+
+async function payHereManagerRequest<T>(path: string, init?: RequestInit) {
+  const token = await payHereAccessToken();
+  if (!token) return { ok: false, error: "PayHere Subscription Manager is not configured." };
+  const response = await fetch(`${payHereBaseUrl()}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+    cache: "no-store",
+  });
+  const data = await response.json().catch(() => null) as T | null;
+  return { ok: response.ok, data };
+}
+
+export type PayHereSubscriptionRecord = {
+  subscription_id: string | number;
+  order_id?: string;
+  status?: "ACTIVE" | "COMPLETED" | "FAILED" | string;
+};
+
+export async function listPayHereSubscriptions() {
+  return payHereManagerRequest<{ status: number; msg?: string; data?: PayHereSubscriptionRecord[] }>("/merchant/v1/subscription");
+}
+
+export async function cancelPayHereSubscription(subscriptionId: string) {
+  return payHereManagerRequest<{ status: number; msg?: string; data?: unknown }>("/merchant/v1/subscription/cancel", {
+    method: "POST",
+    body: JSON.stringify({ subscription_id: subscriptionId }),
+  });
 }

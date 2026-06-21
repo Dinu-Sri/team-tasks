@@ -1,13 +1,13 @@
 import { CreditCard, Gauge, Mail, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
-import { startPayHereSubscriptionAction } from "@/app/actions/billing";
+import { cancelWorkspaceSubscriptionAction, downgradeWorkspaceToFreeAction, startPayHereSubscriptionAction } from "@/app/actions/billing";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { getWorkspaceBilling, storageMb } from "@/lib/billing";
 import { db } from "@/lib/db";
-import { payHereConfigured } from "@/lib/payhere";
+import { payHereConfigStatus } from "@/lib/payhere";
 import { cn } from "@/lib/utils";
 import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
@@ -45,7 +45,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     membership,
     billing: await getWorkspaceBilling(membership.teamId),
   })));
-  const canUsePayHere = payHereConfigured();
+  const payHereStatus = payHereConfigStatus();
 
   return (
     <div className="space-y-5">
@@ -66,6 +66,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
       <div className="rounded-lg border border-brand/25 bg-brand/5 p-4 text-sm text-muted-foreground">
         <ShieldCheck className="mr-1 inline h-4 w-4 text-brand" />
         Plan limits are being rolled out carefully. Existing work stays safe when a workspace changes plans.
+        {!payHereStatus.checkoutConfigured ? " PayHere checkout needs merchant ID and merchant secret env values." : null}
       </div>
 
       {query.payment ? <PaymentMessage status={query.payment} /> : null}
@@ -106,6 +107,24 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                   <Link href="/contact" className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-full sm:w-auto")}>Request help</Link>
                 </div>
 
+                {billing.plan.code !== "free" ? (
+                  <div className="grid gap-2 border-t border-border p-4 sm:grid-cols-[1fr_auto_auto] sm:items-center">
+                    <p className="text-sm text-muted-foreground">
+                      Need to stop or reduce billing? Cancellation keeps existing work safe; downgrade moves this workspace to Free immediately.
+                    </p>
+                    <form action={cancelWorkspaceSubscriptionAction}>
+                      <input type="hidden" name="teamId" value={membership.teamId} />
+                      <Button type="submit" variant="secondary" size="sm" className="w-full">Cancel renewal</Button>
+                    </form>
+                    {membership.role === "OWNER" ? (
+                      <form action={downgradeWorkspaceToFreeAction}>
+                        <input type="hidden" name="teamId" value={membership.teamId} />
+                        <Button type="submit" variant="quiet" size="sm" className="w-full">Downgrade to Free</Button>
+                      </form>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <div className="border-t border-border p-4">
                   <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Upgrade with PayHere</p>
                   <div className="mt-3 grid gap-3 lg:grid-cols-2">
@@ -119,14 +138,14 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                           <Badge variant={billing.plan.id === plan.id ? "success" : "secondary"}>{billing.plan.id === plan.id ? "current" : "available"}</Badge>
                         </div>
                         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                          <UpgradeForm teamId={membership.teamId} planId={plan.id} cycle="MONTHLY" amount={plan.monthlyPriceLkr} disabled={!canUsePayHere || billing.plan.id === plan.id} />
-                          <UpgradeForm teamId={membership.teamId} planId={plan.id} cycle="YEARLY" amount={plan.yearlyPriceLkr} disabled={!canUsePayHere || billing.plan.id === plan.id} />
+                          <UpgradeForm teamId={membership.teamId} planId={plan.id} cycle="MONTHLY" amount={plan.monthlyPriceLkr} disabled={!payHereStatus.checkoutConfigured || billing.plan.id === plan.id} />
+                          <UpgradeForm teamId={membership.teamId} planId={plan.id} cycle="YEARLY" amount={plan.yearlyPriceLkr} disabled={!payHereStatus.checkoutConfigured || billing.plan.id === plan.id} />
                         </div>
                       </div>
                     ))}
                   </div>
-                  {!canUsePayHere ? (
-                    <p className="mt-3 text-xs text-muted-foreground">Online checkout is not configured yet. Contact Tuduvia to upgrade this workspace manually.</p>
+                  {!payHereStatus.checkoutConfigured ? (
+                    <p className="mt-3 text-xs text-muted-foreground">Online checkout is not configured in this running app. Confirm `PAYHERE_MERCHANT_ID` and `PAYHERE_MERCHANT_SECRET` or `PAYHERE_SECRET` in Portainer, then redeploy.</p>
                   ) : null}
                 </div>
 
@@ -181,6 +200,8 @@ function PaymentMessage({ status }: { status: string }) {
     forbidden: "You do not have permission to manage billing for that workspace.",
     "invalid-plan": "That plan cannot be purchased online yet.",
     "already-paid": "That invoice is already paid.",
+    "cancel-requested": "Subscription cancellation was recorded. Existing work remains safe.",
+    downgraded: "Workspace moved to the Free plan. Existing work was not deleted.",
   };
   return (
     <div className="rounded-lg border border-border bg-surface p-3 text-sm text-muted-foreground">

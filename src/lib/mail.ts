@@ -11,7 +11,7 @@ type InviteMail = {
   inviteUrl: string;
 };
 
-type EmailType = "verification" | "password_reset" | "magic_link" | "welcome" | "invite" | "system_alert" | "contact" | "domain_verification";
+type EmailType = "verification" | "password_reset" | "magic_link" | "welcome" | "invite" | "system_alert" | "contact" | "domain_verification" | "billing";
 
 type EmailPayload = {
   type: EmailType;
@@ -226,6 +226,38 @@ export async function sendSystemAlertEmail({ to, subject, message }: { to: strin
       intro: "This is an account or workspace notice from Tuduvia.",
       body: message,
       reason: "You received this email because it relates to your Tuduvia account or workspace access.",
+    }),
+  });
+}
+
+export async function sendBillingEmail({
+  to,
+  subject,
+  title,
+  intro,
+  body,
+  ctaUrl,
+  ctaLabel = "Open billing",
+}: {
+  to: string;
+  subject: string;
+  title: string;
+  intro: string;
+  body: string;
+  ctaUrl?: string;
+  ctaLabel?: string;
+}) {
+  return sendEmail({
+    type: "billing",
+    to,
+    subject: subject.startsWith("Tuduvia:") ? subject : `Tuduvia: ${subject}`,
+    ...emailContent({
+      title,
+      intro,
+      body,
+      ctaLabel,
+      ctaUrl: ctaUrl ?? `${appBaseUrl()}/dashboard/billing`,
+      reason: "You received this email because it relates to billing for a Tuduvia workspace you manage.",
     }),
   });
 }

@@ -105,10 +105,12 @@ Auth callback URLs:
 PayHere billing:
 
 - `PAYHERE_MERCHANT_ID`
-- `PAYHERE_MERCHANT_SECRET`
+- `PAYHERE_MERCHANT_SECRET` (also supported: `PAYHERE_SECRET`, `PAYHERE_MERCHANT_SECRET_KEY`, `PAYHERE_MD5_SECRET`)
 - `PAYHERE_MODE=live` for production payments. Omit it or set `PAYHERE_MODE=sandbox` for sandbox checkout.
+- `PAYHERE_APP_ID` and `PAYHERE_APP_SECRET` for Subscription Manager API sync/cancel. Also supported: `PAYHERE_BUSINESS_APP_ID`, `PAYHERE_BUSINESS_APP_SECRET`, `PAYHERE_OAUTH_APP_ID`, `PAYHERE_OAUTH_APP_SECRET`.
 - `PAYHERE_DEFAULT_PHONE` optional fallback phone sent to PayHere when the user profile has no phone number.
 - PayHere notify URL: `https://tuduvia.com/api/billing/payhere/notify`
+- Optional billing sync endpoint: `POST https://tuduvia.com/api/cron/billing` with `Authorization: Bearer <BILLING_CRON_SECRET>`. If `BILLING_CRON_SECRET` is not set, it falls back to `MOMENTUM_CRON_SECRET`.
 
 Email delivery:
 

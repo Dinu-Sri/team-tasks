@@ -94,6 +94,7 @@ model BillingPlan {
   active                Boolean                @default(true)
   subscriptions         BillingSubscription[]
   adminBillingOverrides AdminBillingOverride[]
+  invoices              Invoice[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 }
@@ -150,18 +151,22 @@ model BillingEvent {
 model Invoice {
   id                String        @id @default(cuid())
   teamId            String
+  planId            String?
   number            String        @unique
   status            InvoiceStatus @default(DRAFT)
+  billingCycle      BillingCycle  @default(MONTHLY)
   amountLkr         Int
   description       String
   dueAt             DateTime?
   paidAt            DateTime?
   providerPaymentId String?
   team              Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  plan              BillingPlan?  @relation(fields: [planId], references: [id], onDelete: SetNull)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
   @@index([teamId, status])
+  @@index([planId])
 }
 
 model AdminBillingOverride {
@@ -591,4 +596,11 @@ enum InvoiceStatus {
   PAID
   VOID
   OVERDUE
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+  MANUAL
+  SETUP
 }

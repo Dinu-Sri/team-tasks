@@ -102,6 +102,14 @@ Auth callback URLs:
 - Google: `https://tuduvia.com/api/auth/callback/google`
 - GitHub: `https://tuduvia.com/api/auth/callback/github`
 
+PayHere billing:
+
+- `PAYHERE_MERCHANT_ID`
+- `PAYHERE_MERCHANT_SECRET`
+- `PAYHERE_MODE=live` for production payments. Omit it or set `PAYHERE_MODE=sandbox` for sandbox checkout.
+- `PAYHERE_DEFAULT_PHONE` optional fallback phone sent to PayHere when the user profile has no phone number.
+- PayHere notify URL: `https://tuduvia.com/api/billing/payhere/notify`
+
 Email delivery:
 
 - Resend is preferred when `RESEND_API_KEY` is set.

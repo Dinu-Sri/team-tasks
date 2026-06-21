@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-import { requireSuperAdmin } from "@/lib/auth";
+import { requireSuperAdmin, requireUser } from "@/lib/auth";
 import { ensureDefaultBillingPlans, ensureTeamBillingSubscription, refreshWorkspaceUsage } from "@/lib/billing";
 import { db } from "@/lib/db";
+import { createBillingInvoiceNumber, cycleAmount, payHereConfigured } from "@/lib/payhere";
 
 export type BillingAdminState = { error?: string; success?: string };
 
@@ -12,6 +14,43 @@ const billingStatuses = new Set(["TRIALING", "ACTIVE", "GRACE", "PAST_DUE", "CAN
 
 export async function updateWorkspaceBillingSubmitAction(formData: FormData) {
   await updateWorkspaceBillingAction({}, formData);
+}
+
+export async function startPayHereSubscriptionAction(formData: FormData) {
+  const user = await requireUser();
+  if (!payHereConfigured()) redirect("/dashboard/billing?payment=payhere-not-configured");
+
+  const teamId = String(formData.get("teamId") ?? "").trim();
+  const planId = String(formData.get("planId") ?? "").trim();
+  const cycle = String(formData.get("cycle") ?? "MONTHLY") === "YEARLY" ? "YEARLY" : "MONTHLY";
+  if (!teamId || !planId) redirect("/dashboard/billing?payment=invalid");
+
+  const [membership, plan] = await Promise.all([
+    db.membership.findUnique({ where: { userId_teamId: { userId: user.id, teamId } }, include: { team: { select: { name: true, organizationName: true } } } }),
+    db.billingPlan.findUnique({ where: { id: planId } }),
+  ]);
+  if (!membership || membership.status !== "ACTIVE" || !["OWNER", "ADMIN"].includes(membership.role)) redirect("/dashboard/billing?payment=forbidden");
+  if (!plan || !plan.active || plan.code === "free" || plan.code === "custom_setup") redirect("/dashboard/billing?payment=invalid-plan");
+
+  const amountLkr = cycleAmount(plan, cycle);
+  if (!amountLkr || amountLkr < 1) redirect("/dashboard/billing?payment=invalid-plan");
+
+  const invoice = await db.invoice.create({
+    data: {
+      teamId,
+      planId,
+      billingCycle: cycle,
+      number: await createBillingInvoiceNumber(),
+      status: "SENT",
+      amountLkr,
+      description: `Tuduvia ${plan.name} ${cycle === "YEARLY" ? "annual" : "monthly"} subscription for ${membership.team.organizationName ?? membership.team.name}`,
+      dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    },
+    select: { id: true },
+  });
+
+  revalidatePath("/dashboard/billing");
+  redirect(`/billing/payhere/checkout/${invoice.id}`);
 }
 
 function dateFromInput(value: FormDataEntryValue | null) {

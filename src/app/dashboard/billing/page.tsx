@@ -1,32 +1,51 @@
 import { CreditCard, Gauge, Mail, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
+import { startPayHereSubscriptionAction } from "@/app/actions/billing";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { getWorkspaceBilling, storageMb } from "@/lib/billing";
 import { db } from "@/lib/db";
+import { payHereConfigured } from "@/lib/payhere";
 import { cn } from "@/lib/utils";
 import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: { searchParams: Promise<{ payment?: string; invoice?: string }> }) {
   const user = await requireUser();
+  const query = await searchParams;
   const access = await getActiveMembershipAccess(user.id);
   const visibleTeamIds = access.visibleMemberships.map((membership) => membership.teamId);
-  const memberships = await db.membership.findMany({
-    where: {
-      userId: user.id,
-      status: "ACTIVE",
-      teamId: { in: visibleTeamIds },
-      role: { in: ["OWNER", "ADMIN"] },
-    },
-    include: { team: { select: { id: true, name: true, organizationName: true } } },
-    orderBy: { createdAt: "asc" },
-  });
+  const [memberships, paidPlans] = await Promise.all([
+    db.membership.findMany({
+      where: {
+        userId: user.id,
+        status: "ACTIVE",
+        teamId: { in: visibleTeamIds },
+        role: { in: ["OWNER", "ADMIN"] },
+      },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            organizationName: true,
+            invoices: { orderBy: { createdAt: "desc" }, take: 3, include: { plan: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    db.billingPlan.findMany({
+      where: { active: true, code: { in: ["team_starter", "business"] } },
+      orderBy: { sortOrder: "asc" },
+    }),
+  ]);
   const billingByTeam = await Promise.all(memberships.map(async (membership) => ({
     membership,
     billing: await getWorkspaceBilling(membership.teamId),
   })));
+  const canUsePayHere = payHereConfigured();
 
   return (
     <div className="space-y-5">
@@ -48,6 +67,8 @@ export default async function BillingPage() {
         <ShieldCheck className="mr-1 inline h-4 w-4 text-brand" />
         Plan limits are being rolled out carefully. Existing work stays safe when a workspace changes plans.
       </div>
+
+      {query.payment ? <PaymentMessage status={query.payment} /> : null}
 
       {billingByTeam.length ? (
         <section className="grid gap-4">
@@ -82,8 +103,49 @@ export default async function BillingPage() {
                       <span>No paid renewal date yet.</span>
                     )}
                   </div>
-                  <Link href="/contact" className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-full sm:w-auto")}>Request upgrade</Link>
+                  <Link href="/contact" className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "w-full sm:w-auto")}>Request help</Link>
                 </div>
+
+                <div className="border-t border-border p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Upgrade with PayHere</p>
+                  <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                    {paidPlans.map((plan) => (
+                      <div key={plan.id} className="rounded-lg border border-border bg-background p-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="font-medium">{plan.name}</p>
+                            <p className="mt-1 text-xs leading-5 text-muted-foreground">{plan.description}</p>
+                          </div>
+                          <Badge variant={billing.plan.id === plan.id ? "success" : "secondary"}>{billing.plan.id === plan.id ? "current" : "available"}</Badge>
+                        </div>
+                        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                          <UpgradeForm teamId={membership.teamId} planId={plan.id} cycle="MONTHLY" amount={plan.monthlyPriceLkr} disabled={!canUsePayHere || billing.plan.id === plan.id} />
+                          <UpgradeForm teamId={membership.teamId} planId={plan.id} cycle="YEARLY" amount={plan.yearlyPriceLkr} disabled={!canUsePayHere || billing.plan.id === plan.id} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {!canUsePayHere ? (
+                    <p className="mt-3 text-xs text-muted-foreground">Online checkout is not configured yet. Contact Tuduvia to upgrade this workspace manually.</p>
+                  ) : null}
+                </div>
+
+                {membership.team.invoices.length ? (
+                  <div className="border-t border-border p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Recent invoices</p>
+                    <div className="mt-3 divide-y divide-border rounded-lg border border-border">
+                      {membership.team.invoices.map((invoice) => (
+                        <div key={invoice.id} className="flex flex-col gap-2 px-3 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="font-medium">{invoice.number}</p>
+                            <p className="text-xs text-muted-foreground">{invoice.plan?.name ?? "Custom"} - LKR {invoice.amountLkr.toLocaleString()}</p>
+                          </div>
+                          <Badge variant={invoice.status === "PAID" ? "success" : invoice.status === "OVERDUE" ? "danger" : "secondary"}>{invoice.status.toLowerCase()}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </article>
             );
           })}
@@ -93,6 +155,36 @@ export default async function BillingPage() {
           You do not manage billing for any visible workspace. Ask a workspace owner for plan or payment changes.
         </div>
       )}
+    </div>
+  );
+}
+
+function UpgradeForm({ teamId, planId, cycle, amount, disabled }: { teamId: string; planId: string; cycle: "MONTHLY" | "YEARLY"; amount: number | null; disabled: boolean }) {
+  return (
+    <form action={startPayHereSubscriptionAction}>
+      <input type="hidden" name="teamId" value={teamId} />
+      <input type="hidden" name="planId" value={planId} />
+      <input type="hidden" name="cycle" value={cycle} />
+      <Button type="submit" variant={cycle === "MONTHLY" ? "secondary" : "default"} size="sm" disabled={disabled || !amount} className="w-full">
+        {cycle === "MONTHLY" ? "Monthly" : "Yearly"} {amount ? `LKR ${amount.toLocaleString()}` : "Contact"}
+      </Button>
+    </form>
+  );
+}
+
+function PaymentMessage({ status }: { status: string }) {
+  const messages: Record<string, string> = {
+    return: "PayHere has redirected you back. Your plan will update after Tuduvia receives the verified PayHere notification.",
+    cancelled: "Payment was cancelled before authorization. No plan changes were made.",
+    "payhere-not-configured": "Online checkout is not configured yet. Contact Tuduvia to upgrade manually.",
+    invalid: "That billing request could not be opened.",
+    forbidden: "You do not have permission to manage billing for that workspace.",
+    "invalid-plan": "That plan cannot be purchased online yet.",
+    "already-paid": "That invoice is already paid.",
+  };
+  return (
+    <div className="rounded-lg border border-border bg-surface p-3 text-sm text-muted-foreground">
+      {messages[status] ?? "Billing status updated."}
     </div>
   );
 }

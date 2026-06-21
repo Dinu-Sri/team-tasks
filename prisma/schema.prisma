@@ -50,13 +50,13 @@ model OnboardingProgress {
 }
 
 model Team {
-  id                  String               @id @default(cuid())
+  id                  String                  @id @default(cuid())
   name                String
   description         String?
-  timeZone            String               @default("UTC")
+  timeZone            String                  @default("UTC")
   organizationName    String?
   organizationLogo    String?
-  useOrganizationIcon Boolean              @default(false)
+  useOrganizationIcon Boolean                 @default(false)
   memberships         Membership[]
   organizationDomains OrganizationDomain[]
   tasks               Task[]
@@ -64,8 +64,121 @@ model Team {
   quests              TeamQuest[]
   productEvents       ProductEvent[]
   featureSettings     TeamFeatureSettings?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  billingSubscription BillingSubscription?
+  billingUsage        WorkspaceUsageSnapshot?
+  billingEvents       BillingEvent[]
+  invoices            Invoice[]
+  billingOverrides    AdminBillingOverride[]
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+}
+
+model BillingPlan {
+  id                    String                 @id
+  code                  String                 @unique
+  name                  String
+  description           String
+  monthlyPriceLkr       Int?
+  yearlyPriceLkr        Int?
+  maxWorkspaces         Int?
+  maxMembers            Int?
+  maxActiveTasks        Int?
+  maxStorageMb          Int?
+  maxFileSizeMb         Int?
+  historyDays           Int?
+  customBranding        Boolean                @default(false)
+  advancedRoles         Boolean                @default(false)
+  auditLogs             Boolean                @default(false)
+  prioritySupport       Boolean                @default(false)
+  sortOrder             Int                    @default(0)
+  active                Boolean                @default(true)
+  subscriptions         BillingSubscription[]
+  adminBillingOverrides AdminBillingOverride[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+}
+
+model BillingSubscription {
+  id                     String          @id @default(cuid())
+  teamId                 String          @unique
+  planId                 String
+  status                 BillingStatus   @default(ACTIVE)
+  billingProvider        BillingProvider @default(INTERNAL)
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  graceUntil             DateTime?
+  cancelAtPeriodEnd      Boolean         @default(false)
+  overrideReason         String?
+  team                   Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  plan                   BillingPlan     @relation(fields: [planId], references: [id])
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  @@index([planId])
+  @@index([status, currentPeriodEnd])
+  @@index([billingProvider, providerSubscriptionId])
+}
+
+model WorkspaceUsageSnapshot {
+  teamId         String   @id
+  activeMembers  Int      @default(0)
+  pendingInvites Int      @default(0)
+  activeTasks    Int      @default(0)
+  storageBytes   BigInt   @default(0)
+  lastCalculated DateTime @default(now())
+  team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+}
+
+model BillingEvent {
+  id              String          @id @default(cuid())
+  teamId          String?
+  provider        BillingProvider
+  providerEventId String
+  eventType       String
+  verified        Boolean         @default(false)
+  rawPayload      Json
+  processedAt     DateTime?
+  team            Team?           @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([teamId, createdAt])
+}
+
+model Invoice {
+  id                String        @id @default(cuid())
+  teamId            String
+  number            String        @unique
+  status            InvoiceStatus @default(DRAFT)
+  amountLkr         Int
+  description       String
+  dueAt             DateTime?
+  paidAt            DateTime?
+  providerPaymentId String?
+  team              Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([teamId, status])
+}
+
+model AdminBillingOverride {
+  id             String         @id @default(cuid())
+  teamId         String
+  adminUserId    String
+  previousPlanId String?
+  newPlanId      String?
+  previousStatus BillingStatus?
+  newStatus      BillingStatus?
+  reason         String
+  team           Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  newPlan        BillingPlan?   @relation(fields: [newPlanId], references: [id])
+  createdAt      DateTime       @default(now())
+
+  @@index([teamId, createdAt])
+  @@index([adminUserId, createdAt])
 }
 
 model Membership {
@@ -455,4 +568,27 @@ enum TeamQuestStatus {
   ACTIVE
   COMPLETED
   EXPIRED
+}
+
+enum BillingProvider {
+  INTERNAL
+  MANUAL
+  PAYHERE
+}
+
+enum BillingStatus {
+  TRIALING
+  ACTIVE
+  GRACE
+  PAST_DUE
+  CANCELED
+  COMPED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  VOID
+  OVERDUE
 }

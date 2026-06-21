@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
+import { checkUserWorkspaceLimit, checkWorkspaceLimit, ensureTeamBillingSubscription, refreshWorkspaceUsage } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { sendInviteEmail } from "@/lib/mail";
 import { publishRealtimeEvent } from "@/lib/realtime";
@@ -18,14 +19,20 @@ export async function createTeamAction(_: TeamState, formData: FormData): Promis
   if (name.length < 2) return { error: "Enter a team name." };
   const access = await getActiveMembershipAccess(user.id);
   if (access.restricted) return { error: "Ask an organization owner to make you an admin before creating teams." };
+  const billingCheck = await checkUserWorkspaceLimit(user.id);
+  if (!billingCheck.allowed) return { error: billingCheck.reason ?? "Upgrade your plan before creating another workspace." };
 
-  await db.team.create({
-    data: {
-      name,
-      timeZone: (await db.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } }))?.timeZone ?? "UTC",
-      memberships: { create: { userId: user.id, role: "OWNER" } },
-      featureSettings: { create: {} },
-    },
+  await db.$transaction(async (tx) => {
+    const team = await tx.team.create({
+      data: {
+        name,
+        timeZone: (await tx.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } }))?.timeZone ?? "UTC",
+        memberships: { create: { userId: user.id, role: "OWNER" } },
+        featureSettings: { create: {} },
+      },
+      select: { id: true },
+    });
+    await ensureTeamBillingSubscription(team.id, tx);
   });
   await publishRealtimeEvent([user.id], "team.created");
 
@@ -44,6 +51,8 @@ export async function inviteMemberAction(_: TeamState, formData: FormData): Prom
     include: { team: true },
   });
   if (!owner || owner.status !== "ACTIVE" || owner.role !== "OWNER") return { error: "Only a team owner can invite people." };
+  const billingCheck = await checkWorkspaceLimit(teamId, "ADD_MEMBER");
+  if (!billingCheck.allowed) return { error: billingCheck.reason ?? "Upgrade this workspace before inviting more people." };
 
   const registered = await db.user.findUnique({ where: { email } });
   if (registered) {
@@ -90,6 +99,7 @@ export async function inviteMemberAction(_: TeamState, formData: FormData): Prom
   });
 
   revalidatePath("/dashboard");
+  await refreshWorkspaceUsage(teamId);
   return {
     success: registered
       ? "Invitation sent inside the app."

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, CheckCircle2, Clock, Coins, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Building2, CheckCircle2, Handshake, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
@@ -7,11 +7,11 @@ import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { breadcrumbSchema, faqSchema, freePlanOfferSchema, pageMetadata, webPageSchema } from "@/lib/seo/schema";
+import { breadcrumbSchema, faqSchema, pageMetadata, webPageSchema } from "@/lib/seo/schema";
 import { cn } from "@/lib/utils";
 
-const pageTitle = "Tuduvia Pricing - Start Free With Simple Tasks and Teams";
-const pageDescription = "Start Tuduvia free with personal task lists, temporary teams, assignments, due dates, comments, files, notifications, and mobile-friendly access. No hidden fees today.";
+const pageTitle = "Tuduvia Pricing - Start Free, Upgrade When Your Team Grows";
+const pageDescription = "Start Tuduvia free for simple tasks and small teams. Upgrade for more members, storage, workspace controls, branding, support, and business setup.";
 
 export const metadata: Metadata = pageMetadata({
   title: pageTitle,
@@ -19,21 +19,38 @@ export const metadata: Metadata = pageMetadata({
   path: "/pricing",
 });
 
-const freeFeatures = ["Personal task list", "Temporary teams", "Team invites", "Task assignment", "Due dates and priorities", "Comments and files", "Notifications", "Momentum", "Mobile-friendly web app"];
-const freeUseCases = [
-  { label: "Personal users", href: "/use-cases/simple-personal-todo-list" },
-  { label: "Students", href: "/use-cases/school-project-task-list" },
-  { label: "Families", href: "/use-cases/home-family-task-list" },
-  { label: "Small businesses", href: "/use-cases/small-business-task-management" },
-  { label: "Non-IT teams", href: "/use-cases/non-it-team-task-management" },
-  { label: "Temporary teams", href: "/use-cases/temporary-team-task-management" },
+const plans = [
+  {
+    name: "Free",
+    badge: "Start here",
+    price: "Free",
+    text: "For personal tasks, students, families, and very small teams.",
+    icon: CheckCircle2,
+    features: ["1 workspace", "Up to 3 members", "200 active tasks", "100 MB storage", "30-day history", "Basic team tasks"],
+  },
+  {
+    name: "Team Starter",
+    badge: "Small teams",
+    price: "LKR 2,500/mo",
+    text: "For small businesses and active teams that need more room.",
+    icon: Users,
+    features: ["Up to 7 members", "2,000 active tasks", "2 GB storage", "50 MB file uploads", "1-year history", "Standard support"],
+  },
+  {
+    name: "Business",
+    badge: "Growing teams",
+    price: "LKR 7,500/mo",
+    text: "For organizations that need branding, higher limits, and admin controls.",
+    icon: Building2,
+    features: ["Up to 5 workspaces", "Up to 25 members", "10,000 active tasks", "10 GB storage", "Organization branding", "Priority support"],
+  },
 ];
 
 const faqs = [
-  { question: "Is Tuduvia free?", answer: "Yes. All features are free — personal tasks, team tasks, comments, files, notifications, momentum, and mobile access. No hidden fees." },
-  { question: "Why is it free?", answer: "We believe the best productivity tools should be accessible to everyone. Simple task management shouldn't require a subscription." },
-  { question: "Will paid plans arrive later?", answer: "We may add optional credit-based plans for advanced capabilities in the future, but today every feature is free and available." },
-  { question: "Can I use Tuduvia for a business?", answer: "Yes. Small businesses, teams, freelancers, and organizations can start today with all features included." },
+  { question: "Can I still use Tuduvia for free?", answer: "Yes. The Free plan remains available for personal use, students, families, and very small teams." },
+  { question: "What happens if I reach a limit?", answer: "Your existing work stays safe. Tuduvia blocks only new items such as extra members, tasks, or uploads until usage is reduced or the workspace is upgraded." },
+  { question: "Do you support custom setup?", answer: "Yes. Tuduvia can be configured for a business, department, clinic, school group, or service team with paid setup support." },
+  { question: "Are online payments live?", answer: "Billing is being rolled out carefully. Manual upgrades and setup support come first, then PayHere subscriptions." },
 ];
 
 export default function PricingPage() {
@@ -41,8 +58,7 @@ export default function PricingPage() {
     <main className="min-h-screen bg-background">
       <JsonLd
         data={[
-          webPageSchema({ path: "/pricing", name: "Start free. Keep it simple.", description: pageDescription }),
-          freePlanOfferSchema(),
+          webPageSchema({ path: "/pricing", name: "Start free, upgrade when your team grows.", description: pageDescription }),
           breadcrumbSchema([
             { name: "Home", path: "/" },
             { name: "Pricing", path: "/pricing" },
@@ -51,81 +67,59 @@ export default function PricingPage() {
         ]}
       />
       <MarketingHeader />
+
       <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <Badge>All features included</Badge>
-          <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-6xl">Start free. Keep it simple.</h1>
+          <Badge>Simple pricing</Badge>
+          <h1 className="mt-5 text-4xl font-semibold leading-tight sm:text-6xl">Start free, upgrade when the team grows.</h1>
           <p className="mt-5 text-base leading-7 text-muted-foreground sm:text-xl">
-            Tuduvia is free — personal tasks, team tasks, comments, files, notifications, momentum, and mobile access. All included. No hidden fees.
+            Tuduvia stays easy for personal tasks and small teams, then adds paid limits, branding, support, and setup help when work becomes serious.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-4 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
-          <div className="rounded-lg border border-brand/35 bg-surface p-6 shadow-soft">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-2xl font-semibold">Free</h2>
-                <p className="mt-1 text-sm text-muted-foreground">For personal use, temporary projects, and small teams starting today.</p>
-              </div>
-              <Badge variant="success">Active</Badge>
-            </div>
-            <div className="mt-6 flex items-end gap-2">
-              <span className="text-5xl font-semibold">$0</span>
-              <span className="pb-2 text-sm text-muted-foreground">free forever</span>
-            </div>
-            <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "mt-6 w-full")}>
-              Start free <ArrowRight />
-            </Link>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {freeFeatures.map((feature) => (
-                <div key={feature} className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                  <span>{feature}</span>
+        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+          {plans.map((plan) => (
+            <article key={plan.name} className="flex flex-col rounded-lg border border-border bg-surface p-6 shadow-soft">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Badge variant={plan.name === "Free" ? "success" : "secondary"}>{plan.badge}</Badge>
+                  <h2 className="mt-4 text-2xl font-semibold">{plan.name}</h2>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{plan.text}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <FuturePlan icon={Coins} title="Credits" text="Planned for future high-usage or advanced capabilities that should stay flexible instead of forcing every user into a subscription." />
-          <FuturePlan icon={Users} title="Team Plus" text="Planned for larger teams that may need stronger controls, limits, or admin features after Tuduvia grows." />
+                <plan.icon className="h-6 w-6 text-brand" />
+              </div>
+              <p className="mt-6 text-3xl font-semibold">{plan.price}</p>
+              <ul className="mt-6 grid gap-3 text-sm">
+                {plan.features.map((feature) => (
+                  <li key={feature} className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-success" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link href={plan.name === "Free" ? "/signup" : "/contact"} className={cn(buttonVariants({ variant: plan.name === "Free" ? "default" : "secondary" }), "mt-6 w-full")}>
+                {plan.name === "Free" ? "Start free" : "Talk to Tuduvia"} <ArrowRight />
+              </Link>
+            </article>
+          ))}
         </div>
       </section>
 
       <section className="border-y border-border bg-surface/50">
-        <div className="mx-auto grid w-full max-w-6xl gap-4 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-3">
+        <div className="mx-auto grid w-full max-w-6xl gap-4 px-5 py-16 sm:px-8 lg:grid-cols-2">
           <div className="rounded-lg border border-border bg-background p-5">
-            <Sparkles className="h-5 w-5 text-warning" />
-            <h2 className="mt-3 font-semibold">Everything included</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Personal to-do lists, team tasks, comments, files, notifications, momentum, and mobile access — all free.</p>
-          </div>
-          <div className="rounded-lg border border-border bg-background p-5">
-            <Clock className="h-5 w-5 text-brand" />
-            <h2 className="mt-3 font-semibold">Built to stay simple</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Tuduvia focuses on the shortest path from to-do to done. No feature bloat, no training needed.</p>
-          </div>
-          <div className="rounded-lg border border-border bg-background p-5">
-            <CheckCircle2 className="h-5 w-5 text-success" />
-            <h2 className="mt-3 font-semibold">No hidden fees</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">No credit card needed. No surprise charges. Just a simple task app that works.</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-        <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-          <div>
-            <h2 className="text-3xl font-semibold leading-tight">Who can use the free plan?</h2>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              The free plan is enough to test Tuduvia in real life: start with your own list, create a temporary group for one project, or invite a small team when the work becomes shared.
+            <Handshake className="h-5 w-5 text-brand" />
+            <h2 className="mt-3 font-semibold">Custom setup</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Need Tuduvia mapped to your team process? We can help with workspace setup, onboarding, migration, and workflow design.
             </p>
-            <Link href="/use-cases" className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "mt-5")}>Explore all use cases</Link>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {freeUseCases.map((item) => (
-              <Link key={item.href} href={item.href} className="rounded-lg border border-border bg-surface/75 p-4 text-sm font-semibold transition-colors hover:border-brand/50 hover:bg-surface">
-                {item.label}
-              </Link>
-            ))}
+          <div className="rounded-lg border border-border bg-background p-5">
+            <ShieldCheck className="h-5 w-5 text-success" />
+            <h2 className="mt-3 font-semibold">Safe upgrades and downgrades</h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Downgrades do not delete existing work. Tuduvia limits new activity until the workspace fits the selected plan.
+            </p>
           </div>
         </div>
       </section>
@@ -143,16 +137,5 @@ export default function PricingPage() {
       </section>
       <MarketingFooter />
     </main>
-  );
-}
-
-function FuturePlan({ icon: Icon, title, text }: { icon: typeof Coins; title: string; text: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-surface/65 p-6">
-      <Badge variant="secondary">Coming later</Badge>
-      <Icon className="mt-5 h-6 w-6 text-brand" />
-      <h2 className="mt-4 text-2xl font-semibold">{title}</h2>
-      <p className="mt-3 text-sm leading-7 text-muted-foreground">{text}</p>
-    </div>
   );
 }

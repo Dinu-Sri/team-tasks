@@ -21,6 +21,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     getActiveMembershipAccess(user.id),
   ]);
   const hasOrganizationAdmin = access.memberships.some((membership) => membership.source === "DOMAIN" && (membership.role === "OWNER" || membership.role === "ADMIN"));
+  const hasBillingAccess = !access.restricted && access.visibleMemberships.some((membership) => membership.role === "OWNER" || membership.role === "ADMIN");
   const visibleTeamIds = access.visibleMemberships.map((membership) => membership.teamId);
   const organizationMembership = visibleTeamIds.length
     ? await db.membership.findFirst({
@@ -64,6 +65,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           isSuperAdmin={isSuperAdmin(user.email)}
           restrictedOrganizationMember={access.restricted}
           hasOrganizationAdmin={hasOrganizationAdmin}
+          hasBillingAccess={hasBillingAccess}
         >
           {children}
         </DashboardShell>

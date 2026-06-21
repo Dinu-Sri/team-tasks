@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { removeStoredAttachment, storeAttachment, validateAttachment } from "@/lib/attachments";
 import { getSessionUser } from "@/lib/auth";
+import { checkWorkspaceLimit, refreshWorkspaceUsage } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { publishRealtimeEvent } from "@/lib/realtime";
 
@@ -28,6 +29,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tas
   if (!(file instanceof File)) return NextResponse.json({ error: "Choose a file." }, { status: 400 });
   const error = await validateAttachment(file, task.team.featureSettings.attachmentLimitMb);
   if (error) return NextResponse.json({ error }, { status: 400 });
+  const billingCheck = await checkWorkspaceLimit(task.teamId, "UPLOAD_FILE", { fileSizeBytes: file.size });
+  if (!billingCheck.allowed) return NextResponse.json({ error: billingCheck.reason ?? "Upgrade this workspace before uploading more files." }, { status: 403 });
 
   const storedName = await storeAttachment(file);
   try {
@@ -56,6 +59,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tas
       });
     }
     await publishRealtimeEvent([user.id, ...recipients], "attachment.created");
+    await refreshWorkspaceUsage(task.teamId);
     return NextResponse.json({ id: attachment.id, name: attachment.originalName });
   } catch (error) {
     await removeStoredAttachment(storedName);

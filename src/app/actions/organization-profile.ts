@@ -6,6 +6,7 @@ import path from "path";
 import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth";
+import { checkWorkspaceLimit } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { uploadDirectory } from "@/lib/attachments";
 
@@ -35,6 +36,10 @@ export async function updateOrganizationProfileAction(_: OrganizationProfileStat
   }
   if (!membership.team.organizationDomains.some((domain) => domain.verifiedAt)) {
     return { error: "Verify an organization domain before editing the organization profile." };
+  }
+  if (useOrganizationIcon || (logo instanceof File && logo.size > 0)) {
+    const billingCheck = await checkWorkspaceLimit(teamId, "ENABLE_CUSTOM_BRANDING");
+    if (!billingCheck.allowed) return { error: billingCheck.reason ?? "Upgrade this workspace before enabling organization branding." };
   }
 
   let organizationLogo: string | undefined;

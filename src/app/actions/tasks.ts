@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
+import { checkWorkspaceLimit, refreshWorkspaceUsage } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { awardTaskMomentum, dueDateForSelection, revokeTaskMomentum, type MomentumAward } from "@/lib/momentum";
 import { publishRealtimeEvent } from "@/lib/realtime";
@@ -36,6 +37,8 @@ export async function createPersonalTaskAction(formData: FormData) {
   if (!membership || membership.status !== "ACTIVE" || !assignee || assignee.status !== "ACTIVE") return;
   const assigningAnotherPerson = requestedAssigneeId !== user.id;
   if (assigningAnotherPerson && (membership.role !== "OWNER" || !membership.team.featureSettings?.memberTaskViewEnabled)) return;
+  const billingCheck = await checkWorkspaceLimit(teamId, "CREATE_TASK");
+  if (!billingCheck.allowed) return;
 
   await db.task.create({
     data: {
@@ -60,6 +63,7 @@ export async function createPersonalTaskAction(formData: FormData) {
     });
   }
   await publishRealtimeEvent([user.id, requestedAssigneeId], "task.created");
+  await refreshWorkspaceUsage(teamId);
 
   revalidatePath("/");
   revalidatePath("/dashboard");
@@ -81,6 +85,8 @@ export async function createTeamTaskAction(formData: FormData) {
     include: { team: { select: { name: true, timeZone: true } } },
   });
   if (!owner || owner.status !== "ACTIVE" || owner.role !== "OWNER") return;
+  const billingCheck = await checkWorkspaceLimit(teamId, "CREATE_TASK");
+  if (!billingCheck.allowed) return;
 
   const validMembers = await db.membership.findMany({
     where: { teamId, userId: { in: assigneeIds }, status: "ACTIVE" },
@@ -113,6 +119,7 @@ export async function createTeamTaskAction(formData: FormData) {
     });
   }
   await publishRealtimeEvent(validMembers.map(({ userId }) => userId), "task.created");
+  await refreshWorkspaceUsage(teamId);
 
   revalidatePath("/");
   revalidatePath("/dashboard");

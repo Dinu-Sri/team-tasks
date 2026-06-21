@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, BellDot, Building2, CheckCheck, Shield, SlidersHorizontal, Users } from "lucide-react";
+import { BarChart3, BellDot, Building2, CheckCheck, CreditCard, Shield, SlidersHorizontal, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -20,17 +20,20 @@ export function DashboardShell({
   isSuperAdmin = false,
   restrictedOrganizationMember = false,
   hasOrganizationAdmin = false,
+  hasBillingAccess = false,
 }: {
   children: ReactNode;
   isSuperAdmin?: boolean;
   restrictedOrganizationMember?: boolean;
   hasOrganizationAdmin?: boolean;
+  hasBillingAccess?: boolean;
 }) {
   const pathname = usePathname();
   const visibleCoreItems = restrictedOrganizationMember ? coreItems.filter((item) => item.href === "/dashboard/teams" || item.href === "/dashboard/archive") : coreItems;
   const items = [
     ...visibleCoreItems,
     ...(hasOrganizationAdmin ? [{ href: "/dashboard/organization", label: "Organization", icon: Building2 }] : []),
+    ...(hasBillingAccess ? [{ href: "/dashboard/billing", label: "Billing", icon: CreditCard }] : []),
     ...(isSuperAdmin ? [{ href: "/dashboard/admin", label: "Admin", icon: Shield }] : []),
   ];
 

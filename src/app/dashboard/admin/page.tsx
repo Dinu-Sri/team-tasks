@@ -1,26 +1,46 @@
-import { Shield, Trash2, UserX, UserCheck, Users, CalendarDays, AlertTriangle } from "lucide-react";
+import { Shield, Trash2, UserX, UserCheck, Users, CalendarDays, AlertTriangle, CreditCard } from "lucide-react";
 import Link from "next/link";
 
 import { deleteUserSubmitAction, suspendUserSubmitAction, unsuspendUserSubmitAction } from "@/app/actions/admin";
+import { updateWorkspaceBillingSubmitAction } from "@/app/actions/billing";
 import { ConfirmSubmitButton } from "@/components/dashboard/confirm-submit-button";
 import { Button } from "@/components/ui/button";
 import { requireSuperAdmin, SUPER_ADMIN_EMAIL } from "@/lib/auth";
+import { ensureDefaultBillingPlans, getWorkspaceBillingSummaries, storageMb } from "@/lib/billing";
 import { db } from "@/lib/db";
 
 export default async function AdminPage() {
   const admin = await requireSuperAdmin();
+  await ensureDefaultBillingPlans();
 
-  const users = await db.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      createdAt: true,
-      passwordHash: true,
-      _count: { select: { memberships: true, createdTasks: true, assignments: true, uploadedAttachments: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const [users, teams, plans] = await Promise.all([
+    db.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+        passwordHash: true,
+        _count: { select: { memberships: true, createdTasks: true, assignments: true, uploadedAttachments: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.team.findMany({
+      select: {
+        id: true,
+        name: true,
+        organizationName: true,
+        memberships: {
+          where: { role: "OWNER", status: "ACTIVE" },
+          select: { user: { select: { name: true, email: true } } },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.billingPlan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+  ]);
+  const billingByTeam = await getWorkspaceBillingSummaries(teams.map((team) => team.id));
 
   const suspended = (hash: string) => hash.startsWith("__SUSPENDED__");
   const reinstated = (hash: string) => hash.startsWith("__REINSTATED__");
@@ -123,6 +143,70 @@ export default async function AdminPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">{users.length} total registered user(s). Suspended users cannot log in until unsuspended.</p>
+
+      <section className="space-y-3 pt-3">
+        <header className="flex flex-col gap-1 border-b border-border pb-3">
+          <h2 className="flex items-center gap-2 text-xl font-semibold">
+            <CreditCard className="h-5 w-5 text-brand" />
+            Workspace billing
+          </h2>
+          <p className="text-sm text-muted-foreground">Manually adjust customer plans while PayHere automation is being prepared.</p>
+        </header>
+
+        <div className="grid gap-3">
+          {teams.map((team) => {
+            const billing = billingByTeam.get(team.id);
+            const usage = billing?.usage;
+            const owner = team.memberships[0]?.user;
+            return (
+              <details key={team.id} className="rounded-lg border border-border bg-surface">
+                <summary className="flex cursor-pointer list-none flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{team.organizationName ?? team.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{owner ? `${owner.name} - ${owner.email}` : "No active owner found"}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <Badge variant="secondary">{billing?.plan.name ?? "Free"}</Badge>
+                    <Badge variant={billing?.subscription.status === "ACTIVE" || billing?.subscription.status === "COMPED" ? "default" : "secondary"}>
+                      {(billing?.subscription.status ?? "ACTIVE").toLowerCase().replace("_", " ")}
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      {usage ? `${usage.activeMembers} members, ${usage.activeTasks} tasks, ${Math.ceil(storageMb(usage.storageBytes)).toLocaleString()} MB` : "Usage pending"}
+                    </span>
+                  </div>
+                </summary>
+                <form action={updateWorkspaceBillingSubmitAction} className="grid gap-3 border-t border-border p-4 md:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+                  <input type="hidden" name="teamId" value={team.id} />
+                  <label className="grid gap-1 text-xs font-medium uppercase text-muted-foreground">
+                    Plan
+                    <select name="planId" defaultValue={billing?.plan.id ?? "plan_free"} className="h-10 rounded-full border border-border bg-background px-3 text-sm normal-case text-foreground">
+                      {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="grid gap-1 text-xs font-medium uppercase text-muted-foreground">
+                    Status
+                    <select name="status" defaultValue={billing?.subscription.status ?? "ACTIVE"} className="h-10 rounded-full border border-border bg-background px-3 text-sm normal-case text-foreground">
+                      {["TRIALING", "ACTIVE", "GRACE", "PAST_DUE", "CANCELED", "COMPED"].map((status) => <option key={status} value={status}>{status.toLowerCase().replace("_", " ")}</option>)}
+                    </select>
+                  </label>
+                  <label className="grid gap-1 text-xs font-medium uppercase text-muted-foreground">
+                    Period end
+                    <input name="currentPeriodEnd" type="date" defaultValue={billing?.subscription.currentPeriodEnd?.toISOString().slice(0, 10) ?? ""} className="h-10 rounded-full border border-border bg-background px-3 text-sm normal-case text-foreground" />
+                  </label>
+                  <label className="grid gap-1 text-xs font-medium uppercase text-muted-foreground">
+                    Grace until
+                    <input name="graceUntil" type="date" defaultValue={billing?.subscription.graceUntil?.toISOString().slice(0, 10) ?? ""} className="h-10 rounded-full border border-border bg-background px-3 text-sm normal-case text-foreground" />
+                  </label>
+                  <div className="grid gap-2 md:col-span-5 md:grid-cols-[1fr_auto]">
+                    <input name="reason" placeholder="Reason for manual billing change" className="h-10 rounded-full border border-border bg-background px-3 text-sm" required />
+                    <Button type="submit" className="w-full md:w-auto">Save billing</Button>
+                  </div>
+                </form>
+              </details>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

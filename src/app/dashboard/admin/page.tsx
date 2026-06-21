@@ -2,10 +2,11 @@ import { Shield, Trash2, UserX, UserCheck, Users, CalendarDays, AlertTriangle, C
 import Link from "next/link";
 
 import { deleteUserSubmitAction, suspendUserSubmitAction, unsuspendUserSubmitAction } from "@/app/actions/admin";
-import { updateWorkspaceBillingSubmitAction } from "@/app/actions/billing";
+import { saveBillingCouponSubmitAction, updateWorkspaceBillingSubmitAction } from "@/app/actions/billing";
 import { ConfirmSubmitButton } from "@/components/dashboard/confirm-submit-button";
 import { Button } from "@/components/ui/button";
 import { requireSuperAdmin, SUPER_ADMIN_EMAIL } from "@/lib/auth";
+import { couponDiscountLabel } from "@/lib/billing-coupons";
 import { ensureDefaultBillingPlans, getWorkspaceBillingSummaries, storageMb } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { payHereConfigStatus } from "@/lib/payhere";
@@ -15,7 +16,7 @@ export default async function AdminPage() {
   await ensureDefaultBillingPlans();
 
   const payHereStatus = payHereConfigStatus();
-  const [users, teams, plans, invoices, billingEvents] = await Promise.all([
+  const [users, teams, plans, invoices, billingEvents, coupons] = await Promise.all([
     db.user.findMany({
       select: {
         id: true,
@@ -50,6 +51,10 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
       take: 25,
       include: { team: { select: { name: true, organizationName: true } } },
+    }),
+    db.billingCoupon.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { plan: { select: { name: true } }, _count: { select: { redemptions: true } } },
     }),
   ]);
   const billingByTeam = await getWorkspaceBillingSummaries(teams.map((team) => team.id));
@@ -233,6 +238,64 @@ export default async function AdminPage() {
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
+          <section className="rounded-lg border border-border bg-surface xl:col-span-2">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="font-semibold">Discount coupons</h3>
+              <p className="text-xs text-muted-foreground">Create limited discount codes for checkout. Codes are normalized to uppercase.</p>
+            </div>
+            <form action={saveBillingCouponSubmitAction} className="grid gap-3 border-b border-border p-4 md:grid-cols-4">
+              <input name="code" placeholder="Code, e.g. LAUNCH50" className="h-10 rounded-full border border-border bg-background px-3 text-sm uppercase" required />
+              <input name="name" placeholder="Internal name" className="h-10 rounded-full border border-border bg-background px-3 text-sm" required />
+              <select name="discountType" className="h-10 rounded-full border border-border bg-background px-3 text-sm">
+                <option value="PERCENT">Percent off</option>
+                <option value="AMOUNT">Fixed LKR off</option>
+              </select>
+              <label className="flex h-10 items-center gap-2 rounded-full border border-border bg-background px-3 text-sm">
+                <input name="active" type="checkbox" defaultChecked /> Active
+              </label>
+              <input name="percentOff" type="number" min="1" max="95" placeholder="Percent off" className="h-10 rounded-full border border-border bg-background px-3 text-sm" />
+              <input name="amountOffLkr" type="number" min="1" placeholder="Fixed LKR off" className="h-10 rounded-full border border-border bg-background px-3 text-sm" />
+              <select name="planId" className="h-10 rounded-full border border-border bg-background px-3 text-sm">
+                <option value="">Any paid plan</option>
+                {plans.filter((plan) => plan.code !== "free" && plan.code !== "custom_setup").map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
+              </select>
+              <select name="billingCycle" className="h-10 rounded-full border border-border bg-background px-3 text-sm">
+                <option value="">Any cycle</option>
+                <option value="MONTHLY">Monthly only</option>
+                <option value="YEARLY">Yearly only</option>
+              </select>
+              <input name="maxRedemptions" type="number" min="1" placeholder="Total uses" className="h-10 rounded-full border border-border bg-background px-3 text-sm" />
+              <input name="maxPerTeam" type="number" min="1" defaultValue="1" placeholder="Uses per workspace" className="h-10 rounded-full border border-border bg-background px-3 text-sm" />
+              <label className="grid gap-1 text-xs font-medium uppercase text-muted-foreground">
+                Starts
+                <input name="startsAt" type="date" className="h-10 rounded-full border border-border bg-background px-3 text-sm normal-case text-foreground" />
+              </label>
+              <label className="grid gap-1 text-xs font-medium uppercase text-muted-foreground">
+                Expires
+                <input name="expiresAt" type="date" className="h-10 rounded-full border border-border bg-background px-3 text-sm normal-case text-foreground" />
+              </label>
+              <Button type="submit" className="md:col-span-4">Save coupon</Button>
+            </form>
+            <div className="divide-y divide-border">
+              {coupons.map((coupon) => (
+                <div key={coupon.id} className="grid gap-2 px-4 py-3 text-sm lg:grid-cols-[1fr_auto_auto_auto] lg:items-center">
+                  <div>
+                    <p className="font-medium">{coupon.code} - {coupon.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {couponDiscountLabel(coupon.discountType, coupon.percentOff, coupon.amountOffLkr)}
+                      {coupon.plan ? ` - ${coupon.plan.name}` : " - any paid plan"}
+                      {coupon.billingCycle ? ` - ${coupon.billingCycle.toLowerCase()}` : ""}
+                    </p>
+                  </div>
+                  <Badge variant={coupon.active ? "default" : "secondary"}>{coupon.active ? "active" : "inactive"}</Badge>
+                  <span className="text-xs text-muted-foreground">{coupon._count.redemptions}{coupon.maxRedemptions ? `/${coupon.maxRedemptions}` : ""} used</span>
+                  <span className="text-xs text-muted-foreground">{coupon.expiresAt ? `expires ${coupon.expiresAt.toLocaleDateString()}` : "no expiry"}</span>
+                </div>
+              ))}
+              {!coupons.length ? <p className="px-4 py-3 text-sm text-muted-foreground">No coupons yet.</p> : null}
+            </div>
+          </section>
+
           <section className="rounded-lg border border-border bg-surface">
             <div className="border-b border-border px-4 py-3">
               <h3 className="font-semibold">Recent invoices</h3>
@@ -246,6 +309,7 @@ export default async function AdminPage() {
                     <Badge variant={invoice.status === "PAID" ? "default" : "secondary"}>{invoice.status.toLowerCase()}</Badge>
                   </div>
                   <p className="text-muted-foreground">{invoice.team.organizationName ?? invoice.team.name} - {invoice.plan?.name ?? "Custom"} - LKR {invoice.amountLkr.toLocaleString()}</p>
+                  {invoice.discountAmountLkr > 0 ? <p className="text-xs text-success">{invoice.discountCode} saved LKR {invoice.discountAmountLkr.toLocaleString()}</p> : null}
                   <p className="text-xs text-muted-foreground">Cycle {invoice.billingCycle.toLowerCase()} - created {invoice.createdAt.toLocaleString()} {invoice.paidAt ? `- paid ${invoice.paidAt.toLocaleString()}` : ""}</p>
                   {invoice.providerPaymentId ? <p className="text-xs text-muted-foreground">Payment ID: {invoice.providerPaymentId}</p> : null}
                 </div>

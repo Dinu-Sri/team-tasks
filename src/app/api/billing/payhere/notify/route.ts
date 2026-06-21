@@ -77,6 +77,22 @@ export async function POST(request: Request) {
           providerPaymentId: payload.payment_id || invoice.providerPaymentId,
         },
       });
+      if (invoice.couponId && invoice.discountAmountLkr > 0) {
+        const existingRedemption = await tx.billingCouponRedemption.findFirst({
+          where: { invoiceId: invoice.id },
+          select: { id: true },
+        });
+        if (!existingRedemption) {
+          await tx.billingCouponRedemption.create({
+            data: {
+              couponId: invoice.couponId,
+              teamId: invoice.teamId,
+              invoiceId: invoice.id,
+              amountDiscountLkr: invoice.discountAmountLkr,
+            },
+          });
+        }
+      }
       await tx.billingSubscription.upsert({
         where: { teamId: invoice.teamId },
         update: {

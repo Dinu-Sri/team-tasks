@@ -50,13 +50,13 @@ model OnboardingProgress {
 }
 
 model Team {
-  id                  String                  @id @default(cuid())
+  id                  String                    @id @default(cuid())
   name                String
   description         String?
-  timeZone            String                  @default("UTC")
+  timeZone            String                    @default("UTC")
   organizationName    String?
   organizationLogo    String?
-  useOrganizationIcon Boolean                 @default(false)
+  useOrganizationIcon Boolean                   @default(false)
   memberships         Membership[]
   organizationDomains OrganizationDomain[]
   tasks               Task[]
@@ -69,8 +69,9 @@ model Team {
   billingEvents       BillingEvent[]
   invoices            Invoice[]
   billingOverrides    AdminBillingOverride[]
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime                @updatedAt
+  couponRedemptions   BillingCouponRedemption[]
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
 }
 
 model BillingPlan {
@@ -95,6 +96,7 @@ model BillingPlan {
   subscriptions         BillingSubscription[]
   adminBillingOverrides AdminBillingOverride[]
   invoices              Invoice[]
+  coupons               BillingCoupon[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 }
@@ -149,24 +151,68 @@ model BillingEvent {
 }
 
 model Invoice {
-  id                String        @id @default(cuid())
+  id                String         @id @default(cuid())
   teamId            String
   planId            String?
-  number            String        @unique
-  status            InvoiceStatus @default(DRAFT)
-  billingCycle      BillingCycle  @default(MONTHLY)
+  couponId          String?
+  number            String         @unique
+  status            InvoiceStatus  @default(DRAFT)
+  billingCycle      BillingCycle   @default(MONTHLY)
+  originalAmountLkr Int?
   amountLkr         Int
+  discountAmountLkr Int            @default(0)
+  discountCode      String?
   description       String
   dueAt             DateTime?
   paidAt            DateTime?
   providerPaymentId String?
-  team              Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  plan              BillingPlan?  @relation(fields: [planId], references: [id], onDelete: SetNull)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  team              Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  plan              BillingPlan?   @relation(fields: [planId], references: [id], onDelete: SetNull)
+  coupon            BillingCoupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   @@index([teamId, status])
   @@index([planId])
+  @@index([couponId])
+}
+
+model BillingCoupon {
+  id             String                    @id @default(cuid())
+  code           String                    @unique
+  name           String
+  discountType   BillingDiscountType
+  percentOff     Int?
+  amountOffLkr   Int?
+  planId         String?
+  billingCycle   BillingCycle?
+  maxRedemptions Int?
+  maxPerTeam     Int                       @default(1)
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  active         Boolean                   @default(true)
+  plan           BillingPlan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
+  invoices       Invoice[]
+  redemptions    BillingCouponRedemption[]
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  @@index([active, expiresAt])
+  @@index([planId])
+}
+
+model BillingCouponRedemption {
+  id                String        @id @default(cuid())
+  couponId          String
+  teamId            String
+  invoiceId         String?
+  amountDiscountLkr Int
+  coupon            BillingCoupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  team              Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt         DateTime      @default(now())
+
+  @@index([couponId, createdAt])
+  @@index([teamId, createdAt])
 }
 
 model AdminBillingOverride {
@@ -603,4 +649,9 @@ enum BillingCycle {
   YEARLY
   MANUAL
   SETUP
+}
+
+enum BillingDiscountType {
+  PERCENT
+  AMOUNT
 }

@@ -11,7 +11,7 @@ import { payHereConfigStatus } from "@/lib/payhere";
 import { cn } from "@/lib/utils";
 import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
-export default async function BillingPage({ searchParams }: { searchParams: Promise<{ payment?: string; invoice?: string }> }) {
+export default async function BillingPage({ searchParams }: { searchParams: Promise<{ payment?: string; invoice?: string; reason?: string }> }) {
   const user = await requireUser();
   const query = await searchParams;
   const access = await getActiveMembershipAccess(user.id);
@@ -69,7 +69,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         {!payHereStatus.checkoutConfigured ? " PayHere checkout needs merchant ID and merchant secret env values." : null}
       </div>
 
-      {query.payment ? <PaymentMessage status={query.payment} /> : null}
+      {query.payment ? <PaymentMessage status={query.payment} reason={query.reason} /> : null}
 
       {billingByTeam.length ? (
         <section className="grid gap-4">
@@ -158,6 +158,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                           <div>
                             <p className="font-medium">{invoice.number}</p>
                             <p className="text-xs text-muted-foreground">{invoice.plan?.name ?? "Custom"} - LKR {invoice.amountLkr.toLocaleString()}</p>
+                            {invoice.discountAmountLkr > 0 ? <p className="text-xs text-success">{invoice.discountCode} saved LKR {invoice.discountAmountLkr.toLocaleString()}</p> : null}
                           </div>
                           <Badge variant={invoice.status === "PAID" ? "success" : invoice.status === "OVERDUE" ? "danger" : "secondary"}>{invoice.status.toLowerCase()}</Badge>
                         </div>
@@ -180,10 +181,16 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
 
 function UpgradeForm({ teamId, planId, cycle, amount, disabled }: { teamId: string; planId: string; cycle: "MONTHLY" | "YEARLY"; amount: number | null; disabled: boolean }) {
   return (
-    <form action={startPayHereSubscriptionAction}>
+    <form action={startPayHereSubscriptionAction} className="space-y-2">
       <input type="hidden" name="teamId" value={teamId} />
       <input type="hidden" name="planId" value={planId} />
       <input type="hidden" name="cycle" value={cycle} />
+      <input
+        name="discountCode"
+        placeholder="Discount code"
+        className="h-9 w-full rounded-full border border-border bg-surface px-3 text-sm uppercase"
+        disabled={disabled || !amount}
+      />
       <Button type="submit" variant={cycle === "MONTHLY" ? "secondary" : "default"} size="sm" disabled={disabled || !amount} className="w-full">
         {cycle === "MONTHLY" ? "Monthly" : "Yearly"} {amount ? `LKR ${amount.toLocaleString()}` : "Contact"}
       </Button>
@@ -191,7 +198,7 @@ function UpgradeForm({ teamId, planId, cycle, amount, disabled }: { teamId: stri
   );
 }
 
-function PaymentMessage({ status }: { status: string }) {
+function PaymentMessage({ status, reason }: { status: string; reason?: string }) {
   const messages: Record<string, string> = {
     return: "PayHere has redirected you back. Your plan will update after Tuduvia receives the verified PayHere notification.",
     cancelled: "Payment was cancelled before authorization. No plan changes were made.",
@@ -202,6 +209,7 @@ function PaymentMessage({ status }: { status: string }) {
     "already-paid": "That invoice is already paid.",
     "cancel-requested": "Subscription cancellation was recorded. Existing work remains safe.",
     downgraded: "Workspace moved to the Free plan. Existing work was not deleted.",
+    "discount-invalid": reason ?? "That discount code could not be applied.",
   };
   return (
     <div className="rounded-lg border border-border bg-surface p-3 text-sm text-muted-foreground">

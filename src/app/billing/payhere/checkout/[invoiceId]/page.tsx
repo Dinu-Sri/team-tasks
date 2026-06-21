@@ -42,6 +42,12 @@ export default async function PayHereCheckoutPage({ params }: { params: Promise<
         <div className="mt-5 rounded-lg border border-border bg-background p-3 text-sm">
           <p className="font-medium">{invoice.description}</p>
           <p className="mt-1 text-muted-foreground">Invoice {invoice.number} - LKR {invoice.amountLkr.toLocaleString()}</p>
+          {invoice.discountAmountLkr > 0 ? (
+            <p className="mt-1 text-xs text-success">
+              Discount {invoice.discountCode}: LKR {invoice.discountAmountLkr.toLocaleString()} off
+              {invoice.originalAmountLkr ? ` from LKR ${invoice.originalAmountLkr.toLocaleString()}` : ""}
+            </p>
+          ) : null}
         </div>
         <PayHereAutoSubmit actionUrl={checkout.actionUrl} fields={checkout.fields} />
       </section>

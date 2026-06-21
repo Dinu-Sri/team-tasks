@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireSuperAdmin, requireUser } from "@/lib/auth";
 import { ensureDefaultBillingPlans, ensureTeamBillingSubscription, refreshWorkspaceUsage } from "@/lib/billing";
+import { normalizeCouponCode, validateCouponForCheckout } from "@/lib/billing-coupons";
 import { db } from "@/lib/db";
 import { sendBillingEmail } from "@/lib/mail";
 import { cancelPayHereSubscription, createBillingInvoiceNumber, cycleAmount, payHereConfigured, payHereManagerConfigured } from "@/lib/payhere";
@@ -15,6 +16,66 @@ const billingStatuses = new Set(["TRIALING", "ACTIVE", "GRACE", "PAST_DUE", "CAN
 
 export async function updateWorkspaceBillingSubmitAction(formData: FormData) {
   await updateWorkspaceBillingAction({}, formData);
+}
+
+export async function saveBillingCouponSubmitAction(formData: FormData) {
+  const admin = await requireSuperAdmin();
+  const code = normalizeCouponCode(String(formData.get("code") ?? ""));
+  const name = String(formData.get("name") ?? "").trim();
+  const discountType = String(formData.get("discountType") ?? "PERCENT") === "AMOUNT" ? "AMOUNT" : "PERCENT";
+  const percentOff = Math.max(1, Math.min(95, Number(formData.get("percentOff") ?? 0) || 0));
+  const amountOffLkr = Math.max(1, Number(formData.get("amountOffLkr") ?? 0) || 0);
+  const planIdValue = String(formData.get("planId") ?? "");
+  const cycleValue = String(formData.get("billingCycle") ?? "");
+  const maxRedemptionsValue = Number(formData.get("maxRedemptions") ?? 0) || 0;
+  const maxPerTeamValue = Number(formData.get("maxPerTeam") ?? 1) || 1;
+  const startsAt = dateFromInput(formData.get("startsAt"));
+  const expiresAt = dateFromInput(formData.get("expiresAt"));
+  const active = formData.get("active") === "on";
+
+  if (code.length < 3) return;
+  if (name.length < 2) return;
+
+  const coupon = await db.billingCoupon.upsert({
+    where: { code },
+    update: {
+      name,
+      discountType,
+      percentOff: discountType === "PERCENT" ? percentOff : null,
+      amountOffLkr: discountType === "AMOUNT" ? amountOffLkr : null,
+      planId: planIdValue || null,
+      billingCycle: cycleValue === "MONTHLY" || cycleValue === "YEARLY" ? cycleValue : null,
+      maxRedemptions: maxRedemptionsValue > 0 ? maxRedemptionsValue : null,
+      maxPerTeam: Math.max(1, maxPerTeamValue),
+      startsAt,
+      expiresAt,
+      active,
+    },
+    create: {
+      code,
+      name,
+      discountType,
+      percentOff: discountType === "PERCENT" ? percentOff : null,
+      amountOffLkr: discountType === "AMOUNT" ? amountOffLkr : null,
+      planId: planIdValue || null,
+      billingCycle: cycleValue === "MONTHLY" || cycleValue === "YEARLY" ? cycleValue : null,
+      maxRedemptions: maxRedemptionsValue > 0 ? maxRedemptionsValue : null,
+      maxPerTeam: Math.max(1, maxPerTeamValue),
+      startsAt,
+      expiresAt,
+      active,
+    },
+    select: { id: true, code: true },
+  });
+
+  await db.productEvent.create({
+    data: {
+      name: "admin.billing_coupon_saved",
+      userId: admin.id,
+      properties: { couponId: coupon.id, code: coupon.code },
+    },
+  });
+  revalidatePath("/dashboard/admin");
 }
 
 export async function cancelWorkspaceSubscriptionAction(formData: FormData) {
@@ -97,6 +158,7 @@ export async function startPayHereSubscriptionAction(formData: FormData) {
   const teamId = String(formData.get("teamId") ?? "").trim();
   const planId = String(formData.get("planId") ?? "").trim();
   const cycle = String(formData.get("cycle") ?? "MONTHLY") === "YEARLY" ? "YEARLY" : "MONTHLY";
+  const discountCode = normalizeCouponCode(String(formData.get("discountCode") ?? ""));
   if (!teamId || !planId) redirect("/dashboard/billing?payment=invalid");
 
   const [membership, plan] = await Promise.all([
@@ -108,16 +170,22 @@ export async function startPayHereSubscriptionAction(formData: FormData) {
 
   const amountLkr = cycleAmount(plan, cycle);
   if (!amountLkr || amountLkr < 1) redirect("/dashboard/billing?payment=invalid-plan");
+  const discount = await validateCouponForCheckout({ code: discountCode, teamId, plan, cycle, amountLkr });
+  if (discount.message) redirect(`/dashboard/billing?payment=discount-invalid&reason=${encodeURIComponent(discount.message)}`);
 
   const invoice = await db.invoice.create({
     data: {
       teamId,
       planId,
+      couponId: discount.coupon?.id,
       billingCycle: cycle,
       number: await createBillingInvoiceNumber(),
       status: "SENT",
-      amountLkr,
-      description: `Tuduvia ${plan.name} ${cycle === "YEARLY" ? "annual" : "monthly"} subscription for ${membership.team.organizationName ?? membership.team.name}`,
+      originalAmountLkr: amountLkr,
+      amountLkr: discount.finalAmountLkr,
+      discountAmountLkr: discount.discountAmountLkr,
+      discountCode: discount.coupon?.code,
+      description: `Tuduvia ${plan.name} ${cycle === "YEARLY" ? "annual" : "monthly"} subscription for ${membership.team.organizationName ?? membership.team.name}${discount.coupon ? ` (${discount.coupon.code} discount)` : ""}`,
       dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     },
     select: { id: true },

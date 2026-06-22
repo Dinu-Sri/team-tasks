@@ -5,7 +5,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { filterControlClass, filterLabelClass, filterMenuClass, filterOptionClass, filterSearchControlClass } from "@/components/ui/filter-controls";
+import { filterLabelClass, filterMenuClass, filterOptionClass, filterSearchControlClass } from "@/components/ui/filter-controls";
+import { FilterDatePicker } from "@/components/ui/filter-date-picker";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { cn } from "@/lib/utils";
 
@@ -115,9 +116,9 @@ export function StorageFilters({
   }
 
   return (
-    <section className="rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Storage filters" aria-busy={isPending}>
-      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-[minmax(12rem,1.2fr)_minmax(11rem,0.9fr)_minmax(13rem,1.1fr)_minmax(9rem,0.75fr)_minmax(9rem,0.75fr)_minmax(8rem,0.65fr)] 2xl:items-end">
-        <label className="grid min-w-0 gap-1.5 md:col-span-2 2xl:col-span-1">
+    <section className="w-full max-w-full overflow-visible rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Storage filters" aria-busy={isPending}>
+      <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="grid min-w-0 gap-1.5 sm:col-span-2 lg:col-span-1">
           <span className={filterLabelClass}>Search</span>
           <span className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -131,7 +132,7 @@ export function StorageFilters({
           </span>
         </label>
 
-        <label className="grid min-w-0 gap-1.5">
+        <div className="grid min-w-0 gap-1.5">
           <span className={filterLabelClass}>Team</span>
           <FilterSelect
             value={values.team}
@@ -139,7 +140,7 @@ export function StorageFilters({
             ariaLabel="Filter by team"
             options={[{ value: "", label: "All teams" }, ...teams.map((team) => ({ value: team.id, label: team.name }))]}
           />
-        </label>
+        </div>
 
         <div ref={uploaderMenuRef} className="relative min-w-0">
           <label htmlFor="storage-uploader-search" className={cn(filterLabelClass, "mb-1.5 block")}>Uploader</label>
@@ -192,17 +193,17 @@ export function StorageFilters({
           ) : null}
         </div>
 
-        <label className="grid min-w-0 gap-1.5">
+        <div className="grid min-w-0 gap-1.5">
           <span className={filterLabelClass}>From</span>
-          <input type="date" value={values.from} onChange={(event) => replaceParams({ from: event.target.value })} className={filterControlClass} aria-label="From date" />
-        </label>
+          <FilterDatePicker value={values.from} onChange={(from) => replaceParams({ from })} ariaLabel="Filter from date" placeholder="Any start date" />
+        </div>
 
-        <label className="grid min-w-0 gap-1.5">
+        <div className="grid min-w-0 gap-1.5">
           <span className={filterLabelClass}>To</span>
-          <input type="date" value={values.to} onChange={(event) => replaceParams({ to: event.target.value })} className={filterControlClass} aria-label="To date" />
-        </label>
+          <FilterDatePicker value={values.to} onChange={(to) => replaceParams({ to })} ariaLabel="Filter to date" placeholder="Any end date" align="right" />
+        </div>
 
-        <label className="grid min-w-0 gap-1.5">
+        <div className="grid min-w-0 gap-1.5">
           <span className={filterLabelClass}>Sort</span>
           <FilterSelect
             value={values.sort}
@@ -216,7 +217,7 @@ export function StorageFilters({
               { value: "name", label: "Name" },
             ]}
           />
-        </label>
+        </div>
       </div>
 
       {activeFilterCount ? (

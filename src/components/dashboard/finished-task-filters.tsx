@@ -78,7 +78,7 @@ export function FinishedTaskFilters({
   return (
     <section className="rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Finished task filters">
       <div className="grid gap-3 lg:grid-cols-[minmax(12rem,18rem)_minmax(0,1fr)] lg:items-end">
-        <label className="grid gap-1.5 text-sm font-medium">
+        <div className="grid gap-1.5 text-sm font-medium">
           <span className={filterLabelClass}>Team</span>
           <FilterSelect
             value={selectedTeamId}
@@ -86,7 +86,7 @@ export function FinishedTaskFilters({
             ariaLabel="Filter finished tasks by team"
             options={[{ value: "__all__", label: "All teams" }, ...teams.map((team) => ({ value: team.id, label: team.name }))]}
           />
-        </label>
+        </div>
 
         <div ref={menuRef} className="relative min-w-0">
           <label htmlFor="finished-by-search" className={cn(filterLabelClass, "mb-1.5 block")}>Finished by</label>

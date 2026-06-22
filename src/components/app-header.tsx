@@ -3,6 +3,7 @@
 import { Building2, ListTodo } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { CSSProperties } from "react";
 
 import { MemberTaskViewToggle, MomentumMenu, NotificationMenu, ProfileMenu } from "@/components/header-menus";
@@ -39,11 +40,22 @@ export function AppHeader({
   allowAllWorkspaces?: boolean;
   organizationBrand?: { teamId: string; name: string; logo?: string | null; useOrganizationIcon: boolean } | null;
 }) {
-  const showOrganizationName = Boolean(organizationBrand);
-  const showOrganizationIcon = Boolean(organizationBrand?.useOrganizationIcon);
+  const searchParams = useSearchParams();
   const workspaceOptions = workspaces ?? [];
+  const selectedWorkspaceFromQuery = searchParams.get("workspace");
+  const selectedWorkspace = selectedWorkspaceFromQuery ? workspaceOptions.find((workspace) => workspace.id === selectedWorkspaceFromQuery) : null;
+  const activeOrganizationBrand = selectedWorkspace?.organizationName
+    ? {
+        teamId: selectedWorkspace.id,
+        name: selectedWorkspace.organizationName,
+        logo: selectedWorkspace.organizationLogo,
+        useOrganizationIcon: selectedWorkspace.useOrganizationIcon ?? false,
+      }
+    : organizationBrand;
+  const showOrganizationName = Boolean(activeOrganizationBrand);
+  const showOrganizationIcon = Boolean(activeOrganizationBrand?.useOrganizationIcon);
   const hasWorkspaceSelector = workspaceOptions.length > 0;
-  const organizationLogoSrc = organizationBrand?.logo ? `/api/organization-logo/${organizationBrand.teamId}?v=${encodeURIComponent(organizationBrand.logo)}` : null;
+  const organizationLogoSrc = activeOrganizationBrand?.logo ? `/api/organization-logo/${activeOrganizationBrand.teamId}?v=${encodeURIComponent(activeOrganizationBrand.logo)}` : null;
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur-lg" style={{ "--header-menu-top": hasWorkspaceSelector ? "6.75rem" : "4.25rem" } as CSSProperties}>
       <TabIndicator level={ledLevel} />
@@ -63,7 +75,7 @@ export function AppHeader({
             </span>
             <span className="hidden min-[360px]:inline">
               <span className="block leading-4">Tasks</span>
-              {showOrganizationName ? <span className="block max-w-28 truncate text-[11px] font-medium leading-3 text-muted-foreground">{organizationBrand?.name}</span> : null}
+              {showOrganizationName ? <span className="block max-w-28 truncate text-[11px] font-medium leading-3 text-muted-foreground">{activeOrganizationBrand?.name}</span> : null}
             </span>
           </Link>
         </div>

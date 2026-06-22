@@ -1,16 +1,17 @@
-import { Building2 } from "lucide-react";
-import { redirect } from "next/navigation";
-
 import { OrganizationProfileForm } from "@/components/dashboard/organization-profile-form";
 import { requireUser } from "@/lib/auth";
+import { ALL_WORKSPACES, getDashboardWorkspaceContext } from "@/lib/dashboard-workspace";
 import { db } from "@/lib/db";
 
-export default async function OrganizationPage() {
+export default async function OrganizationPage({ searchParams }: { searchParams: Promise<{ workspace?: string }> }) {
   const user = await requireUser();
+  const query = await searchParams;
+  const workspace = await getDashboardWorkspaceContext(user.id, query.workspace);
   const memberships = await db.membership.findMany({
     where: {
       userId: user.id,
       status: "ACTIVE",
+      teamId: { in: workspace.visibleTeamIds },
       role: { in: ["OWNER", "ADMIN"] },
       team: { organizationDomains: { some: { verifiedAt: { not: null } } } },
     },
@@ -18,16 +19,20 @@ export default async function OrganizationPage() {
     orderBy: { createdAt: "asc" },
   });
 
-  const membership = memberships[0];
-  if (!membership) redirect("/dashboard/teams");
+  const membership = workspace.selectedWorkspaceId !== ALL_WORKSPACES
+    ? memberships.find((item) => item.teamId === workspace.selectedWorkspaceId)
+    : memberships[0];
+  if (!membership) {
+    return (
+      <div className="rounded-lg border border-border bg-surface p-5 text-sm text-muted-foreground">
+        Choose a verified organization workspace to manage its profile.
+      </div>
+    );
+  }
   const team = membership.team;
 
   return (
     <div className="space-y-5">
-      <header className="border-b border-border pb-5">
-        <h1 className="flex items-center gap-2 text-2xl font-semibold"><Building2 className="h-5 w-5 text-brand" />Organization</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Manage the verified organization identity shown across Tuduvia.</p>
-      </header>
       <section className="rounded-lg border border-border bg-surface p-4">
         <p className="text-sm font-semibold">{team.organizationName ?? team.name}</p>
         <p className="mt-1 text-xs text-muted-foreground">

@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, ChevronDown, Globe } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type WorkspaceOption = { id: string; name: string; role: "OWNER" | "ADMIN" | "MEMBER"; organizationName?: string | null; useOrganizationIcon?: boolean; organizationLogo?: string | null };
@@ -22,10 +23,15 @@ export function WorkspaceSelector({
   selectedId: string;
   allowAll?: boolean;
 }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const allSelected = selectedId === ALL_ID;
-  const current = allSelected ? null : workspaces.find((w) => w.id === selectedId);
+  const queryWorkspace = searchParams.get("workspace");
+  const validQueryWorkspace = queryWorkspace && workspaces.some((workspace) => workspace.id === queryWorkspace) ? queryWorkspace : null;
+  const effectiveSelectedId = validQueryWorkspace ?? (allowAll ? selectedId : selectedId === ALL_ID ? workspaces[0]?.id ?? ALL_ID : selectedId);
+  const allSelected = allowAll && effectiveSelectedId === ALL_ID;
+  const current = allSelected ? null : workspaces.find((w) => w.id === effectiveSelectedId);
 
   useEffect(() => {
     function handleClick(event: PointerEvent) {
@@ -46,14 +52,16 @@ export function WorkspaceSelector({
     setOpen(false);
     setWorkspaceCookie(id);
     const params = new URLSearchParams(window.location.search);
-    const task = params.get("task");
-    params.delete("task");
+    const task = pathname === "/" ? params.get("task") : null;
+    for (const key of Array.from(params.keys())) {
+      if (key === "page" || key.endsWith("Page") || key === "team" || key === "task") params.delete(key);
+    }
     if (id === ALL_ID) params.delete("workspace");
     else params.set("workspace", id);
     if (task) params.set("task", task);
     const qs = params.toString();
-    window.location.href = `/${qs ? `?${qs}` : ""}`;
-  }, []);
+    window.location.href = `${pathname}${qs ? `?${qs}` : ""}`;
+  }, [pathname]);
 
   return (
     <div ref={rootRef} className="relative w-full sm:w-auto">
@@ -74,7 +82,7 @@ export function WorkspaceSelector({
               </>
             ) : null}
             {workspaces.map((ws) => {
-              const isSelected = ws.id === selectedId;
+              const isSelected = ws.id === effectiveSelectedId;
               return (
                 <button key={ws.id} role="option" aria-selected={isSelected} type="button" onClick={() => handleSelect(ws.id)} className={`flex w-full items-center gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-surface-subtle ${isSelected ? "font-semibold" : ""}`}>
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand">{ws.name[0].toUpperCase()}</span>

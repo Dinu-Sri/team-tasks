@@ -1,43 +1,24 @@
 "use client";
 
 import { ChevronDown, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { filterLabelClass, filterMenuClass, filterOptionClass, filterSearchControlClass } from "@/components/ui/filter-controls";
-import { FilterSelect } from "@/components/ui/filter-select";
 import { cn } from "@/lib/utils";
 
-export type FinishedTaskFilterTeam = {
-  id: string;
-  name: string;
-  members: Array<{ id: string; name: string }>;
-};
-
-function buildHref(teamId: string, memberId: string) {
-  const params = new URLSearchParams();
-  if (teamId !== "__all__") params.set("team", teamId);
-  if (memberId !== "__all__") params.set("member", memberId);
-  const query = params.toString();
-  return query ? `/dashboard/archive?${query}` : "/dashboard/archive";
-}
-
 export function FinishedTaskFilters({
-  teams,
-  selectedTeamId,
+  members,
   selectedMemberId,
 }: {
-  teams: FinishedTaskFilterTeam[];
-  selectedTeamId: string;
+  members: Array<{ id: string; name: string }>;
   selectedMemberId: string;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const menuRef = useRef<HTMLDivElement>(null);
   const [memberOpen, setMemberOpen] = useState(false);
-  const selectedTeams = selectedTeamId === "__all__" ? teams : teams.filter((team) => team.id === selectedTeamId);
-  const members = Array.from(
-    new Map(selectedTeams.flatMap((team) => team.members).map((member) => [member.id, member])).values(),
-  );
   const selectedMember = selectedMemberId === "__all__" ? null : members.find((member) => member.id === selectedMemberId) ?? null;
   const [memberSearch, setMemberSearch] = useState(selectedMember?.name ?? "");
   const filteredMembers = useMemo(() => {
@@ -48,7 +29,7 @@ export function FinishedTaskFilters({
 
   useEffect(() => {
     setMemberSearch(selectedMember?.name ?? "");
-  }, [selectedMember?.name, selectedTeamId]);
+  }, [selectedMember?.name]);
 
   useEffect(() => {
     function close(event: PointerEvent) {
@@ -65,29 +46,20 @@ export function FinishedTaskFilters({
     };
   }, []);
 
-  function selectTeam(teamId: string) {
-    router.push(buildHref(teamId, "__all__"));
-  }
-
   function selectMember(memberId: string, name = "") {
     setMemberOpen(false);
     setMemberSearch(memberId === "__all__" ? "" : name);
-    router.push(buildHref(selectedTeamId, memberId));
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("page");
+    if (memberId === "__all__") params.delete("member");
+    else params.set("member", memberId);
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
   }
 
   return (
     <section className="rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Finished task filters">
-      <div className="grid gap-3 lg:grid-cols-[minmax(12rem,18rem)_minmax(0,1fr)] lg:items-end">
-        <div className="grid gap-1.5 text-sm font-medium">
-          <span className={filterLabelClass}>Team</span>
-          <FilterSelect
-            value={selectedTeamId}
-            onChange={selectTeam}
-            ariaLabel="Filter finished tasks by team"
-            options={[{ value: "__all__", label: "All teams" }, ...teams.map((team) => ({ value: team.id, label: team.name }))]}
-          />
-        </div>
-
+      <div className="grid gap-3">
         <div ref={menuRef} className="relative min-w-0">
           <label htmlFor="finished-by-search" className={cn(filterLabelClass, "mb-1.5 block")}>Finished by</label>
           <div className="relative">

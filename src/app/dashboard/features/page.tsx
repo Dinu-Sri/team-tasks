@@ -1,10 +1,10 @@
-import { LockKeyhole, SlidersHorizontal } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 
-import { TeamSettingsPicker, type TeamSettingsOption } from "@/components/dashboard/team-settings-picker";
 import { FeatureSettingsForm } from "@/components/dashboard/feature-settings-form";
 import { OrganizationAccessPanel } from "@/components/dashboard/organization-access-panel";
 import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth";
+import { ALL_WORKSPACES, getDashboardWorkspaceContext } from "@/lib/dashboard-workspace";
 import { db } from "@/lib/db";
 import { redirectIfRestrictedOrganizationMember } from "@/lib/workspace-access";
 
@@ -27,12 +27,13 @@ type SettingsMembership = {
   };
 };
 
-export default async function FeaturesPage({ searchParams }: { searchParams: Promise<{ team?: string }> }) {
+export default async function FeaturesPage({ searchParams }: { searchParams: Promise<{ workspace?: string }> }) {
   const user = await requireUser();
   await redirectIfRestrictedOrganizationMember(user.id);
-  const { team: requestedTeamId } = await searchParams;
+  const query = await searchParams;
+  const workspace = await getDashboardWorkspaceContext(user.id, query.workspace);
   const memberships = await db.membership.findMany({
-    where: { userId: user.id, status: "ACTIVE" },
+    where: { userId: user.id, status: "ACTIVE", teamId: { in: workspace.visibleTeamIds } },
     include: {
       team: {
         include: {
@@ -49,18 +50,9 @@ export default async function FeaturesPage({ searchParams }: { searchParams: Pro
     orderBy: { createdAt: "asc" },
   }) as SettingsMembership[];
 
-  const teamOptions: TeamSettingsOption[] = memberships.map(({ team, role }) => {
-    const settings: TeamSettings = team.featureSettings ?? { commentsEnabled: false, attachmentsEnabled: false, memberTaskViewEnabled: false, finishedTaskViewEnabled: false, attachmentLimitMb: 5 };
-    const activeCount = [settings.commentsEnabled, settings.attachmentsEnabled, settings.memberTaskViewEnabled, settings.finishedTaskViewEnabled].filter(Boolean).length;
-    return {
-      id: team.id,
-      name: team.name,
-      role,
-      summary: activeCount ? `${activeCount} optional tool${activeCount === 1 ? "" : "s"} on` : "simple mode",
-    };
-  });
-
-  const selectedMembership = memberships.find(({ team }) => team.id === requestedTeamId) ?? memberships[0];
+  const selectedMembership = workspace.selectedWorkspaceId !== ALL_WORKSPACES
+    ? memberships.find(({ team }) => team.id === workspace.selectedWorkspaceId)
+    : memberships.find((membership) => membership.role === "OWNER" || membership.role === "ADMIN") ?? memberships[0];
   const selectedTeamId = selectedMembership?.team.id ?? "";
   const settings: TeamSettings = selectedMembership?.team.featureSettings ?? { commentsEnabled: false, attachmentsEnabled: false, memberTaskViewEnabled: false, finishedTaskViewEnabled: false, attachmentLimitMb: 5 };
   const activeCount = [settings.commentsEnabled, settings.attachmentsEnabled, settings.memberTaskViewEnabled, settings.finishedTaskViewEnabled].filter(Boolean).length;
@@ -76,10 +68,8 @@ export default async function FeaturesPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-5">
-      <header className="border-b border-border pb-5"><h1 className="flex items-center gap-2 text-2xl font-semibold"><SlidersHorizontal className="h-5 w-5 text-brand" />Team Settings</h1><p className="mt-1 text-sm text-muted-foreground">Keep teams simple by default. Turn on extra tools only when the work needs them.</p></header>
       {selectedMembership ? (
         <>
-          <TeamSettingsPicker teams={teamOptions} selectedId={selectedTeamId} />
           <section className="rounded-lg border border-border bg-surface">
             <div className="flex flex-col gap-3 border-b border-border px-4 py-3 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
               <div className="min-w-0">

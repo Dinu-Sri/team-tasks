@@ -19,7 +19,6 @@ export type StorageFilterOption = {
 
 export type StorageFilterValues = {
   q: string;
-  team: string;
   uploader: string;
   from: string;
   to: string;
@@ -38,11 +37,9 @@ function updateQuery(search: string, changes: Record<string, string>) {
 }
 
 export function StorageFilters({
-  teams,
   uploaders,
   values,
 }: {
-  teams: StorageFilterOption[];
   uploaders: StorageFilterOption[];
   values: StorageFilterValues;
 }) {
@@ -55,7 +52,7 @@ export function StorageFilters({
   const [search, setSearch] = useState(values.q);
   const [uploaderOpen, setUploaderOpen] = useState(false);
   const [uploaderSearch, setUploaderSearch] = useState(selectedUploader?.name ?? "");
-  const activeFilterCount = [values.q, values.team, values.uploader, values.from, values.to, values.sort !== "newest" ? values.sort : ""].filter(Boolean).length;
+  const activeFilterCount = [values.q, values.uploader, values.from, values.to, values.sort !== "newest" ? values.sort : ""].filter(Boolean).length;
 
   const filteredUploaders = useMemo(() => {
     const query = uploaderSearch.trim().toLowerCase();
@@ -131,16 +128,6 @@ export function StorageFilters({
             />
           </span>
         </label>
-
-        <div className="grid min-w-0 gap-1.5">
-          <span className={filterLabelClass}>Team</span>
-          <FilterSelect
-            value={values.team}
-            onChange={(team) => replaceParams({ team })}
-            ariaLabel="Filter by team"
-            options={[{ value: "", label: "All teams" }, ...teams.map((team) => ({ value: team.id, label: team.name }))]}
-          />
-        </div>
 
         <div ref={uploaderMenuRef} className="relative min-w-0">
           <label htmlFor="storage-uploader-search" className={cn(filterLabelClass, "mb-1.5 block")}>Uploader</label>

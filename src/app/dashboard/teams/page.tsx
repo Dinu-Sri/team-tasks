@@ -1,4 +1,5 @@
 import { CheckCircle2, Crown, LogOut, Trophy, UserMinus, Users } from "lucide-react";
+import Link from "next/link";
 
 import { acceptInviteAction, leaveTeamAction, removeMemberAction, updateMemberRoleAction } from "@/app/actions/teams";
 import { transferOwnershipSubmitAction } from "@/app/actions/tasks";
@@ -8,22 +9,25 @@ import { AssignTaskForm, CreateTeamForm, InviteForm } from "@/components/dashboa
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
+import { ALL_WORKSPACES, getDashboardWorkspaceContext } from "@/lib/dashboard-workspace";
 import { db } from "@/lib/db";
 import { getTeamQuestSummaries } from "@/lib/momentum";
-import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
-export default async function TeamsBoardPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+export default async function TeamsBoardPage({ searchParams }: { searchParams: Promise<{ workspace?: string; page?: string }> }) {
   const user = await requireUser();
   const query = await searchParams;
   const page = pageFromParam(query.page);
-  const access = await getActiveMembershipAccess(user.id);
-  const visibleTeamIds = access.visibleMemberships.map((membership) => membership.teamId);
+  const workspace = await getDashboardWorkspaceContext(user.id, query.workspace);
+  const selectedMode = workspace.selectedWorkspaceId !== ALL_WORKSPACES;
+  const membershipWhere = {
+    userId: user.id,
+    status: "ACTIVE" as const,
+    teamId: { in: selectedMode ? workspace.selectedTeamIds : workspace.visibleTeamIds },
+  };
   const [totalMemberships, memberships, invitations] = await Promise.all([
-    db.membership.count({
-      where: { userId: user.id, status: "ACTIVE", teamId: { in: visibleTeamIds } },
-    }),
+    db.membership.count({ where: membershipWhere }),
     db.membership.findMany({
-      where: { userId: user.id, status: "ACTIVE", teamId: { in: visibleTeamIds } },
+      where: membershipWhere,
       include: {
         team: {
           include: {
@@ -34,8 +38,8 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
         },
       },
       orderBy: { createdAt: "asc" },
-      skip: (page - 1) * DASHBOARD_PAGE_SIZE,
-      take: DASHBOARD_PAGE_SIZE,
+      skip: selectedMode ? 0 : (page - 1) * DASHBOARD_PAGE_SIZE,
+      take: selectedMode ? 1 : DASHBOARD_PAGE_SIZE,
     }),
     db.invite.findMany({
       where: { email: user.email, status: "PENDING", expiresAt: { gt: new Date() } },
@@ -47,10 +51,7 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
 
   return (
     <div className="space-y-5" id="onborda-teams-board">
-      <header className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div><h1 className="text-2xl font-semibold">Teams</h1><p className="mt-1 text-sm text-muted-foreground">People, invitations and assignments.</p></div>
-        {!access.restricted ? <div className="w-full sm:w-80"><CreateTeamForm /></div> : null}
-      </header>
+      {!workspace.restricted ? <div className="w-full sm:ml-auto sm:w-80"><CreateTeamForm /></div> : null}
 
       {invitations.map((invite) => (
         <div key={invite.id} className="flex flex-col gap-3 rounded-lg border border-brand/30 bg-brand/5 p-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
@@ -60,7 +61,18 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
       ))}
 
       <section className="space-y-3">
-        {memberships.map(({ team, role }) => {
+        {!selectedMode ? memberships.map(({ team, role }) => (
+          <Link key={team.id} href={`/dashboard/teams?workspace=${encodeURIComponent(team.id)}`} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 hover:bg-surface-subtle">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-subtle"><Users className="h-4 w-4" /></span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{team.name}</p>
+                <p className="text-xs text-muted-foreground">{team.memberships.length} people - {team.tasks.length} open</p>
+              </div>
+            </div>
+            <Badge className="shrink-0" variant={role === "OWNER" ? "default" : "secondary"}>{role.toLowerCase()}</Badge>
+          </Link>
+        )) : memberships.map(({ team, role }) => {
           const owner = role === "OWNER";
           const quest = questMap.get(team.id);
           const openByMember = new Map<string, number>();
@@ -120,7 +132,7 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
         })}
       </section>
 
-      <DashboardPagination basePath="/dashboard/teams" searchParams={query} page={page} total={totalMemberships} />
+      {!selectedMode ? <DashboardPagination basePath="/dashboard/teams" searchParams={query} page={page} total={totalMemberships} /> : null}
     </div>
   );
 }

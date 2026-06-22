@@ -1,4 +1,4 @@
-import { CreditCard, Gauge, Mail, ShieldCheck } from "lucide-react";
+import { Gauge, Mail, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { cancelWorkspaceSubscriptionAction, downgradeWorkspaceToFreeAction, startPayHereSubscriptionAction } from "@/app/actions/billing";
@@ -6,22 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { getWorkspaceBilling, storageMb } from "@/lib/billing";
+import { getDashboardWorkspaceContext } from "@/lib/dashboard-workspace";
 import { db } from "@/lib/db";
 import { payHereConfigStatus } from "@/lib/payhere";
 import { cn } from "@/lib/utils";
-import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
-export default async function BillingPage({ searchParams }: { searchParams: Promise<{ payment?: string; invoice?: string; reason?: string }> }) {
+export default async function BillingPage({ searchParams }: { searchParams: Promise<{ workspace?: string; payment?: string; invoice?: string; reason?: string }> }) {
   const user = await requireUser();
   const query = await searchParams;
-  const access = await getActiveMembershipAccess(user.id);
-  const visibleTeamIds = access.visibleMemberships.map((membership) => membership.teamId);
+  const workspace = await getDashboardWorkspaceContext(user.id, query.workspace);
   const [memberships, paidPlans] = await Promise.all([
     db.membership.findMany({
       where: {
         userId: user.id,
         status: "ACTIVE",
-        teamId: { in: visibleTeamIds },
+        teamId: { in: workspace.selectedTeamIds },
         role: { in: ["OWNER", "ADMIN"] },
       },
       include: {
@@ -49,19 +48,10 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold">
-            <CreditCard className="h-6 w-6 text-brand" />
-            Billing
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Plans, usage, and upgrade readiness for your workspaces.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
           <Link href="/pricing" className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}>View pricing</Link>
           <Link href="/contact" className={cn(buttonVariants({ size: "sm" }))}><Mail />Contact sales</Link>
-        </div>
-      </header>
+      </div>
 
       <div className="rounded-lg border border-brand/25 bg-brand/5 p-4 text-sm text-muted-foreground">
         <ShieldCheck className="mr-1 inline h-4 w-4 text-brand" />

@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
 import { requireUser } from "@/lib/auth";
+import { getDashboardWorkspaceContext } from "@/lib/dashboard-workspace";
 import { db } from "@/lib/db";
 import { redirectIfRestrictedOrganizationMember } from "@/lib/workspace-access";
 
@@ -22,13 +23,14 @@ type ActivityComment = {
   receipts: Array<{ user: { name: string } }>;
 };
 
-export default async function ActivityPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+export default async function ActivityPage({ searchParams }: { searchParams: Promise<{ workspace?: string; page?: string }> }) {
   const user = await requireUser();
   const query = await searchParams;
   const page = pageFromParam(query.page);
   await redirectIfRestrictedOrganizationMember(user.id);
+  const workspace = await getDashboardWorkspaceContext(user.id, query.workspace);
   const memberships = await db.membership.findMany({
-    where: { userId: user.id, status: "ACTIVE" },
+    where: { userId: user.id, status: "ACTIVE", teamId: { in: workspace.selectedTeamIds } },
     include: { team: { include: { featureSettings: true } } },
     orderBy: { createdAt: "asc" },
   }) as DashboardMembership[];
@@ -56,13 +58,6 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-col gap-3 border-b border-border pb-5 min-[560px]:flex-row min-[560px]:items-end min-[560px]:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold"><MessageCircleMore className="h-5 w-5 text-brand" />Activity</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Recent comments across your teams.</p>
-        </div>
-      </header>
-
       {!hasActivityTools ? (
         <section className="rounded-lg border border-border bg-surface px-4 py-16 text-center">
           <MessageCircleMore className="mx-auto h-6 w-6 text-muted-foreground" />

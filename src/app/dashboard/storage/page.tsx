@@ -8,9 +8,9 @@ import { StorageDeleteButton } from "@/components/dashboard/storage-delete-butto
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
+import { getDashboardWorkspaceContext } from "@/lib/dashboard-workspace";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
 type SortKey = "newest" | "oldest" | "largest" | "smallest" | "name";
 type StorageAttachment = Prisma.TaskAttachmentGetPayload<{
@@ -45,31 +45,22 @@ function endDateInput(value?: string) {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-export default async function StoragePage({ searchParams }: { searchParams: Promise<{ q?: string; team?: string; uploader?: string; from?: string; to?: string; sort?: SortKey; page?: string }> }) {
+export default async function StoragePage({ searchParams }: { searchParams: Promise<{ q?: string; workspace?: string; uploader?: string; from?: string; to?: string; sort?: SortKey; page?: string }> }) {
   const user = await requireUser();
   const query = await searchParams;
-  const access = await getActiveMembershipAccess(user.id);
-  const visibleTeamIds = access.visibleMemberships.map((membership) => membership.teamId);
-  const roleByTeam = new Map(access.visibleMemberships.map((membership) => [membership.teamId, membership.role]));
-  const selectedTeamId = query.team && visibleTeamIds.includes(query.team) ? query.team : "";
+  const workspace = await getDashboardWorkspaceContext(user.id, query.workspace);
+  const roleByTeam = new Map(workspace.visibleMemberships.map((membership) => [membership.teamId, membership.role]));
   const sort: SortKey = ["newest", "oldest", "largest", "smallest", "name"].includes(query.sort ?? "") ? query.sort as SortKey : "newest";
   const page = pageFromParam(query.page);
   const q = (query.q ?? "").trim();
   const from = dateInput(query.from);
   const to = endDateInput(query.to);
 
-  const [teams, uploaders] = visibleTeamIds.length ? await Promise.all([
-    db.team.findMany({
-      where: { id: { in: visibleTeamIds } },
-      select: { id: true, name: true, organizationName: true },
-      orderBy: { createdAt: "asc" },
-    }),
-    db.user.findMany({
-      where: { uploadedAttachments: { some: { task: { teamId: { in: visibleTeamIds } } } } },
-      select: { id: true, name: true, email: true },
-      orderBy: { name: "asc" },
-    }),
-  ]) : [[], []];
+  const uploaders = workspace.selectedTeamIds.length ? await db.user.findMany({
+    where: { uploadedAttachments: { some: { task: { teamId: { in: workspace.selectedTeamIds } } } } },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+  }) : [];
 
   const selectedUploaderId = query.uploader && uploaders.some((uploader) => uploader.id === query.uploader) ? query.uploader : "";
   const orderBy = sort === "oldest"
@@ -83,7 +74,7 @@ export default async function StoragePage({ searchParams }: { searchParams: Prom
           : { createdAt: "desc" as const };
 
   const attachmentWhere: Prisma.TaskAttachmentWhereInput = {
-    task: { teamId: { in: selectedTeamId ? [selectedTeamId] : visibleTeamIds } },
+    task: { teamId: { in: workspace.selectedTeamIds } },
     ...(selectedUploaderId ? { uploaderId: selectedUploaderId } : {}),
     ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
     ...(q ? {
@@ -95,7 +86,7 @@ export default async function StoragePage({ searchParams }: { searchParams: Prom
     } : {}),
   };
 
-  const [totalAttachments, attachments]: [number, StorageAttachment[]] = visibleTeamIds.length ? await Promise.all([
+  const [totalAttachments, attachments]: [number, StorageAttachment[]] = workspace.selectedTeamIds.length ? await Promise.all([
     db.taskAttachment.count({ where: attachmentWhere }),
     db.taskAttachment.findMany({
       where: attachmentWhere,
@@ -123,27 +114,18 @@ export default async function StoragePage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-col gap-3 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold">
-            <HardDrive className="h-6 w-6 text-brand" />
-            Storage
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Find, sort, download, and clean up files linked to your visible teams.</p>
-        </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">{totalAttachments.toLocaleString()} files</Badge>
           <Badge variant="secondary">{sizeLabel(totalBytes)}</Badge>
           <Badge variant="secondary">{ownFiles.toLocaleString()} uploaded by you</Badge>
         </div>
-      </header>
+      </div>
 
       <StorageFilters
-        teams={teams.map((team) => ({ id: team.id, name: team.organizationName ?? team.name }))}
         uploaders={uploaders.map((uploader) => ({ id: uploader.id, name: uploader.name }))}
         values={{
           q,
-          team: selectedTeamId,
           uploader: selectedUploaderId,
           from: query.from ?? "",
           to: query.to ?? "",

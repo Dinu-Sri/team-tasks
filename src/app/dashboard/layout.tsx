@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/app-header";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { KeyboardShortcutsProvider } from "@/components/keyboard-shortcuts-provider";
 import { OnboardingProvider } from "@/components/onboarding-provider";
+import type { WorkspaceOption } from "@/components/workspace-selector";
 import { isSuperAdmin, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
@@ -23,6 +24,26 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   const hasOrganizationAdmin = access.memberships.some((membership) => membership.source === "DOMAIN" && (membership.role === "OWNER" || membership.role === "ADMIN"));
   const hasBillingAccess = !access.restricted && access.visibleMemberships.some((membership) => membership.role === "OWNER" || membership.role === "ADMIN");
   const visibleTeamIds = access.visibleMemberships.map((membership) => membership.teamId);
+  const workspaceTeams = visibleTeamIds.length
+    ? await db.team.findMany({
+        where: { id: { in: visibleTeamIds } },
+        select: { id: true, name: true, organizationName: true, organizationLogo: true, useOrganizationIcon: true },
+        orderBy: { createdAt: "asc" },
+      })
+    : [];
+  const teamById = new Map(workspaceTeams.map((team) => [team.id, team]));
+  const workspaces: WorkspaceOption[] = access.visibleMemberships.flatMap((membership) => {
+    const team = teamById.get(membership.teamId);
+    if (!team) return [];
+    return [{
+      id: team.id,
+      name: team.name,
+      role: membership.role,
+      organizationName: team.organizationName,
+      organizationLogo: team.organizationLogo,
+      useOrganizationIcon: team.useOrganizationIcon,
+    }];
+  });
   const organizationMembership = visibleTeamIds.length
     ? await db.membership.findFirst({
         where: {
@@ -59,7 +80,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       completedInDb={Boolean(teamTourCompleted)}
     >
       <main className="min-h-screen bg-background">
-        <AppHeader user={user} {...headerData} organizationBrand={organizationBrand} />
+        <AppHeader
+          user={user}
+          {...headerData}
+          workspaces={workspaces}
+          selectedWorkspaceId={access.restricted ? workspaces[0]?.id ?? "__all__" : "__all__"}
+          allowAllWorkspaces={!access.restricted}
+          organizationBrand={organizationBrand}
+        />
         <KeyboardShortcutsProvider />
         <DashboardShell
           isSuperAdmin={isSuperAdmin(user.email)}

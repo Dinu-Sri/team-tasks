@@ -2,6 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { filterLabelClass } from "@/components/ui/filter-controls";
+import { FilterSelect } from "@/components/ui/filter-select";
+
 export type TeamSettingsOption = {
   id: string;
   name: string;
@@ -27,21 +30,15 @@ export function TeamSettingsPicker({
 
   return (
     <div className="rounded-lg border border-border bg-surface p-3 shadow-sm">
-      <label htmlFor="team-settings-picker" className="text-xs font-medium uppercase text-muted-foreground">
-        Workspace
-      </label>
-      <select
-        id="team-settings-picker"
-        value={selectedId}
-        onChange={(event) => selectTeam(event.target.value)}
-        className="mt-2 h-11 w-full rounded-full border border-border bg-background px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-ring"
-      >
-        {teams.map((team) => (
-          <option key={team.id} value={team.id}>
-            {team.name} - {team.summary}
-          </option>
-        ))}
-      </select>
+      <div className={filterLabelClass}>Workspace</div>
+      <div className="mt-2">
+        <FilterSelect
+          value={selectedId}
+          onChange={selectTeam}
+          ariaLabel="Choose workspace settings"
+          options={teams.map((team) => ({ value: team.id, label: `${team.name} - ${team.summary}` }))}
+        />
+      </div>
       <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
         {teams.map((team) => (
           <button

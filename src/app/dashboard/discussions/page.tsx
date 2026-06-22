@@ -1,6 +1,7 @@
 import { MessageCircleMore, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 
+import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -23,8 +24,10 @@ type DiscussionComment = {
   receipts: Array<{ user: { name: string } }>;
 };
 
-export default async function DiscussionsPage() {
+export default async function DiscussionsPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const user = await requireUser();
+  const query = await searchParams;
+  const page = pageFromParam(query.page);
   await redirectIfRestrictedOrganizationMember(user.id);
   const memberships = await db.membership.findMany({
     where: { userId: user.id, status: "ACTIVE" },
@@ -34,16 +37,21 @@ export default async function DiscussionsPage() {
   const teams = memberships.filter(({ team }) => team.featureSettings?.commentsEnabled);
   const canChangeSettings = memberships.some(({ role }) => role === "OWNER");
 
-  const comments = teams.length ? (await db.taskComment.findMany({
-    where: { task: { teamId: { in: teams.map(({ teamId }) => teamId) } } },
+  const commentWhere = { task: { teamId: { in: teams.map(({ teamId }) => teamId) } } };
+  const [totalComments, comments] = teams.length ? await Promise.all([
+    db.taskComment.count({ where: commentWhere }),
+    db.taskComment.findMany({
+      where: commentWhere,
     include: {
       author: { select: { name: true } },
       task: { include: { team: { select: { name: true } } } },
       receipts: { where: { requiresAttention: true }, include: { user: { select: { name: true } } } },
     },
     orderBy: { createdAt: "desc" },
-    take: 50,
-  })) as DiscussionComment[] : [];
+      skip: (page - 1) * DASHBOARD_PAGE_SIZE,
+      take: DASHBOARD_PAGE_SIZE,
+    }),
+  ]) as [number, DiscussionComment[]] : [0, []];
 
   return (
     <div className="space-y-5">
@@ -76,6 +84,7 @@ export default async function DiscussionsPage() {
             {canChangeSettings ? <Link href="/dashboard/features" className={cn(buttonVariants({ size: "sm" }), "mt-4")}>Open settings</Link> : null}
           </div>
         )}
+        <DashboardPagination basePath="/dashboard/discussions" searchParams={query} page={page} total={totalComments} />
       </section>
     </div>
   );

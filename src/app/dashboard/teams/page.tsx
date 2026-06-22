@@ -3,6 +3,7 @@ import { CheckCircle2, Crown, LogOut, Trophy, UserMinus, Users } from "lucide-re
 import { acceptInviteAction, leaveTeamAction, removeMemberAction, updateMemberRoleAction } from "@/app/actions/teams";
 import { transferOwnershipSubmitAction } from "@/app/actions/tasks";
 import { ConfirmSubmitButton } from "@/components/dashboard/confirm-submit-button";
+import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
 import { AssignTaskForm, CreateTeamForm, InviteForm } from "@/components/dashboard/team-forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,11 +12,16 @@ import { db } from "@/lib/db";
 import { getTeamQuestSummaries } from "@/lib/momentum";
 import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
-export default async function TeamsBoardPage() {
+export default async function TeamsBoardPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const user = await requireUser();
+  const query = await searchParams;
+  const page = pageFromParam(query.page);
   const access = await getActiveMembershipAccess(user.id);
   const visibleTeamIds = access.visibleMemberships.map((membership) => membership.teamId);
-  const [memberships, invitations] = await Promise.all([
+  const [totalMemberships, memberships, invitations] = await Promise.all([
+    db.membership.count({
+      where: { userId: user.id, status: "ACTIVE", teamId: { in: visibleTeamIds } },
+    }),
     db.membership.findMany({
       where: { userId: user.id, status: "ACTIVE", teamId: { in: visibleTeamIds } },
       include: {
@@ -28,6 +34,8 @@ export default async function TeamsBoardPage() {
         },
       },
       orderBy: { createdAt: "asc" },
+      skip: (page - 1) * DASHBOARD_PAGE_SIZE,
+      take: DASHBOARD_PAGE_SIZE,
     }),
     db.invite.findMany({
       where: { email: user.email, status: "PENDING", expiresAt: { gt: new Date() } },
@@ -111,6 +119,8 @@ export default async function TeamsBoardPage() {
           );
         })}
       </section>
+
+      <DashboardPagination basePath="/dashboard/teams" searchParams={query} page={page} total={totalMemberships} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Plus, Send } from "lucide-react";
 import { createTeamTaskAction } from "@/app/actions/tasks";
 import { createTeamAction, inviteMemberAction } from "@/app/actions/teams";
 import { Button } from "@/components/ui/button";
+import { FormFilterSelect } from "@/components/ui/filter-select";
 import { Input } from "@/components/ui/input";
 
 export function CreateTeamForm() {
@@ -49,12 +50,17 @@ export function AssignTaskForm({ teamId, members }: { teamId: string; members: A
         ))}
       </div>
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-        <select name="due" className="h-10 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
-          <option value="today">Today</option>
-          <option value="tomorrow">Tomorrow</option>
-          <option value="week">Next week</option>
-          <option value="none">No date</option>
-        </select>
+        <FormFilterSelect
+          name="due"
+          defaultValue="today"
+          ariaLabel="Choose due date"
+          options={[
+            { value: "today", label: "Today" },
+            { value: "tomorrow", label: "Tomorrow" },
+            { value: "week", label: "Next week" },
+            { value: "none", label: "No date" },
+          ]}
+        />
         <label className="flex h-10 min-w-0 items-center gap-2 rounded-full border border-border px-3 text-sm">
           <input type="checkbox" name="priority" value="HIGH" /> Important
         </label>

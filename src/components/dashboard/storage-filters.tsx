@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 
 import { buttonVariants } from "@/components/ui/button";
 import { filterControlClass, filterLabelClass, filterMenuClass, filterOptionClass, filterSearchControlClass } from "@/components/ui/filter-controls";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { cn } from "@/lib/utils";
 
 type SortKey = "newest" | "oldest" | "largest" | "smallest" | "name";
@@ -26,6 +27,7 @@ export type StorageFilterValues = {
 
 function updateQuery(search: string, changes: Record<string, string>) {
   const params = new URLSearchParams(search);
+  if (!Object.prototype.hasOwnProperty.call(changes, "page")) params.delete("page");
   for (const [key, value] of Object.entries(changes)) {
     if (value) params.set(key, value);
     else params.delete(key);
@@ -114,8 +116,8 @@ export function StorageFilters({
 
   return (
     <section className="rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Storage filters" aria-busy={isPending}>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.2fr)_minmax(11rem,0.9fr)_minmax(13rem,1.1fr)_minmax(9rem,0.75fr)_minmax(9rem,0.75fr)_minmax(8rem,0.65fr)] xl:items-end">
-        <label className="grid min-w-0 gap-1.5 md:col-span-2 xl:col-span-1">
+      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-[minmax(12rem,1.2fr)_minmax(11rem,0.9fr)_minmax(13rem,1.1fr)_minmax(9rem,0.75fr)_minmax(9rem,0.75fr)_minmax(8rem,0.65fr)] 2xl:items-end">
+        <label className="grid min-w-0 gap-1.5 md:col-span-2 2xl:col-span-1">
           <span className={filterLabelClass}>Search</span>
           <span className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -131,12 +133,12 @@ export function StorageFilters({
 
         <label className="grid min-w-0 gap-1.5">
           <span className={filterLabelClass}>Team</span>
-          <select value={values.team} onChange={(event) => replaceParams({ team: event.target.value })} className={filterControlClass}>
-            <option value="">All teams</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>{team.name}</option>
-            ))}
-          </select>
+          <FilterSelect
+            value={values.team}
+            onChange={(team) => replaceParams({ team })}
+            ariaLabel="Filter by team"
+            options={[{ value: "", label: "All teams" }, ...teams.map((team) => ({ value: team.id, label: team.name }))]}
+          />
         </label>
 
         <div ref={uploaderMenuRef} className="relative min-w-0">
@@ -202,13 +204,18 @@ export function StorageFilters({
 
         <label className="grid min-w-0 gap-1.5">
           <span className={filterLabelClass}>Sort</span>
-          <select value={values.sort} onChange={(event) => replaceParams({ sort: event.target.value })} className={filterControlClass}>
-            <option value="newest">Newest</option>
-            <option value="oldest">Oldest</option>
-            <option value="largest">Largest</option>
-            <option value="smallest">Smallest</option>
-            <option value="name">Name</option>
-          </select>
+          <FilterSelect
+            value={values.sort}
+            onChange={(sort) => replaceParams({ sort })}
+            ariaLabel="Sort storage files"
+            options={[
+              { value: "newest", label: "Newest" },
+              { value: "oldest", label: "Oldest" },
+              { value: "largest", label: "Largest" },
+              { value: "smallest", label: "Smallest" },
+              { value: "name", label: "Name" },
+            ]}
+          />
         </label>
       </div>
 

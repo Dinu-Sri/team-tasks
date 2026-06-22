@@ -4,19 +4,28 @@ import Link from "next/link";
 import { deleteUserSubmitAction, suspendUserSubmitAction, unsuspendUserSubmitAction } from "@/app/actions/admin";
 import { saveBillingCouponSubmitAction, updateWorkspaceBillingSubmitAction } from "@/app/actions/billing";
 import { ConfirmSubmitButton } from "@/components/dashboard/confirm-submit-button";
+import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
 import { Button } from "@/components/ui/button";
+import { FormFilterSelect } from "@/components/ui/filter-select";
 import { requireSuperAdmin, SUPER_ADMIN_EMAIL } from "@/lib/auth";
 import { couponDiscountLabel } from "@/lib/billing-coupons";
 import { ensureDefaultBillingPlans, getWorkspaceBillingSummaries, storageMb } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { payHereConfigStatus } from "@/lib/payhere";
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ usersPage?: string; workspacesPage?: string; invoicesPage?: string; eventsPage?: string; couponsPage?: string }> }) {
   const admin = await requireSuperAdmin();
+  const query = await searchParams;
+  const usersPage = pageFromParam(query.usersPage);
+  const workspacesPage = pageFromParam(query.workspacesPage);
+  const invoicesPage = pageFromParam(query.invoicesPage);
+  const eventsPage = pageFromParam(query.eventsPage);
+  const couponsPage = pageFromParam(query.couponsPage);
   await ensureDefaultBillingPlans();
 
   const payHereStatus = payHereConfigStatus();
-  const [users, teams, plans, invoices, billingEvents, coupons] = await Promise.all([
+  const [totalUsers, users, totalTeams, teams, plans, totalInvoices, invoices, totalBillingEvents, billingEvents, totalCoupons, coupons] = await Promise.all([
+    db.user.count(),
     db.user.findMany({
       select: {
         id: true,
@@ -27,7 +36,10 @@ export default async function AdminPage() {
         _count: { select: { memberships: true, createdTasks: true, assignments: true, uploadedAttachments: true } },
       },
       orderBy: { createdAt: "desc" },
+      skip: (usersPage - 1) * DASHBOARD_PAGE_SIZE,
+      take: DASHBOARD_PAGE_SIZE,
     }),
+    db.team.count(),
     db.team.findMany({
       select: {
         id: true,
@@ -40,20 +52,29 @@ export default async function AdminPage() {
         },
       },
       orderBy: { createdAt: "desc" },
+      skip: (workspacesPage - 1) * DASHBOARD_PAGE_SIZE,
+      take: DASHBOARD_PAGE_SIZE,
     }),
     db.billingPlan.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+    db.invoice.count(),
     db.invoice.findMany({
       orderBy: { createdAt: "desc" },
-      take: 25,
+      skip: (invoicesPage - 1) * DASHBOARD_PAGE_SIZE,
+      take: DASHBOARD_PAGE_SIZE,
       include: { team: { select: { name: true, organizationName: true } }, plan: { select: { name: true } } },
     }),
+    db.billingEvent.count(),
     db.billingEvent.findMany({
       orderBy: { createdAt: "desc" },
-      take: 25,
+      skip: (eventsPage - 1) * DASHBOARD_PAGE_SIZE,
+      take: DASHBOARD_PAGE_SIZE,
       include: { team: { select: { name: true, organizationName: true } } },
     }),
+    db.billingCoupon.count(),
     db.billingCoupon.findMany({
       orderBy: { createdAt: "desc" },
+      skip: (couponsPage - 1) * DASHBOARD_PAGE_SIZE,
+      take: DASHBOARD_PAGE_SIZE,
       include: { plan: { select: { name: true } }, _count: { select: { redemptions: true } } },
     }),
   ]);
@@ -157,9 +178,10 @@ export default async function AdminPage() {
             })}
           </tbody>
         </table>
+        <DashboardPagination basePath="/dashboard/admin" searchParams={query} page={usersPage} total={totalUsers} pageParam="usersPage" />
       </div>
 
-      <p className="text-xs text-muted-foreground">{users.length} total registered user(s). Suspended users cannot log in until unsuspended.</p>
+      <p className="text-xs text-muted-foreground">{totalUsers.toLocaleString()} total registered user(s). Suspended users cannot log in until unsuspended.</p>
 
       <section className="space-y-3 pt-3">
         <header className="flex flex-col gap-1 border-b border-border pb-3">
@@ -209,15 +231,16 @@ export default async function AdminPage() {
                   <input type="hidden" name="teamId" value={team.id} />
                   <label className="grid gap-1 text-xs font-medium uppercase text-muted-foreground">
                     Plan
-                    <select name="planId" defaultValue={billing?.plan.id ?? "plan_free"} className="h-10 rounded-full border border-border bg-background px-3 text-sm normal-case text-foreground">
-                      {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
-                    </select>
+                    <FormFilterSelect name="planId" defaultValue={billing?.plan.id ?? "plan_free"} ariaLabel="Choose billing plan" options={plans.map((plan) => ({ value: plan.id, label: plan.name }))} />
                   </label>
                   <label className="grid gap-1 text-xs font-medium uppercase text-muted-foreground">
                     Status
-                    <select name="status" defaultValue={billing?.subscription.status ?? "ACTIVE"} className="h-10 rounded-full border border-border bg-background px-3 text-sm normal-case text-foreground">
-                      {["TRIALING", "ACTIVE", "GRACE", "PAST_DUE", "CANCELED", "COMPED"].map((status) => <option key={status} value={status}>{status.toLowerCase().replace("_", " ")}</option>)}
-                    </select>
+                    <FormFilterSelect
+                      name="status"
+                      defaultValue={billing?.subscription.status ?? "ACTIVE"}
+                      ariaLabel="Choose subscription status"
+                      options={["TRIALING", "ACTIVE", "GRACE", "PAST_DUE", "CANCELED", "COMPED"].map((status) => ({ value: status, label: status.toLowerCase().replace("_", " ") }))}
+                    />
                   </label>
                   <label className="grid gap-1 text-xs font-medium uppercase text-muted-foreground">
                     Period end
@@ -235,6 +258,7 @@ export default async function AdminPage() {
               </details>
             );
           })}
+          <DashboardPagination basePath="/dashboard/admin" searchParams={query} page={workspacesPage} total={totalTeams} pageParam="workspacesPage" />
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
@@ -246,24 +270,36 @@ export default async function AdminPage() {
             <form action={saveBillingCouponSubmitAction} className="grid gap-3 border-b border-border p-4 md:grid-cols-4">
               <input name="code" placeholder="Code, e.g. LAUNCH50" className="h-10 rounded-full border border-border bg-background px-3 text-sm uppercase" required />
               <input name="name" placeholder="Internal name" className="h-10 rounded-full border border-border bg-background px-3 text-sm" required />
-              <select name="discountType" className="h-10 rounded-full border border-border bg-background px-3 text-sm">
-                <option value="PERCENT">Percent off</option>
-                <option value="AMOUNT">Fixed LKR off</option>
-              </select>
+              <FormFilterSelect
+                name="discountType"
+                defaultValue="PERCENT"
+                ariaLabel="Choose discount type"
+                options={[
+                  { value: "PERCENT", label: "Percent off" },
+                  { value: "AMOUNT", label: "Fixed LKR off" },
+                ]}
+              />
               <label className="flex h-10 items-center gap-2 rounded-full border border-border bg-background px-3 text-sm">
                 <input name="active" type="checkbox" defaultChecked /> Active
               </label>
               <input name="percentOff" type="number" min="1" max="95" placeholder="Percent off" className="h-10 rounded-full border border-border bg-background px-3 text-sm" />
               <input name="amountOffLkr" type="number" min="1" placeholder="Fixed LKR off" className="h-10 rounded-full border border-border bg-background px-3 text-sm" />
-              <select name="planId" className="h-10 rounded-full border border-border bg-background px-3 text-sm">
-                <option value="">Any paid plan</option>
-                {plans.filter((plan) => plan.code !== "free" && plan.code !== "custom_setup").map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
-              </select>
-              <select name="billingCycle" className="h-10 rounded-full border border-border bg-background px-3 text-sm">
-                <option value="">Any cycle</option>
-                <option value="MONTHLY">Monthly only</option>
-                <option value="YEARLY">Yearly only</option>
-              </select>
+              <FormFilterSelect
+                name="planId"
+                defaultValue=""
+                ariaLabel="Choose coupon plan"
+                options={[{ value: "", label: "Any paid plan" }, ...plans.filter((plan) => plan.code !== "free" && plan.code !== "custom_setup").map((plan) => ({ value: plan.id, label: plan.name }))]}
+              />
+              <FormFilterSelect
+                name="billingCycle"
+                defaultValue=""
+                ariaLabel="Choose coupon billing cycle"
+                options={[
+                  { value: "", label: "Any cycle" },
+                  { value: "MONTHLY", label: "Monthly only" },
+                  { value: "YEARLY", label: "Yearly only" },
+                ]}
+              />
               <input name="maxRedemptions" type="number" min="1" placeholder="Total uses" className="h-10 rounded-full border border-border bg-background px-3 text-sm" />
               <input name="maxPerTeam" type="number" min="1" defaultValue="1" placeholder="Uses per workspace" className="h-10 rounded-full border border-border bg-background px-3 text-sm" />
               <label className="grid gap-1 text-xs font-medium uppercase text-muted-foreground">
@@ -294,6 +330,7 @@ export default async function AdminPage() {
               ))}
               {!coupons.length ? <p className="px-4 py-3 text-sm text-muted-foreground">No coupons yet.</p> : null}
             </div>
+            <DashboardPagination basePath="/dashboard/admin" searchParams={query} page={couponsPage} total={totalCoupons} pageParam="couponsPage" />
           </section>
 
           <section className="rounded-lg border border-border bg-surface">
@@ -316,6 +353,7 @@ export default async function AdminPage() {
               ))}
               {!invoices.length ? <p className="px-4 py-3 text-sm text-muted-foreground">No invoices yet.</p> : null}
             </div>
+            <DashboardPagination basePath="/dashboard/admin" searchParams={query} page={invoicesPage} total={totalInvoices} pageParam="invoicesPage" />
           </section>
 
           <section className="rounded-lg border border-border bg-surface">
@@ -336,6 +374,7 @@ export default async function AdminPage() {
               ))}
               {!billingEvents.length ? <p className="px-4 py-3 text-sm text-muted-foreground">No billing events yet.</p> : null}
             </div>
+            <DashboardPagination basePath="/dashboard/admin" searchParams={query} page={eventsPage} total={totalBillingEvents} pageParam="eventsPage" />
           </section>
         </div>
       </section>

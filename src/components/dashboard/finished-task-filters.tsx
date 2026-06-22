@@ -4,7 +4,8 @@ import { ChevronDown, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { filterControlClass, filterLabelClass, filterMenuClass, filterOptionClass, filterSearchControlClass } from "@/components/ui/filter-controls";
+import { filterLabelClass, filterMenuClass, filterOptionClass, filterSearchControlClass } from "@/components/ui/filter-controls";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { cn } from "@/lib/utils";
 
 export type FinishedTaskFilterTeam = {
@@ -79,16 +80,12 @@ export function FinishedTaskFilters({
       <div className="grid gap-3 lg:grid-cols-[minmax(12rem,18rem)_minmax(0,1fr)] lg:items-end">
         <label className="grid gap-1.5 text-sm font-medium">
           <span className={filterLabelClass}>Team</span>
-          <select
+          <FilterSelect
             value={selectedTeamId}
-            onChange={(event) => selectTeam(event.target.value)}
-            className={filterControlClass}
-          >
-            <option value="__all__">All teams</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>{team.name}</option>
-            ))}
-          </select>
+            onChange={selectTeam}
+            ariaLabel="Filter finished tasks by team"
+            options={[{ value: "__all__", label: "All teams" }, ...teams.map((team) => ({ value: team.id, label: team.name }))]}
+          />
         </label>
 
         <div ref={menuRef} className="relative min-w-0">

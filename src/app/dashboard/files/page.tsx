@@ -1,6 +1,7 @@
 import { Download, Files, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 
+import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
@@ -30,8 +31,10 @@ function sizeLabel(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default async function FilesPage() {
+export default async function FilesPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const user = await requireUser();
+  const query = await searchParams;
+  const page = pageFromParam(query.page);
   await redirectIfRestrictedOrganizationMember(user.id);
   const allMemberships = await db.membership.findMany({
     where: { userId: user.id, status: "ACTIVE" },
@@ -41,12 +44,17 @@ export default async function FilesPage() {
   const memberships = allMemberships.filter(({ team }) => team.featureSettings?.attachmentsEnabled);
   const canChangeSettings = allMemberships.some(({ role }) => role === "OWNER");
 
-  const attachments = memberships.length ? (await db.taskAttachment.findMany({
-    where: { task: { teamId: { in: memberships.map(({ teamId }) => teamId) } } },
+  const attachmentWhere = { task: { teamId: { in: memberships.map(({ teamId }) => teamId) } } };
+  const [totalAttachments, attachments] = memberships.length ? await Promise.all([
+    db.taskAttachment.count({ where: attachmentWhere }),
+    db.taskAttachment.findMany({
+      where: attachmentWhere,
     include: { uploader: { select: { name: true } }, task: { include: { team: { select: { name: true } } } } },
     orderBy: { createdAt: "desc" },
-    take: 100,
-  })) as DashboardFile[] : [];
+      skip: (page - 1) * DASHBOARD_PAGE_SIZE,
+      take: DASHBOARD_PAGE_SIZE,
+    }),
+  ]) as [number, DashboardFile[]] : [0, []];
 
   return (
     <div className="space-y-5">
@@ -81,6 +89,7 @@ export default async function FilesPage() {
             {canChangeSettings ? <Link href="/dashboard/features" className={cn(buttonVariants({ size: "sm" }), "mt-4")}>Open settings</Link> : null}
           </div>
         )}
+        <DashboardPagination basePath="/dashboard/files" searchParams={query} page={page} total={totalAttachments} />
       </section>
     </div>
   );

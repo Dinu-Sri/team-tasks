@@ -1,6 +1,8 @@
+import type { Prisma } from "@prisma/client";
 import { Download, ExternalLink, Files, HardDrive } from "lucide-react";
 import Link from "next/link";
 
+import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
 import { StorageFilters } from "@/components/dashboard/storage-filters";
 import { StorageDeleteButton } from "@/components/dashboard/storage-delete-button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +13,20 @@ import { cn } from "@/lib/utils";
 import { getActiveMembershipAccess } from "@/lib/workspace-access";
 
 type SortKey = "newest" | "oldest" | "largest" | "smallest" | "name";
+type StorageAttachment = Prisma.TaskAttachmentGetPayload<{
+  include: {
+    uploader: { select: { id: true; name: true; email: true } };
+    task: {
+      select: {
+        id: true;
+        title: true;
+        teamId: true;
+        team: { select: { name: true; organizationName: true } };
+        _count: { select: { comments: true } };
+      };
+    };
+  };
+}>;
 
 function sizeLabel(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString()} KB`;
@@ -29,7 +45,7 @@ function endDateInput(value?: string) {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-export default async function StoragePage({ searchParams }: { searchParams: Promise<{ q?: string; team?: string; uploader?: string; from?: string; to?: string; sort?: SortKey }> }) {
+export default async function StoragePage({ searchParams }: { searchParams: Promise<{ q?: string; team?: string; uploader?: string; from?: string; to?: string; sort?: SortKey; page?: string }> }) {
   const user = await requireUser();
   const query = await searchParams;
   const access = await getActiveMembershipAccess(user.id);
@@ -37,6 +53,7 @@ export default async function StoragePage({ searchParams }: { searchParams: Prom
   const roleByTeam = new Map(access.visibleMemberships.map((membership) => [membership.teamId, membership.role]));
   const selectedTeamId = query.team && visibleTeamIds.includes(query.team) ? query.team : "";
   const sort: SortKey = ["newest", "oldest", "largest", "smallest", "name"].includes(query.sort ?? "") ? query.sort as SortKey : "newest";
+  const page = pageFromParam(query.page);
   const q = (query.q ?? "").trim();
   const from = dateInput(query.from);
   const to = endDateInput(query.to);
@@ -65,34 +82,40 @@ export default async function StoragePage({ searchParams }: { searchParams: Prom
           ? { originalName: "asc" as const }
           : { createdAt: "desc" as const };
 
-  const attachments = visibleTeamIds.length ? await db.taskAttachment.findMany({
-    where: {
-      task: { teamId: { in: selectedTeamId ? [selectedTeamId] : visibleTeamIds } },
-      ...(selectedUploaderId ? { uploaderId: selectedUploaderId } : {}),
-      ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
-      ...(q ? {
-        OR: [
-          { originalName: { contains: q, mode: "insensitive" } },
-          { mimeType: { contains: q, mode: "insensitive" } },
-          { task: { title: { contains: q, mode: "insensitive" } } },
-        ],
-      } : {}),
-    },
-    include: {
-      uploader: { select: { id: true, name: true, email: true } },
-      task: {
-        select: {
-          id: true,
-          title: true,
-          teamId: true,
-          team: { select: { name: true, organizationName: true } },
-          _count: { select: { comments: true } },
+  const attachmentWhere: Prisma.TaskAttachmentWhereInput = {
+    task: { teamId: { in: selectedTeamId ? [selectedTeamId] : visibleTeamIds } },
+    ...(selectedUploaderId ? { uploaderId: selectedUploaderId } : {}),
+    ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
+    ...(q ? {
+      OR: [
+        { originalName: { contains: q, mode: "insensitive" } },
+        { mimeType: { contains: q, mode: "insensitive" } },
+        { task: { title: { contains: q, mode: "insensitive" } } },
+      ],
+    } : {}),
+  };
+
+  const [totalAttachments, attachments]: [number, StorageAttachment[]] = visibleTeamIds.length ? await Promise.all([
+    db.taskAttachment.count({ where: attachmentWhere }),
+    db.taskAttachment.findMany({
+      where: attachmentWhere,
+      include: {
+        uploader: { select: { id: true, name: true, email: true } },
+        task: {
+          select: {
+            id: true,
+            title: true,
+            teamId: true,
+            team: { select: { name: true, organizationName: true } },
+            _count: { select: { comments: true } },
+          },
         },
       },
-    },
-    orderBy,
-    take: 500,
-  }) : [];
+      orderBy,
+      skip: (page - 1) * DASHBOARD_PAGE_SIZE,
+      take: DASHBOARD_PAGE_SIZE,
+    }),
+  ]) as [number, StorageAttachment[]] : [0, []];
 
   const totalBytes = attachments.reduce((sum, file) => sum + file.size, 0);
   const ownFiles = attachments.filter((file) => file.uploader.id === user.id).length;
@@ -109,7 +132,7 @@ export default async function StoragePage({ searchParams }: { searchParams: Prom
           <p className="mt-1 text-sm text-muted-foreground">Find, sort, download, and clean up files linked to your visible teams.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary">{attachments.length.toLocaleString()} files</Badge>
+          <Badge variant="secondary">{totalAttachments.toLocaleString()} files</Badge>
           <Badge variant="secondary">{sizeLabel(totalBytes)}</Badge>
           <Badge variant="secondary">{ownFiles.toLocaleString()} uploaded by you</Badge>
         </div>
@@ -178,6 +201,12 @@ export default async function StoragePage({ searchParams }: { searchParams: Prom
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Try another team, uploader, date range, or search term.</p>
           </div>
         )}
+        <DashboardPagination
+          basePath="/dashboard/storage"
+          searchParams={query}
+          page={page}
+          total={totalAttachments}
+        />
       </section>
     </div>
   );

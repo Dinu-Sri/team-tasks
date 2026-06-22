@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, BellDot, Building2, CheckCheck, CreditCard, HardDrive, Shield, SlidersHorizontal, Users } from "lucide-react";
+import { BellDot, Building2, CheckCheck, CreditCard, HardDrive, Shield, SlidersHorizontal, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 
 const coreItems = [
   { href: "/dashboard/teams", label: "Teams", icon: Users },
-  { href: "/dashboard/analytics", label: "Progress", icon: BarChart3 },
   { href: "/dashboard/activity", label: "Activity", icon: BellDot },
   { href: "/dashboard/features", label: "Settings", icon: SlidersHorizontal },
   { href: "/dashboard/archive", label: "Finished", icon: CheckCheck },

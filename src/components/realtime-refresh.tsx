@@ -10,27 +10,14 @@ export function RealtimeRefresh() {
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
       if (refreshTimer) clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => router.refresh(), 120);
+      refreshTimer = setTimeout(() => router.refresh(), 250);
     };
 
     const events = new EventSource("/api/realtime");
     events.addEventListener("update", refresh);
 
-    const refreshWhenVisible = () => {
-      if (document.visibilityState === "visible") refresh();
-    };
-    document.addEventListener("visibilitychange", refreshWhenVisible);
-    window.addEventListener("focus", refresh);
-
-    const recoveryRefresh = setInterval(() => {
-      if (document.visibilityState === "visible") refresh();
-    }, 60000);
-
     return () => {
       events.close();
-      document.removeEventListener("visibilitychange", refreshWhenVisible);
-      window.removeEventListener("focus", refresh);
-      clearInterval(recoveryRefresh);
       if (refreshTimer) clearTimeout(refreshTimer);
     };
   }, [router]);

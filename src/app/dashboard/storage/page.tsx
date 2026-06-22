@@ -1,6 +1,7 @@
-import { Download, ExternalLink, Files, HardDrive, Search } from "lucide-react";
+import { Download, ExternalLink, Files, HardDrive } from "lucide-react";
 import Link from "next/link";
 
+import { StorageFilters } from "@/components/dashboard/storage-filters";
 import { StorageDeleteButton } from "@/components/dashboard/storage-delete-button";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -114,30 +115,18 @@ export default async function StoragePage({ searchParams }: { searchParams: Prom
         </div>
       </header>
 
-      <form className="grid gap-2 rounded-lg border border-border bg-surface p-3 lg:grid-cols-[1.4fr_1fr_1fr_0.75fr_0.75fr_0.8fr_auto]">
-        <label className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input name="q" defaultValue={q} placeholder="Search file, type, or task" className="h-10 w-full rounded-full border border-border bg-background pl-9 pr-3 text-sm" />
-        </label>
-        <select name="team" defaultValue={selectedTeamId} className="h-10 rounded-full border border-border bg-background px-3 text-sm">
-          <option value="">All teams</option>
-          {teams.map((team) => <option key={team.id} value={team.id}>{team.organizationName ?? team.name}</option>)}
-        </select>
-        <select name="uploader" defaultValue={selectedUploaderId} className="h-10 rounded-full border border-border bg-background px-3 text-sm">
-          <option value="">All uploaders</option>
-          {uploaders.map((uploader) => <option key={uploader.id} value={uploader.id}>{uploader.name}</option>)}
-        </select>
-        <input name="from" type="date" defaultValue={query.from ?? ""} className="h-10 rounded-full border border-border bg-background px-3 text-sm" aria-label="From date" />
-        <input name="to" type="date" defaultValue={query.to ?? ""} className="h-10 rounded-full border border-border bg-background px-3 text-sm" aria-label="To date" />
-        <select name="sort" defaultValue={sort} className="h-10 rounded-full border border-border bg-background px-3 text-sm">
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="largest">Largest</option>
-          <option value="smallest">Smallest</option>
-          <option value="name">Name</option>
-        </select>
-        <button className={cn(buttonVariants({ size: "sm" }), "h-10")}>Apply</button>
-      </form>
+      <StorageFilters
+        teams={teams.map((team) => ({ id: team.id, name: team.organizationName ?? team.name }))}
+        uploaders={uploaders.map((uploader) => ({ id: uploader.id, name: uploader.name }))}
+        values={{
+          q,
+          team: selectedTeamId,
+          uploader: selectedUploaderId,
+          from: query.from ?? "",
+          to: query.to ?? "",
+          sort,
+        }}
+      />
 
       <section className="overflow-hidden rounded-lg border border-border bg-surface">
         <div className="flex flex-col gap-2 border-b border-border px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">

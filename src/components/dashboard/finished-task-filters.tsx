@@ -4,6 +4,7 @@ import { ChevronDown, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { filterControlClass, filterLabelClass, filterMenuClass, filterOptionClass, filterSearchControlClass } from "@/components/ui/filter-controls";
 import { cn } from "@/lib/utils";
 
 export type FinishedTaskFilterTeam = {
@@ -77,11 +78,11 @@ export function FinishedTaskFilters({
     <section className="rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Finished task filters">
       <div className="grid gap-3 lg:grid-cols-[minmax(12rem,18rem)_minmax(0,1fr)] lg:items-end">
         <label className="grid gap-1.5 text-sm font-medium">
-          <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Team</span>
+          <span className={filterLabelClass}>Team</span>
           <select
             value={selectedTeamId}
             onChange={(event) => selectTeam(event.target.value)}
-            className="h-11 w-full rounded-full border border-border bg-background px-4 text-sm outline-none focus:ring-2 focus:ring-ring"
+            className={filterControlClass}
           >
             <option value="__all__">All teams</option>
             {teams.map((team) => (
@@ -91,7 +92,7 @@ export function FinishedTaskFilters({
         </label>
 
         <div ref={menuRef} className="relative min-w-0">
-          <label htmlFor="finished-by-search" className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Finished by</label>
+          <label htmlFor="finished-by-search" className={cn(filterLabelClass, "mb-1.5 block")}>Finished by</label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -101,7 +102,7 @@ export function FinishedTaskFilters({
               onFocus={() => setMemberOpen(true)}
               placeholder="All members"
               autoComplete="off"
-              className="h-11 w-full rounded-full border border-border bg-background pl-10 pr-11 text-sm outline-none focus:ring-2 focus:ring-ring"
+              className={filterSearchControlClass}
               role="combobox"
               aria-expanded={memberOpen}
               aria-controls="finished-by-options"
@@ -111,13 +112,13 @@ export function FinishedTaskFilters({
             </button>
           </div>
           {memberOpen ? (
-            <div id="finished-by-options" role="listbox" className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-soft">
+            <div id="finished-by-options" role="listbox" className={filterMenuClass}>
               <button
                 type="button"
                 role="option"
                 aria-selected={selectedMemberId === "__all__"}
                 onClick={() => selectMember("__all__")}
-                className={cn("flex min-h-10 w-full items-center rounded-md px-3 text-left text-sm", selectedMemberId === "__all__" ? "bg-foreground text-background" : "hover:bg-surface-subtle")}
+                className={cn(filterOptionClass, selectedMemberId === "__all__" ? "bg-foreground text-background hover:bg-foreground" : "")}
               >
                 All members
               </button>
@@ -128,7 +129,7 @@ export function FinishedTaskFilters({
                   role="option"
                   aria-selected={selectedMemberId === member.id}
                   onClick={() => selectMember(member.id, member.name)}
-                  className={cn("flex min-h-10 w-full items-center rounded-md px-3 text-left text-sm", selectedMemberId === member.id ? "bg-brand text-brand-foreground" : "hover:bg-surface-subtle")}
+                  className={cn(filterOptionClass, selectedMemberId === member.id ? "bg-brand text-brand-foreground hover:bg-brand" : "")}
                 >
                   {member.name}
                 </button>

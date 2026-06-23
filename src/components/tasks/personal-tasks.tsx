@@ -199,7 +199,7 @@ export function PersonalTasks({
       </div>
 
       {!memberView && showAdd ? (
-        <form action={createPersonalTaskAction} id="onborda-add-task-form" className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+        <form action={createPersonalTaskAction} id="onborda-add-task-form" className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,16rem)_auto_auto]">
           <Input name="title" placeholder="What needs to be done?" autoFocus required />
           {isAllWorkspaces ? (
             <select name="teamId" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Team" required>
@@ -352,7 +352,7 @@ function AssigneePicker({ members, value, onChange, currentUserId }: { members: 
         <UsersRound className="h-4 w-4 shrink-0 text-muted-foreground" />
       </button>
       {open ? (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-lg border border-border bg-surface p-1 shadow-soft">
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 min-w-[min(18rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface p-1 shadow-soft">
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search members" className="mb-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" autoFocus />
           <div className="max-h-56 overflow-y-auto">
             {filteredMembers.length ? filteredMembers.map((member) => (

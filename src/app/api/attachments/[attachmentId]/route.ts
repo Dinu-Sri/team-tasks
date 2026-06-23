@@ -30,7 +30,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ atta
   const { attachmentId } = await params;
   const access = await accessibleAttachment(attachmentId, user.id);
   if (!access) return new NextResponse("Not found", { status: 404 });
-  const isPreviewable = access.attachment.mimeType.startsWith("image/") || access.attachment.mimeType.startsWith("video/");
+  const isPreviewable = access.attachment.mimeType.startsWith("image/") || access.attachment.mimeType.startsWith("video/") || access.attachment.mimeType === "application/pdf";
   const preview = new URL(request.url).searchParams.get("preview") === "1" && isPreviewable;
   try {
     const bytes = await readFile(storedAttachmentPath(access.attachment.storedName));

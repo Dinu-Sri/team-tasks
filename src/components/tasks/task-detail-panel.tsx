@@ -1,9 +1,9 @@
 "use client";
 
-import { CheckCheck, Download, Eye, FileUp, Files, FileVideo, ImageIcon, MessageCircleMore, Paperclip, Pencil, Send, Trash2, X } from "lucide-react";
+import { CheckCheck, Download, Eye, FileUp, Files, FileText, FileVideo, ImageIcon, MessageCircleMore, Paperclip, Pencil, Send, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { addTaskCommentAction, markTaskCommentsReadAction } from "@/app/actions/comments";
 import { deleteTaskAction, updateTaskAction } from "@/app/actions/tasks";
@@ -76,10 +76,10 @@ export function TaskDetailPanel({ task, currentUserId, onClose }: { task: TaskDe
 
   async function uploadFiles(files: File[] | FileList | null) {
     const selectedFiles = Array.from(files ?? []);
-    if (!selectedFiles.length) return;
+    if (!selectedFiles.length) return true;
     setFileError("");
     const oversized = selectedFiles.find((file) => file.size > task.team.attachmentLimitMb * 1024 * 1024);
-    if (oversized) { setFileError(`${oversized.name} is larger than this team's ${task.team.attachmentLimitMb} MB limit.`); return; }
+    if (oversized) { setFileError(`${oversized.name} is larger than this team's ${task.team.attachmentLimitMb} MB limit.`); return false; }
     setUploading(true);
     const failures: string[] = [];
     try {
@@ -98,8 +98,10 @@ export function TaskDetailPanel({ task, currentUserId, onClose }: { task: TaskDe
         setFileError(failures.length > 2 ? `${shown} ${failures.length - 2} more file(s) failed.` : shown);
       }
       router.refresh();
+      return failures.length === 0;
     } catch (error) {
       setFileError(error instanceof Error ? error.message : "Upload failed.");
+      return false;
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -221,7 +223,7 @@ function Discussion({
   currentUserId: string;
   uploading: boolean;
   fileError: string;
-  onUploadFiles: (files: File[] | FileList | null) => Promise<void>;
+  onUploadFiles: (files: File[] | FileList | null) => Promise<boolean>;
 }) {
   const timeline = [
     ...task.comments.map((comment) => ({ type: "comment" as const, createdAt: comment.createdAt, item: comment })),
@@ -252,7 +254,7 @@ function Discussion({
           );
         }) : <div className="py-14 text-center"><MessageCircleMore className="mx-auto h-5 w-5 text-muted-foreground" /><p className="mt-2 text-sm text-muted-foreground">Ask for clarification here.</p></div>}
       </div>
-      <MentionComposer taskId={task.id} members={task.team.members.filter((member) => member.id !== currentUserId)} attachmentsEnabled={task.team.attachmentsEnabled} uploading={uploading} fileError={fileError} onUploadFiles={onUploadFiles} />
+      <MentionComposer taskId={task.id} members={task.team.members.filter((member) => member.id !== currentUserId)} attachmentsEnabled={task.team.attachmentsEnabled} attachmentLimitMb={task.team.attachmentLimitMb} uploading={uploading} fileError={fileError} onUploadFiles={onUploadFiles} />
     </div>
   );
 }
@@ -264,6 +266,7 @@ function formatDateTime(value: string) {
 function mediaKind(file: TaskDetail["attachments"][number]) {
   if (file.mimeType.startsWith("image/")) return "image";
   if (file.mimeType.startsWith("video/")) return "video";
+  if (file.mimeType === "application/pdf") return "pdf";
   return "file";
 }
 
@@ -271,21 +274,34 @@ function MediaIcon({ file }: { file: TaskDetail["attachments"][number] }) {
   const kind = mediaKind(file);
   if (kind === "image") return <ImageIcon className="h-4 w-4 shrink-0 text-brand" />;
   if (kind === "video") return <FileVideo className="h-4 w-4 shrink-0 text-brand" />;
+  if (kind === "pdf") return <FileText className="h-4 w-4 shrink-0 text-brand" />;
   return <Files className="h-4 w-4 shrink-0 text-brand" />;
 }
 
 function DiscussionMedia({ file, currentUserId }: { file: TaskDetail["attachments"][number]; currentUserId: string }) {
   const own = file.uploader.id === currentUserId;
   const kind = mediaKind(file);
+  const canPreview = kind === "image" || kind === "video" || kind === "pdf";
+  const [viewerOpen, setViewerOpen] = useState(false);
   return (
     <article className={cn("max-w-[88%]", own && "ml-auto")}>
       <div className={cn("overflow-hidden rounded-lg border border-border bg-surface-subtle", own && "bg-brand/10")}>
         {kind === "image" ? (
-          <a href={`/api/attachments/${file.id}`} aria-label={`Open ${file.originalName}`}>
-            <img src={`/api/attachments/${file.id}?preview=1`} alt={file.originalName} className="max-h-64 w-full object-cover" loading="lazy" />
-          </a>
+          <button type="button" onClick={() => setViewerOpen(true)} className="block max-w-full bg-background p-1 text-left" aria-label={`Open ${file.originalName}`}>
+            <img src={`/api/attachments/${file.id}?preview=1`} alt={file.originalName} className="max-h-36 max-w-56 rounded-md object-contain" loading="lazy" />
+          </button>
         ) : kind === "video" ? (
-          <video src={`/api/attachments/${file.id}?preview=1`} controls preload="metadata" className="max-h-64 w-full bg-black" />
+          <button type="button" onClick={() => setViewerOpen(true)} className="block max-w-full bg-black p-1 text-left" aria-label={`Open ${file.originalName}`}>
+            <video src={`/api/attachments/${file.id}?preview=1`} muted preload="metadata" className="max-h-36 max-w-56 rounded-md object-contain" />
+          </button>
+        ) : kind === "pdf" ? (
+          <button type="button" onClick={() => setViewerOpen(true)} className="flex items-center gap-3 px-3 py-2.5 text-left hover:bg-surface-subtle">
+            <MediaIcon file={file} />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium">{file.originalName}</span>
+              <span className="block text-xs text-muted-foreground">{sizeLabel(file.size)}</span>
+            </span>
+          </button>
         ) : (
           <a href={`/api/attachments/${file.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-surface-subtle">
             <MediaIcon file={file} />
@@ -295,9 +311,10 @@ function DiscussionMedia({ file, currentUserId }: { file: TaskDetail["attachment
             </span>
           </a>
         )}
-        {kind !== "file" ? <div className="px-3 py-2"><p className="truncate text-sm font-medium">{file.originalName}</p><p className="text-xs text-muted-foreground">{sizeLabel(file.size)}</p></div> : null}
+        {kind === "image" || kind === "video" ? <div className="max-w-56 px-3 py-2"><p className="truncate text-sm font-medium">{file.originalName}</p><p className="text-xs text-muted-foreground">{sizeLabel(file.size)}</p></div> : null}
       </div>
       <div className={cn("mt-1 px-1 text-xs text-muted-foreground", own && "text-right")}>{file.uploader.name} - {formatDateTime(file.createdAt)}</div>
+      {canPreview && viewerOpen ? <MediaViewer file={file} onClose={() => setViewerOpen(false)} /> : null}
     </article>
   );
 }
@@ -305,17 +322,66 @@ function DiscussionMedia({ file, currentUserId }: { file: TaskDetail["attachment
 function MediaListItem({ file, currentUserId, currentUserRole, onRemove }: { file: TaskDetail["attachments"][number]; currentUserId: string; currentUserRole: TaskDetail["team"]["currentUserRole"]; onRemove: (id: string) => Promise<void> }) {
   const canDelete = file.uploader.id === currentUserId || currentUserRole === "OWNER";
   const image = file.mimeType.startsWith("image/");
+  const canPreview = ["image", "video", "pdf"].includes(mediaKind(file));
+  const [viewerOpen, setViewerOpen] = useState(false);
   return (
     <div className="flex min-h-14 items-center gap-3 px-3 py-2.5">
       <MediaIcon file={file} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{file.originalName}</p>
-        <p className="truncate text-xs text-muted-foreground">{sizeLabel(file.size)} - {file.uploader.name} - {formatDateTime(file.createdAt)}</p>
-      </div>
+      {canPreview ? (
+        <button type="button" onClick={() => setViewerOpen(true)} className="min-w-0 flex-1 text-left">
+          <p className="truncate text-sm font-medium">{file.originalName}</p>
+          <p className="truncate text-xs text-muted-foreground">{sizeLabel(file.size)} - {file.uploader.name} - {formatDateTime(file.createdAt)}</p>
+        </button>
+      ) : (
+        <a href={`/api/attachments/${file.id}`} className="min-w-0 flex-1 text-left">
+          <p className="truncate text-sm font-medium">{file.originalName}</p>
+          <p className="truncate text-xs text-muted-foreground">{sizeLabel(file.size)} - {file.uploader.name} - {formatDateTime(file.createdAt)}</p>
+        </a>
+      )}
       {image ? <ImagePreview attachmentId={file.id} name={file.originalName} /> : null}
       <a href={`/api/attachments/${file.id}`} className={cn(buttonVariants({ variant: "quiet", size: "icon" }), "h-9 w-9")} aria-label={`Download ${file.originalName}`}><Download /></a>
       {canDelete ? <button type="button" onClick={() => void onRemove(file.id)} className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-danger/10 hover:text-danger" aria-label={`Remove ${file.originalName}`}><Trash2 className="h-4 w-4" /></button> : null}
+      {viewerOpen ? <MediaViewer file={file} onClose={() => setViewerOpen(false)} /> : null}
     </div>
+  );
+}
+
+function MediaViewer({ file, onClose }: { file: TaskDetail["attachments"][number]; onClose: () => void }) {
+  const kind = mediaKind(file);
+
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    document.addEventListener("keydown", close);
+    return () => document.removeEventListener("keydown", close);
+  }, [onClose]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[160] flex items-center justify-center bg-black/80 p-3 sm:p-6" role="dialog" aria-modal="true" aria-label={file.originalName} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-soft">
+        <header className="flex items-center gap-3 border-b border-border px-3 py-2.5">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{file.originalName}</p>
+            <p className="text-xs text-muted-foreground">{sizeLabel(file.size)}</p>
+          </div>
+          <a href={`/api/attachments/${file.id}`} className={cn(buttonVariants({ variant: "secondary", size: "icon" }), "h-9 w-9")} aria-label={`Download ${file.originalName}`}>
+            <Download />
+          </a>
+          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle" aria-label="Close viewer">
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+        <div className="flex min-h-0 flex-1 items-center justify-center bg-background p-2">
+          {kind === "image" ? (
+            <img src={`/api/attachments/${file.id}?preview=1`} alt={file.originalName} className="max-h-[78vh] max-w-full object-contain" />
+          ) : kind === "video" ? (
+            <video src={`/api/attachments/${file.id}?preview=1`} controls autoPlay className="max-h-[78vh] max-w-full bg-black" />
+          ) : kind === "pdf" ? (
+            <iframe src={`/api/attachments/${file.id}?preview=1`} title={file.originalName} className="h-[78vh] w-full rounded bg-white" />
+          ) : null}
+        </div>
+      </section>
+    </div>,
+    document.body,
   );
 }
 
@@ -358,6 +424,7 @@ function MentionComposer({
   taskId,
   members,
   attachmentsEnabled,
+  attachmentLimitMb,
   uploading,
   fileError,
   onUploadFiles,
@@ -365,17 +432,22 @@ function MentionComposer({
   taskId: string;
   members: TaskDetail["team"]["members"];
   attachmentsEnabled: boolean;
+  attachmentLimitMb: number;
   uploading: boolean;
   fileError: string;
-  onUploadFiles: (files: File[] | FileList | null) => Promise<void>;
+  onUploadFiles: (files: File[] | FileList | null) => Promise<boolean>;
 }) {
-  const [state, action, pending] = useActionState(addTaskCommentAction, {});
+  const [pending, setPending] = useState(false);
+  const [commentError, setCommentError] = useState("");
   const [text, setText] = useState("");
   const [selected, setSelected] = useState<MentionOption[]>([]);
+  const [draftFiles, setDraftFiles] = useState<Array<{ id: string; file: File; previewUrl: string | null }>>([]);
+  const [draftError, setDraftError] = useState("");
   const [cursor, setCursor] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const draftFilesRef = useRef(draftFiles);
   const context = useMemo(() => { const before = text.slice(0, cursor); const at = before.lastIndexOf("@"); if (at < 0 || (at > 0 && !/\s/.test(before[at - 1]))) return null; const query = before.slice(at + 1); if (query.includes("\n")) return null; return { at, query }; }, [cursor, text]);
   const suggestions = useMemo(() => {
     if (!context) return [];
@@ -385,8 +457,9 @@ function MentionComposer({
   }, [context, members]);
   const validSelected = selected.filter((member) => text.includes(`@${member.name}`));
 
-  useEffect(() => { if (state.success) { setText(""); setSelected([]); } }, [state.success]);
   useEffect(() => setActiveIndex(0), [context?.query]);
+  useEffect(() => { draftFilesRef.current = draftFiles; }, [draftFiles]);
+  useEffect(() => () => { draftFilesRef.current.forEach(({ previewUrl }) => { if (previewUrl) URL.revokeObjectURL(previewUrl); }); }, []);
 
   function choose(member: MentionOption) {
     if (!context) return;
@@ -397,8 +470,68 @@ function MentionComposer({
     requestAnimationFrame(() => { textareaRef.current?.focus(); textareaRef.current?.setSelectionRange(nextCursor, nextCursor); });
   }
 
+  function addDraftFiles(files: FileList | null) {
+    const selectedFiles = Array.from(files ?? []);
+    if (!selectedFiles.length) return;
+    setDraftError("");
+    setCommentError("");
+    const oversized = selectedFiles.find((file) => file.size > attachmentLimitMb * 1024 * 1024);
+    if (oversized) {
+      setDraftError(`${oversized.name} is larger than this team's ${attachmentLimitMb} MB limit.`);
+      return;
+    }
+    setDraftFiles((current) => [
+      ...current,
+      ...selectedFiles.map((file) => ({
+        id: `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`,
+        file,
+        previewUrl: file.type.startsWith("image/") || file.type.startsWith("video/") ? URL.createObjectURL(file) : null,
+      })),
+    ]);
+  }
+
+  function removeDraftFile(id: string) {
+    setDraftFiles((current) => {
+      const draft = current.find((item) => item.id === id);
+      if (draft?.previewUrl) URL.revokeObjectURL(draft.previewUrl);
+      return current.filter((item) => item.id !== id);
+    });
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = text.trim();
+    if (!trimmed && !draftFiles.length) return;
+    setPending(true);
+    setCommentError("");
+    setDraftError("");
+    try {
+      if (trimmed) {
+        const formData = new FormData(event.currentTarget);
+        formData.set("body", trimmed);
+        const result = await addTaskCommentAction({}, formData);
+        if (result.error) {
+          setCommentError(result.error);
+          return;
+        }
+        setText("");
+        setSelected([]);
+      }
+      if (draftFiles.length) {
+        const uploaded = await onUploadFiles(draftFiles.map(({ file }) => file));
+        if (!uploaded) return;
+        draftFiles.forEach(({ previewUrl }) => { if (previewUrl) URL.revokeObjectURL(previewUrl); });
+        setDraftFiles([]);
+      }
+      setText("");
+      setSelected([]);
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
-    <form action={action} className="relative border-t border-border p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4">
+    <form onSubmit={handleSubmit} className="relative border-t border-border p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:p-4">
       <input type="hidden" name="taskId" value={taskId} />
       {validSelected
         .filter(({ id }) => id !== "__all__")
@@ -428,10 +561,16 @@ function MentionComposer({
         </div>
       ) : null}
 
+      {draftFiles.length ? (
+        <div className="mb-3 flex max-h-32 gap-2 overflow-x-auto rounded-lg border border-border bg-background p-2">
+          {draftFiles.map((draft) => <DraftAttachment key={draft.id} draft={draft} onRemove={() => removeDraftFile(draft.id)} />)}
+        </div>
+      ) : null}
+
       <div className="flex items-end gap-2">
         {attachmentsEnabled ? (
           <>
-            <input ref={attachmentInputRef} type="file" multiple className="hidden" accept={ACCEPTED_ATTACHMENT_TYPES} onChange={(event) => { void onUploadFiles(event.target.files); event.currentTarget.value = ""; }} />
+            <input ref={attachmentInputRef} type="file" multiple className="hidden" accept={ACCEPTED_ATTACHMENT_TYPES} onChange={(event) => { addDraftFiles(event.target.files); event.currentTarget.value = ""; }} />
             <Button type="button" size="icon" variant="secondary" disabled={uploading} aria-label="Attach media or files" title="Attach media or files" onClick={() => attachmentInputRef.current?.click()}>
               {uploading ? <FileUp /> : <Paperclip />}
             </Button>
@@ -470,14 +609,40 @@ function MentionComposer({
           maxLength={2000}
           placeholder="Write a comment. @ is optional."
           className="min-h-12 flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-base outline-none focus:ring-2 focus:ring-ring sm:text-sm"
-          required
         />
-        <Button type="submit" size="icon" disabled={pending || !text.trim()} aria-label="Post comment">
+        <Button type="submit" size="icon" disabled={pending || uploading || (!text.trim() && !draftFiles.length)} aria-label="Post comment">
           <Send />
         </Button>
       </div>
       {fileError ? <p className="mt-2 text-xs text-danger">{fileError}</p> : null}
-      {state.error ? <p className="mt-2 text-xs text-danger">{state.error}</p> : null}
+      {draftError ? <p className="mt-2 text-xs text-danger">{draftError}</p> : null}
+      {commentError ? <p className="mt-2 text-xs text-danger">{commentError}</p> : null}
     </form>
+  );
+}
+
+function DraftAttachment({ draft, onRemove }: { draft: { file: File; previewUrl: string | null }; onRemove: () => void }) {
+  const kind = draft.file.type.startsWith("image/") ? "image" : draft.file.type.startsWith("video/") ? "video" : draft.file.type === "application/pdf" ? "pdf" : "file";
+  return (
+    <div className="relative flex w-28 shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-surface">
+      <button type="button" onClick={onRemove} className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-white hover:bg-black" aria-label={`Remove ${draft.file.name}`}>
+        <X className="h-3.5 w-3.5" />
+      </button>
+      <div className="flex h-20 items-center justify-center bg-background p-1">
+        {kind === "image" && draft.previewUrl ? (
+          <img src={draft.previewUrl} alt={draft.file.name} className="max-h-full max-w-full object-contain" />
+        ) : kind === "video" && draft.previewUrl ? (
+          <video src={draft.previewUrl} muted preload="metadata" className="max-h-full max-w-full object-contain" />
+        ) : kind === "pdf" ? (
+          <FileText className="h-7 w-7 text-brand" />
+        ) : (
+          <Files className="h-7 w-7 text-brand" />
+        )}
+      </div>
+      <div className="min-w-0 px-2 py-1.5">
+        <p className="truncate text-xs font-medium">{draft.file.name}</p>
+        <p className="text-[11px] text-muted-foreground">{sizeLabel(draft.file.size)}</p>
+      </div>
+    </div>
   );
 }

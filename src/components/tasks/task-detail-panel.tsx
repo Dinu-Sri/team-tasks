@@ -284,14 +284,14 @@ function DiscussionMedia({ file, currentUserId }: { file: TaskDetail["attachment
   const canPreview = kind === "image" || kind === "video" || kind === "pdf";
   const [viewerOpen, setViewerOpen] = useState(false);
   return (
-    <article className={cn("max-w-[88%]", own && "ml-auto")}>
-      <div className={cn("overflow-hidden rounded-lg border border-border bg-surface-subtle", own && "bg-brand/10")}>
+    <article className={cn("w-fit max-w-[88%]", own && "ml-auto")}>
+      <div className={cn("w-fit max-w-full overflow-hidden rounded-lg border border-border bg-surface-subtle", own && "bg-brand/10")}>
         {kind === "image" ? (
-          <button type="button" onClick={() => setViewerOpen(true)} className="block max-w-full bg-background p-1 text-left" aria-label={`Open ${file.originalName}`}>
+          <button type="button" onClick={() => setViewerOpen(true)} className="block w-fit max-w-full bg-background p-1 text-left" aria-label={`Open ${file.originalName}`}>
             <img src={`/api/attachments/${file.id}?preview=1`} alt={file.originalName} className="max-h-36 max-w-56 rounded-md object-contain" loading="lazy" />
           </button>
         ) : kind === "video" ? (
-          <button type="button" onClick={() => setViewerOpen(true)} className="block max-w-full bg-black p-1 text-left" aria-label={`Open ${file.originalName}`}>
+          <button type="button" onClick={() => setViewerOpen(true)} className="block w-fit max-w-full bg-black p-1 text-left" aria-label={`Open ${file.originalName}`}>
             <video src={`/api/attachments/${file.id}?preview=1`} muted preload="metadata" className="max-h-36 max-w-56 rounded-md object-contain" />
           </button>
         ) : kind === "pdf" ? (
@@ -311,7 +311,7 @@ function DiscussionMedia({ file, currentUserId }: { file: TaskDetail["attachment
             </span>
           </a>
         )}
-        {kind === "image" || kind === "video" ? <div className="max-w-56 px-3 py-2"><p className="truncate text-sm font-medium">{file.originalName}</p><p className="text-xs text-muted-foreground">{sizeLabel(file.size)}</p></div> : null}
+        {kind === "image" || kind === "video" ? <div className="max-w-56 px-3 py-2"><p className="break-words text-sm font-medium leading-5">{file.originalName}</p><p className="text-xs text-muted-foreground">{sizeLabel(file.size)}</p></div> : null}
       </div>
       <div className={cn("mt-1 px-1 text-xs text-muted-foreground", own && "text-right")}>{file.uploader.name} - {formatDateTime(file.createdAt)}</div>
       {canPreview && viewerOpen ? <MediaViewer file={file} onClose={() => setViewerOpen(false)} /> : null}
@@ -562,7 +562,7 @@ function MentionComposer({
       ) : null}
 
       {draftFiles.length ? (
-        <div className="mb-3 flex max-h-32 gap-2 overflow-x-auto rounded-lg border border-border bg-background p-2">
+        <div className="mb-3 flex max-h-56 flex-wrap gap-2 overflow-y-auto rounded-lg border border-border bg-background p-2">
           {draftFiles.map((draft) => <DraftAttachment key={draft.id} draft={draft} onRemove={() => removeDraftFile(draft.id)} />)}
         </div>
       ) : null}
@@ -624,11 +624,11 @@ function MentionComposer({
 function DraftAttachment({ draft, onRemove }: { draft: { file: File; previewUrl: string | null }; onRemove: () => void }) {
   const kind = draft.file.type.startsWith("image/") ? "image" : draft.file.type.startsWith("video/") ? "video" : draft.file.type === "application/pdf" ? "pdf" : "file";
   return (
-    <div className="relative flex w-28 shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-surface">
+    <div className="relative flex min-h-24 w-full overflow-hidden rounded-lg border border-border bg-surface min-[520px]:w-[21rem]">
       <button type="button" onClick={onRemove} className="absolute right-1 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-white hover:bg-black" aria-label={`Remove ${draft.file.name}`}>
         <X className="h-3.5 w-3.5" />
       </button>
-      <div className="flex h-20 items-center justify-center bg-background p-1">
+      <div className="flex h-24 w-24 shrink-0 items-center justify-center bg-background p-1">
         {kind === "image" && draft.previewUrl ? (
           <img src={draft.previewUrl} alt={draft.file.name} className="max-h-full max-w-full object-contain" />
         ) : kind === "video" && draft.previewUrl ? (
@@ -639,8 +639,8 @@ function DraftAttachment({ draft, onRemove }: { draft: { file: File; previewUrl:
           <Files className="h-7 w-7 text-brand" />
         )}
       </div>
-      <div className="min-w-0 px-2 py-1.5">
-        <p className="truncate text-xs font-medium">{draft.file.name}</p>
+      <div className="min-w-0 flex-1 px-3 py-2 pr-8">
+        <p className="break-words text-xs font-medium leading-4">{draft.file.name}</p>
         <p className="text-[11px] text-muted-foreground">{sizeLabel(draft.file.size)}</p>
       </div>
     </div>

@@ -11,7 +11,7 @@ import { requireSuperAdmin, SUPER_ADMIN_EMAIL } from "@/lib/auth";
 import { couponDiscountLabel } from "@/lib/billing-coupons";
 import { ensureDefaultBillingPlans, getWorkspaceBillingSummaries, storageMb } from "@/lib/billing";
 import { db } from "@/lib/db";
-import { payHereConfigStatus } from "@/lib/payhere";
+import { onePayConfigStatus } from "@/lib/onepay";
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ usersPage?: string; workspacesPage?: string; invoicesPage?: string; eventsPage?: string; couponsPage?: string }> }) {
   const admin = await requireSuperAdmin();
@@ -23,7 +23,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const couponsPage = pageFromParam(query.couponsPage);
   await ensureDefaultBillingPlans();
 
-  const payHereStatus = payHereConfigStatus();
+  const onePayStatus = onePayConfigStatus();
   const [totalUsers, users, totalTeams, teams, plans, totalInvoices, invoices, totalBillingEvents, billingEvents, totalCoupons, coupons] = await Promise.all([
     db.user.count(),
     db.user.findMany({
@@ -189,19 +189,19 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <CreditCard className="h-5 w-5 text-brand" />
             Workspace billing
           </h2>
-          <p className="text-sm text-muted-foreground">Manually adjust customer plans while PayHere automation is being prepared.</p>
+          <p className="text-sm text-muted-foreground">Manually adjust customer plans and monitor OnePay billing automation.</p>
         </header>
 
         <div className="grid gap-2 rounded-lg border border-border bg-surface p-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <AdminStatus label="Checkout" ok={payHereStatus.checkoutConfigured} />
-          <AdminStatus label="Manager API" ok={payHereStatus.managerConfigured} />
+          <AdminStatus label="Checkout" ok={onePayStatus.checkoutConfigured} />
+          <AdminStatus label="Callback token" ok={onePayStatus.callbackConfigured} />
           <div>
-            <p className="text-xs font-medium uppercase text-muted-foreground">Mode</p>
-            <p className="font-medium">{payHereStatus.mode}</p>
+            <p className="text-xs font-medium uppercase text-muted-foreground">API base</p>
+            <p className="break-all text-xs font-medium">{onePayStatus.baseUrl}</p>
           </div>
           <div>
-            <p className="text-xs font-medium uppercase text-muted-foreground">Notify URL</p>
-            <p className="break-all text-xs text-muted-foreground">{payHereStatus.notifyUrl}</p>
+            <p className="text-xs font-medium uppercase text-muted-foreground">Callback URL</p>
+            <p className="break-all text-xs text-muted-foreground">{onePayStatus.callbackUrl}</p>
           </div>
         </div>
 
@@ -359,7 +359,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <section className="rounded-lg border border-border bg-surface">
             <div className="border-b border-border px-4 py-3">
               <h3 className="font-semibold">Recent billing events</h3>
-              <p className="text-xs text-muted-foreground">PayHere notifications and Subscription Manager sync results.</p>
+              <p className="text-xs text-muted-foreground">Payment provider callbacks and billing sync results.</p>
             </div>
             <div className="divide-y divide-border">
               {billingEvents.map((event) => (

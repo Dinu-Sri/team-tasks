@@ -625,6 +625,7 @@ enum BillingProvider {
   INTERNAL
   MANUAL
   PAYHERE
+  ONEPAY
 }
 
 enum BillingStatus {

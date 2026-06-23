@@ -8,6 +8,7 @@ import { ensureDefaultBillingPlans, ensureTeamBillingSubscription, refreshWorksp
 import { normalizeCouponCode, validateCouponForCheckout } from "@/lib/billing-coupons";
 import { db } from "@/lib/db";
 import { sendBillingEmail } from "@/lib/mail";
+import { onePayConfigured } from "@/lib/onepay";
 import { cancelPayHereSubscription, createBillingInvoiceNumber, cycleAmount, payHereConfigured, payHereManagerConfigured } from "@/lib/payhere";
 
 export type BillingAdminState = { error?: string; success?: string };
@@ -193,6 +194,50 @@ export async function startPayHereSubscriptionAction(formData: FormData) {
 
   revalidatePath("/dashboard/billing");
   redirect(`/billing/payhere/checkout/${invoice.id}`);
+}
+
+export async function startOnePaySubscriptionAction(formData: FormData) {
+  const user = await requireUser();
+  if (!onePayConfigured()) redirect("/dashboard/billing?payment=onepay-not-configured");
+
+  const teamId = String(formData.get("teamId") ?? "").trim();
+  const planId = String(formData.get("planId") ?? "").trim();
+  const cycle = String(formData.get("cycle") ?? "MONTHLY") === "YEARLY" ? "YEARLY" : "MONTHLY";
+  const discountCode = normalizeCouponCode(String(formData.get("discountCode") ?? ""));
+  if (!teamId || !planId) redirect("/dashboard/billing?payment=invalid");
+
+  const [membership, plan] = await Promise.all([
+    db.membership.findUnique({ where: { userId_teamId: { userId: user.id, teamId } }, include: { team: { select: { name: true, organizationName: true } } } }),
+    db.billingPlan.findUnique({ where: { id: planId } }),
+  ]);
+  if (!membership || membership.status !== "ACTIVE" || !["OWNER", "ADMIN"].includes(membership.role)) redirect("/dashboard/billing?payment=forbidden");
+  if (!plan || !plan.active || plan.code === "free" || plan.code === "custom_setup") redirect("/dashboard/billing?payment=invalid-plan");
+
+  const amountLkr = cycleAmount(plan, cycle);
+  if (!amountLkr || amountLkr < 1) redirect("/dashboard/billing?payment=invalid-plan");
+  const discount = await validateCouponForCheckout({ code: discountCode, teamId, plan, cycle, amountLkr });
+  if (discount.message) redirect(`/dashboard/billing?payment=discount-invalid&reason=${encodeURIComponent(discount.message)}`);
+
+  const invoice = await db.invoice.create({
+    data: {
+      teamId,
+      planId,
+      couponId: discount.coupon?.id,
+      billingCycle: cycle,
+      number: await createBillingInvoiceNumber(),
+      status: "SENT",
+      originalAmountLkr: amountLkr,
+      amountLkr: discount.finalAmountLkr,
+      discountAmountLkr: discount.discountAmountLkr,
+      discountCode: discount.coupon?.code,
+      description: `Tuduvia ${plan.name} ${cycle === "YEARLY" ? "annual" : "monthly"} subscription for ${membership.team.organizationName ?? membership.team.name}${discount.coupon ? ` (${discount.coupon.code} discount)` : ""}`,
+      dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    },
+    select: { id: true },
+  });
+
+  revalidatePath("/dashboard/billing");
+  redirect(`/billing/onepay/checkout/${invoice.id}`);
 }
 
 function dateFromInput(value: FormDataEntryValue | null) {

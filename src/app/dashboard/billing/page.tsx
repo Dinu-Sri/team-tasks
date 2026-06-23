@@ -1,14 +1,14 @@
 import { Gauge, Mail, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
-import { cancelWorkspaceSubscriptionAction, downgradeWorkspaceToFreeAction, startPayHereSubscriptionAction } from "@/app/actions/billing";
+import { cancelWorkspaceSubscriptionAction, downgradeWorkspaceToFreeAction, startOnePaySubscriptionAction } from "@/app/actions/billing";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { getWorkspaceBilling, storageMb } from "@/lib/billing";
 import { getDashboardWorkspaceContext } from "@/lib/dashboard-workspace";
 import { db } from "@/lib/db";
-import { payHereConfigStatus } from "@/lib/payhere";
+import { onePayConfigStatus } from "@/lib/onepay";
 import { cn } from "@/lib/utils";
 
 export default async function BillingPage({ searchParams }: { searchParams: Promise<{ workspace?: string; payment?: string; invoice?: string; reason?: string }> }) {
@@ -44,7 +44,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
     membership,
     billing: await getWorkspaceBilling(membership.teamId),
   })));
-  const payHereStatus = payHereConfigStatus();
+  const onePayStatus = onePayConfigStatus();
 
   return (
     <div className="space-y-5">
@@ -56,7 +56,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
       <div className="rounded-lg border border-brand/25 bg-brand/5 p-4 text-sm text-muted-foreground">
         <ShieldCheck className="mr-1 inline h-4 w-4 text-brand" />
         Plan limits are being rolled out carefully. Existing work stays safe when a workspace changes plans.
-        {!payHereStatus.checkoutConfigured ? " PayHere checkout needs merchant ID and merchant secret env values." : null}
+        {!onePayStatus.checkoutConfigured ? " OnePay checkout needs app ID and hash salt env values." : null}
       </div>
 
       {query.payment ? <PaymentMessage status={query.payment} reason={query.reason} /> : null}
@@ -116,7 +116,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                 ) : null}
 
                 <div className="border-t border-border p-4">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Upgrade with PayHere</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Upgrade with OnePay</p>
                   <div className="mt-3 grid gap-3 lg:grid-cols-2">
                     {paidPlans.map((plan) => (
                       <div key={plan.id} className="rounded-lg border border-border bg-background p-3">
@@ -128,14 +128,14 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                           <Badge variant={billing.plan.id === plan.id ? "success" : "secondary"}>{billing.plan.id === plan.id ? "current" : "available"}</Badge>
                         </div>
                         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                          <UpgradeForm teamId={membership.teamId} planId={plan.id} cycle="MONTHLY" amount={plan.monthlyPriceLkr} disabled={!payHereStatus.checkoutConfigured || billing.plan.id === plan.id} />
-                          <UpgradeForm teamId={membership.teamId} planId={plan.id} cycle="YEARLY" amount={plan.yearlyPriceLkr} disabled={!payHereStatus.checkoutConfigured || billing.plan.id === plan.id} />
+                          <UpgradeForm teamId={membership.teamId} planId={plan.id} cycle="MONTHLY" amount={plan.monthlyPriceLkr} disabled={!onePayStatus.checkoutConfigured || billing.plan.id === plan.id} />
+                          <UpgradeForm teamId={membership.teamId} planId={plan.id} cycle="YEARLY" amount={plan.yearlyPriceLkr} disabled={!onePayStatus.checkoutConfigured || billing.plan.id === plan.id} />
                         </div>
                       </div>
                     ))}
                   </div>
-                  {!payHereStatus.checkoutConfigured ? (
-                    <p className="mt-3 text-xs text-muted-foreground">Online checkout is not configured in this running app. Confirm `PAYHERE_MERCHANT_ID` and `PAYHERE_MERCHANT_SECRET` or `PAYHERE_SECRET` in Portainer, then redeploy.</p>
+                  {!onePayStatus.checkoutConfigured ? (
+                    <p className="mt-3 text-xs text-muted-foreground">Online checkout is not configured in this running app. Confirm `ONEPAY_APP_ID` and `ONEPAY_HASH_SALT` in Portainer, then redeploy.</p>
                   ) : null}
                 </div>
 
@@ -171,7 +171,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
 
 function UpgradeForm({ teamId, planId, cycle, amount, disabled }: { teamId: string; planId: string; cycle: "MONTHLY" | "YEARLY"; amount: number | null; disabled: boolean }) {
   return (
-    <form action={startPayHereSubscriptionAction} className="space-y-2">
+    <form action={startOnePaySubscriptionAction} className="space-y-2">
       <input type="hidden" name="teamId" value={teamId} />
       <input type="hidden" name="planId" value={planId} />
       <input type="hidden" name="cycle" value={cycle} />
@@ -190,9 +190,11 @@ function UpgradeForm({ teamId, planId, cycle, amount, disabled }: { teamId: stri
 
 function PaymentMessage({ status, reason }: { status: string; reason?: string }) {
   const messages: Record<string, string> = {
-    return: "PayHere has redirected you back. Your plan will update after Tuduvia receives the verified PayHere notification.",
+    return: "OnePay has redirected you back. Your plan will update after Tuduvia receives the verified OnePay callback.",
     cancelled: "Payment was cancelled before authorization. No plan changes were made.",
-    "payhere-not-configured": "Online checkout is not configured yet. Contact Tuduvia to upgrade manually.",
+    "payhere-not-configured": "PayHere checkout is offline. Use OnePay or contact Tuduvia to upgrade manually.",
+    "onepay-not-configured": "Online checkout is not configured yet. Contact Tuduvia to upgrade manually.",
+    "onepay-error": reason ?? "OnePay checkout could not be opened.",
     invalid: "That billing request could not be opened.",
     forbidden: "You do not have permission to manage billing for that workspace.",
     "invalid-plan": "That plan cannot be purchased online yet.",

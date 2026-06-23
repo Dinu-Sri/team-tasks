@@ -311,7 +311,6 @@ function DiscussionMedia({ file, currentUserId }: { file: TaskDetail["attachment
             </span>
           </a>
         )}
-        {kind === "image" || kind === "video" ? <div className="max-w-56 px-3 py-2"><p className="break-words text-sm font-medium leading-5">{file.originalName}</p><p className="text-xs text-muted-foreground">{sizeLabel(file.size)}</p></div> : null}
       </div>
       <div className={cn("mt-1 px-1 text-xs text-muted-foreground", own && "text-right")}>{file.uploader.name} - {formatDateTime(file.createdAt)}</div>
       {canPreview && viewerOpen ? <MediaViewer file={file} onClose={() => setViewerOpen(false)} /> : null}

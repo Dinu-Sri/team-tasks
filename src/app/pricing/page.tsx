@@ -50,7 +50,7 @@ const faqs = [
   { question: "Can I still use Tuduvia for free?", answer: "Yes. The Free plan remains available for personal use, students, families, and very small teams." },
   { question: "What happens if I reach a limit?", answer: "Your existing work stays safe. Tuduvia blocks only new items such as extra members, tasks, or uploads until usage is reduced or the workspace is upgraded." },
   { question: "Do you support custom setup?", answer: "Yes. Tuduvia can be configured for a business, department, clinic, school group, or service team with paid setup support." },
-  { question: "How do paid upgrades work?", answer: "Workspace owners can upgrade with PayHere when online checkout is enabled. Manual upgrades and custom setup are still available through Tuduvia support." },
+  { question: "How do paid upgrades work?", answer: "Workspace owners can upgrade through secure online checkout when payments are enabled. Manual upgrades and custom setup are still available through Tuduvia support." },
 ];
 
 export default function PricingPage() {

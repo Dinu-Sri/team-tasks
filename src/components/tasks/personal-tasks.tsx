@@ -80,10 +80,10 @@ export function PersonalTasks({
   const [savingEdit, setSavingEdit] = useState(false);
   const selectedTeam = teams.find(({ id }) => id === selectedTeamId);
 
-  const isOwnerInWorkspace = isCurrentWorkspaceOwner === true;
+  const canManageWorkspace = isCurrentWorkspaceOwner === true;
   const isAllWorkspaces = !workspaceId || workspaceId === "__all__";
-  // Only show add when owner of the selected workspace (not on "All")
-  const showAddButton = !memberView && isOwnerInWorkspace && !isAllWorkspaces;
+  // Owners and admins can add tasks in the selected workspace (not on "All").
+  const showAddButton = !memberView && canManageWorkspace && !isAllWorkspaces;
 
   // When workspace is selected, use that team for member dropdown (not selectedTeamId)
   const workspaceTeam = !isAllWorkspaces ? teams.find(t => t.id === workspaceId) : null;
@@ -92,6 +92,9 @@ export function PersonalTasks({
   useEffect(() => {
     if (!showAddButton) setShowAdd(false);
   }, [showAddButton]);
+  useEffect(() => {
+    if (!isAllWorkspaces && workspaceId && teams.some(({ id }) => id === workspaceId)) setSelectedTeamId(workspaceId);
+  }, [isAllWorkspaces, teams, workspaceId]);
 
   const onTaskCompleted = useCallback((taskId: string, title: string) => {
     setLastCompleted({ id: taskId, title });
@@ -163,9 +166,10 @@ export function PersonalTasks({
   }, [memberTaskGroups.length, memberView]);
   useEffect(() => { if (!memberTaskGroups.length) setMemberView(false); setMemberIndex((value) => Math.min(value, Math.max(0, memberTaskGroups.length - 1))); }, [memberTaskGroups.length]);
   useEffect(() => {
-    const members = selectedTeam?.members ?? [];
+    const activeTeam = workspaceTeam ?? selectedTeam;
+    const members = activeTeam?.members ?? [];
     setAssigneeId(members.some(({ id }) => id === currentUserId) ? currentUserId : members[0]?.id ?? "");
-  }, [currentUserId, selectedTeam]);
+  }, [currentUserId, selectedTeam, workspaceTeam]);
   useEffect(() => { if (initialTaskId && (tasks.some(({ id }) => id === initialTaskId) || discussionUpdates.some(({ id }) => id === initialTaskId) || focusedTask?.id === initialTaskId)) setSelectedTaskId(initialTaskId); }, [discussionUpdates, focusedTask?.id, initialTaskId, tasks]);
   const selectedTask = tasks.find(({ id }) => id === selectedTaskId) ?? discussionUpdates.find(({ id }) => id === selectedTaskId) ?? (focusedTask?.id === selectedTaskId ? focusedTask : undefined);
 
@@ -204,7 +208,7 @@ export function PersonalTasks({
           ) : (
             <input type="hidden" name="teamId" value={workspaceId ?? selectedTeamId} />
           )}
-          {workspaceTeam?.canAssignMembers ? <select name="assigneeId" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Assign to" required>{workspaceTeam.members.map((member) => <option key={member.id} value={member.id}>{member.id === currentUserId ? "Me" : member.name}</option>)}</select> : isAllWorkspaces && selectedTeam?.canAssignMembers ? <select name="assigneeId" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Assign to" required>{selectedTeam.members.map((member) => <option key={member.id} value={member.id}>{member.id === currentUserId ? "Me" : member.name}</option>)}</select> : <input type="hidden" name="assigneeId" value={currentUserId} />}
+          {workspaceTeam?.canAssignMembers ? <AssigneePicker members={workspaceTeam.members} value={assigneeId} onChange={setAssigneeId} currentUserId={currentUserId} /> : isAllWorkspaces && selectedTeam?.canAssignMembers ? <AssigneePicker members={selectedTeam.members} value={assigneeId} onChange={setAssigneeId} currentUserId={currentUserId} /> : <input type="hidden" name="assigneeId" value={currentUserId} />}
           <select name="due" className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
             <option value="today">Today</option>
             <option value="tomorrow">Tomorrow</option>
@@ -215,7 +219,7 @@ export function PersonalTasks({
         </form>
       ) : null}
 
-      {memberView ? <div className="task-view-enter"><MemberTaskCarousel groups={memberTaskGroups} index={memberIndex} onIndexChange={setMemberIndex} isOwner={isOwnerInWorkspace} /></div> : <div className="task-view-enter">
+      {memberView ? <div className="task-view-enter"><MemberTaskCarousel groups={memberTaskGroups} index={memberIndex} onIndexChange={setMemberIndex} isOwner={canManageWorkspace} /></div> : <div className="task-view-enter">
         {pendingInvites.length ? (
           <section className="mb-4 space-y-2">
             {pendingInvites.map((invite) => (
@@ -319,6 +323,55 @@ export function PersonalTasks({
 
       {showCompletedToast && lastCompleted ? (
         <CompletedToast taskTitle={lastCompleted.title} onUndo={handleUndoLast} onDismiss={() => setShowCompletedToast(false)} />
+      ) : null}
+    </div>
+  );
+}
+
+function AssigneePicker({ members, value, onChange, currentUserId }: { members: TeamOption["members"]; value: string; onChange: (value: string) => void; currentUserId: string }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const selected = members.find(({ id }) => id === value) ?? members[0];
+  const filteredMembers = members.filter((member) => `${member.name} ${member.id === currentUserId ? "me" : ""}`.toLowerCase().includes(query.toLowerCase()));
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div ref={pickerRef} className="relative min-w-0">
+      <input type="hidden" name="assigneeId" value={selected?.id ?? currentUserId} />
+      <button type="button" onClick={() => setOpen((state) => !state)} className="flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-full border border-border bg-surface px-3 text-left text-sm">
+        <span className="truncate">{selected?.id === currentUserId ? "Me" : selected?.name ?? "Choose member"}</span>
+        <UsersRound className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </button>
+      {open ? (
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 rounded-lg border border-border bg-surface p-1 shadow-soft">
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search members" className="mb-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" autoFocus />
+          <div className="max-h-56 overflow-y-auto">
+            {filteredMembers.length ? filteredMembers.map((member) => (
+              <button
+                key={member.id}
+                type="button"
+                onClick={() => {
+                  onChange(member.id);
+                  setOpen(false);
+                  setQuery("");
+                }}
+                className={cn("flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-surface-subtle", member.id === selected?.id && "bg-surface-subtle text-brand")}
+              >
+                <span className="truncate">{member.id === currentUserId ? "Me" : member.name}</span>
+                {member.id === selected?.id ? <Check className="h-4 w-4 shrink-0" /> : null}
+              </button>
+            )) : <p className="px-3 py-2 text-sm text-muted-foreground">No members found.</p>}
+          </div>
+        </div>
       ) : null}
     </div>
   );

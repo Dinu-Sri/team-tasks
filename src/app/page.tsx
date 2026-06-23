@@ -189,7 +189,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
     ? null
     : (memberships.find((m) => m.teamId === activeWorkspace)?.role as "OWNER" | "ADMIN" | "MEMBER") ?? null;
 
-  // Only show member task view toggle for the selected workspace if user is owner there
+  // Only owners can inspect member task carousels, but owners and admins can create/assign tasks.
+  const canManageCurrentWorkspace = workspaceRole === "OWNER" || workspaceRole === "ADMIN";
   const canViewMemberTasks = workspaceRole === "OWNER" && memberTaskGroups.length > 0;
 
   return (
@@ -220,12 +221,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
             inviterName: invite.invitedBy.name,
           }))}
           teams={memberships.map(({ team, role }) => {
-            const canAssignMembers = role === "OWNER" && (team.featureSettings?.memberTaskViewEnabled ?? false);
+            const canAssignMembers = role === "OWNER" || role === "ADMIN";
             return {
               id: team.id,
               name: team.name,
               canAssignMembers,
-              members: canAssignMembers ? team.memberships.map(({ user: member }) => ({ id: member.id, name: member.name })) : [{ id: user.id, name: user.name }],
+              members: canAssignMembers
+                ? team.memberships.filter(({ status }) => status === "ACTIVE").map(({ user: member }) => ({ id: member.id, name: member.name }))
+                : [{ id: user.id, name: user.name }],
             };
           })}
           currentUserId={user.id}
@@ -233,7 +236,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           focusedTask={focusedTask ? serializeTask(focusedTask) : undefined}
           workspaceId={activeWorkspace ?? "__all__"}
           workspaceRole={workspaceRole}
-          isCurrentWorkspaceOwner={workspaceRole === "OWNER"}
+          isCurrentWorkspaceOwner={canManageCurrentWorkspace}
         />
       </main>
     </OnboardingProvider>

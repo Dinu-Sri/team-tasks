@@ -36,7 +36,7 @@ export async function createPersonalTaskAction(formData: FormData) {
   ]);
   if (!membership || membership.status !== "ACTIVE" || !assignee || assignee.status !== "ACTIVE") return;
   const assigningAnotherPerson = requestedAssigneeId !== user.id;
-  if (assigningAnotherPerson && (membership.role !== "OWNER" || !membership.team.featureSettings?.memberTaskViewEnabled)) return;
+  if (assigningAnotherPerson && !["OWNER", "ADMIN"].includes(membership.role)) return;
   const billingCheck = await checkWorkspaceLimit(teamId, "CREATE_TASK");
   if (!billingCheck.allowed) return;
 
@@ -84,7 +84,7 @@ export async function createTeamTaskAction(formData: FormData) {
     where: { userId_teamId: { userId: user.id, teamId } },
     include: { team: { select: { name: true, timeZone: true } } },
   });
-  if (!owner || owner.status !== "ACTIVE" || owner.role !== "OWNER") return;
+  if (!owner || owner.status !== "ACTIVE" || !["OWNER", "ADMIN"].includes(owner.role)) return;
   const billingCheck = await checkWorkspaceLimit(teamId, "CREATE_TASK");
   if (!billingCheck.allowed) return;
 

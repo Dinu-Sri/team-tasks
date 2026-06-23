@@ -11,6 +11,9 @@ const ALLOWED_FILES: Record<string, string[]> = {
   ".jpeg": ["image/jpeg"],
   ".webp": ["image/webp"],
   ".gif": ["image/gif"],
+  ".mp4": ["video/mp4"],
+  ".mov": ["video/quicktime"],
+  ".webm": ["video/webm"],
   ".txt": ["text/plain"],
   ".csv": ["text/csv", "application/vnd.ms-excel"],
   ".doc": ["application/msword"],
@@ -39,6 +42,8 @@ async function contentMatches(extension: string, file: File) {
   if (extension === ".jpg" || extension === ".jpeg") return beginsWith(bytes, [0xff, 0xd8, 0xff]);
   if (extension === ".gif") return beginsWith(bytes, [0x47, 0x49, 0x46, 0x38]);
   if (extension === ".webp") return beginsWith(bytes, [0x52, 0x49, 0x46, 0x46]) && beginsWith(bytes.slice(8), [0x57, 0x45, 0x42, 0x50]);
+  if (extension === ".mp4" || extension === ".mov") return beginsWith(bytes.slice(4), [0x66, 0x74, 0x79, 0x70]);
+  if (extension === ".webm") return beginsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3]);
   if ([".doc", ".xls", ".ppt"].includes(extension)) return beginsWith(bytes, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
   if ([".docx", ".xlsx", ".pptx"].includes(extension)) return beginsWith(bytes, [0x50, 0x4b, 0x03, 0x04]);
   return false;
@@ -51,7 +56,7 @@ export async function validateAttachment(file: File, limitMb: number) {
   const extension = path.extname(file.name).toLowerCase();
   const allowedTypes = ALLOWED_FILES[extension];
   if (!allowedTypes || !allowedTypes.includes(file.type.toLowerCase())) {
-    return "Use a PDF, image, text, CSV, Word, Excel, or PowerPoint file.";
+    return "Use a PDF, image, video, text, CSV, Word, Excel, or PowerPoint file.";
   }
   if (!(await contentMatches(extension, file))) return "The file contents do not match its extension.";
   return null;

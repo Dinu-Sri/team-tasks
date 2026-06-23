@@ -132,7 +132,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       createdAt: comment.createdAt.toISOString(),
       receipts: comment.receipts.map((receipt) => ({ ...receipt, readAt: receipt.readAt?.toISOString() ?? null })),
     })),
-    attachments: task.attachments,
+    attachments: task.attachments.map((attachment) => ({
+      id: attachment.id,
+      originalName: attachment.originalName,
+      mimeType: attachment.mimeType,
+      size: attachment.size,
+      createdAt: attachment.createdAt.toISOString(),
+      uploader: attachment.uploader,
+    })),
     unreadCommentCount: task.comments.filter((comment: { receipts: Array<{ userId: string; readAt: Date | null }> }) => comment.receipts.some((receipt: { userId: string; readAt: Date | null }) => receipt.userId === user.id && !receipt.readAt)).length,
     hasMentionAttention: task.comments.some((comment: { receipts: Array<{ userId: string; readAt: Date | null; requiresAttention: boolean }> }) => comment.receipts.some((receipt: { userId: string; readAt: Date | null; requiresAttention: boolean }) => receipt.userId === user.id && !receipt.readAt && receipt.requiresAttention)),
   });

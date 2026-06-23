@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCheck, Download, Eye, FileUp, Files, ImageIcon, MessageCircleMore, Paperclip, Pencil, Send, Trash2, X } from "lucide-react";
+import { CheckCheck, Download, Eye, FileUp, Files, FileVideo, ImageIcon, MessageCircleMore, Paperclip, Pencil, Send, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -10,7 +10,7 @@ import { deleteTaskAction, updateTaskAction } from "@/app/actions/tasks";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 
-const ACCEPTED_ATTACHMENT_TYPES = ".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
+const ACCEPTED_ATTACHMENT_TYPES = ".pdf,.png,.jpg,.jpeg,.webp,.gif,.mp4,.mov,.webm,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
 
 export type TaskDetail = {
   id: string;
@@ -44,6 +44,7 @@ export type TaskDetail = {
     originalName: string;
     mimeType: string;
     size: number;
+    createdAt: string;
     uploader: { id: string; name: string };
   }>;
   unreadCommentCount: number;
@@ -73,16 +74,29 @@ export function TaskDetailPanel({ task, currentUserId, onClose }: { task: TaskDe
     });
   }, [router, tab, task.id, task.unreadCommentCount]);
 
-  async function uploadFile(file: File) {
+  async function uploadFiles(files: File[] | FileList | null) {
+    const selectedFiles = Array.from(files ?? []);
+    if (!selectedFiles.length) return;
     setFileError("");
-    if (file.size > task.team.attachmentLimitMb * 1024 * 1024) { setFileError(`This team allows files up to ${task.team.attachmentLimitMb} MB.`); return; }
+    const oversized = selectedFiles.find((file) => file.size > task.team.attachmentLimitMb * 1024 * 1024);
+    if (oversized) { setFileError(`${oversized.name} is larger than this team's ${task.team.attachmentLimitMb} MB limit.`); return; }
     setUploading(true);
+    const failures: string[] = [];
     try {
-      const body = new FormData();
-      body.set("file", file);
-      const response = await fetch(`/api/tasks/${task.id}/attachments`, { method: "POST", body });
-      const data = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(data.error || "Upload failed.");
+      for (const file of selectedFiles) {
+        const body = new FormData();
+        body.set("file", file);
+        const response = await fetch(`/api/tasks/${task.id}/attachments`, { method: "POST", body });
+        const data = await response.json() as { error?: string };
+        if (!response.ok) {
+          failures.push(`${file.name}: ${data.error || "Upload failed."}`);
+          if (response.status === 403) break;
+        }
+      }
+      if (failures.length) {
+        const shown = failures.slice(0, 2).join(" ");
+        setFileError(failures.length > 2 ? `${shown} ${failures.length - 2} more file(s) failed.` : shown);
+      }
       router.refresh();
     } catch (error) {
       setFileError(error instanceof Error ? error.message : "Upload failed.");
@@ -113,15 +127,15 @@ export function TaskDetailPanel({ task, currentUserId, onClose }: { task: TaskDe
           </div>
         </header>
 
-        {hasBoth ? <div className="grid grid-cols-2 border-b border-border p-1.5"><TabButton active={tab === "comments"} onClick={() => setTab("comments")} icon={<MessageCircleMore />} label={`Discussion ${task.comments.length ? `(${task.comments.length})` : ""}`} unread={task.unreadCommentCount} /><TabButton active={tab === "files"} onClick={() => setTab("files")} icon={<Paperclip />} label={`Files ${task.attachments.length ? `(${task.attachments.length})` : ""}`} /></div> : null}
+        {hasBoth ? <div className="grid grid-cols-2 border-b border-border p-1.5"><TabButton active={tab === "comments"} onClick={() => setTab("comments")} icon={<MessageCircleMore />} label={`Discussion ${task.comments.length ? `(${task.comments.length})` : ""}`} unread={task.unreadCommentCount} /><TabButton active={tab === "files"} onClick={() => setTab("files")} icon={<Paperclip />} label={`Media ${task.attachments.length ? `(${task.attachments.length})` : ""}`} /></div> : null}
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          {tab === "comments" && task.team.commentsEnabled ? <Discussion task={task} currentUserId={currentUserId} /> : null}
+          {tab === "comments" && task.team.commentsEnabled ? <Discussion task={task} currentUserId={currentUserId} uploading={uploading} fileError={fileError} onUploadFiles={uploadFiles} /> : null}
           {tab === "files" && task.team.attachmentsEnabled ? (
             <div className="p-4 sm:p-5">
-              <div className="mb-4 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between"><div><h2 className="text-sm font-semibold">Task files</h2><p className="text-xs text-muted-foreground">Up to {task.team.attachmentLimitMb} MB each.</p></div><input ref={fileRef} type="file" className="hidden" accept={ACCEPTED_ATTACHMENT_TYPES} onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadFile(file); }} /><Button type="button" size="sm" className="w-full min-[420px]:w-auto" disabled={uploading} onClick={() => fileRef.current?.click()}><FileUp />{uploading ? "Uploading..." : "Add file"}</Button></div>
+              <div className="mb-4 flex flex-col gap-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between"><div><h2 className="text-sm font-semibold">Task media</h2><p className="text-xs text-muted-foreground">Images, videos, and files up to {task.team.attachmentLimitMb} MB each.</p></div><input ref={fileRef} type="file" multiple className="hidden" accept={ACCEPTED_ATTACHMENT_TYPES} onChange={(event) => { void uploadFiles(event.target.files); event.currentTarget.value = ""; }} /><Button type="button" size="sm" className="w-full min-[420px]:w-auto" disabled={uploading} onClick={() => fileRef.current?.click()}><FileUp />{uploading ? "Uploading..." : "Add media"}</Button></div>
               {fileError ? <p className="mb-3 text-sm text-danger">{fileError}</p> : null}
-              {task.attachments.length ? <div className="divide-y divide-border rounded-lg border border-border">{task.attachments.map((file) => { const canDelete = file.uploader.id === currentUserId || task.team.currentUserRole === "OWNER"; const image = file.mimeType.startsWith("image/"); return <div key={file.id} className="flex min-h-14 items-center gap-3 px-3 py-2.5">{image ? <ImageIcon className="h-4 w-4 shrink-0 text-brand" /> : <Files className="h-4 w-4 shrink-0 text-brand" />}<div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{file.originalName}</p><p className="truncate text-xs text-muted-foreground">{sizeLabel(file.size)} - {file.uploader.name}</p></div>{image ? <ImagePreview attachmentId={file.id} name={file.originalName} /> : null}<a href={`/api/attachments/${file.id}`} className={cn(buttonVariants({ variant: "quiet", size: "icon" }), "h-9 w-9")} aria-label={`Download ${file.originalName}`}><Download /></a>{canDelete ? <button type="button" onClick={() => void removeFile(file.id)} className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-danger/10 hover:text-danger" aria-label={`Remove ${file.originalName}`}><Trash2 className="h-4 w-4" /></button> : null}</div>; })}</div> : <div className="py-16 text-center"><Paperclip className="mx-auto h-5 w-5 text-muted-foreground" /><p className="mt-2 text-sm text-muted-foreground">No files yet.</p></div>}
+              {task.attachments.length ? <div className="divide-y divide-border rounded-lg border border-border">{task.attachments.map((file) => <MediaListItem key={file.id} file={file} currentUserId={currentUserId} currentUserRole={task.team.currentUserRole} onRemove={removeFile} />)}</div> : <div className="py-16 text-center"><Paperclip className="mx-auto h-5 w-5 text-muted-foreground" /><p className="mt-2 text-sm text-muted-foreground">No media yet.</p></div>}
             </div>
           ) : null}
         </div>
@@ -196,8 +210,113 @@ function TabButton({ active, onClick, icon, label, unread = 0 }: { active: boole
   return <button type="button" onClick={onClick} className={cn("relative flex h-10 items-center justify-center gap-2 rounded-full text-sm font-medium", active ? "bg-surface-subtle text-foreground" : "text-muted-foreground hover:text-foreground", "[&_svg]:h-4 [&_svg]:w-4")}>{icon}{label}{unread ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white">{unread}</span> : null}</button>;
 }
 
-function Discussion({ task, currentUserId }: { task: TaskDetail; currentUserId: string }) {
-  return <div className="flex min-h-[18rem] flex-col sm:min-h-[22rem]"><div className="flex-1 space-y-4 p-4 sm:p-5">{task.comments.length ? task.comments.map((comment) => { const own = comment.author.id === currentUserId; const attentionReceipts = comment.receipts.filter(({ requiresAttention }) => requiresAttention); const relevantReceipts = attentionReceipts.length ? attentionReceipts : comment.receipts; const readCount = relevantReceipts.filter(({ readAt }) => readAt).length; const allRead = relevantReceipts.length > 0 && readCount === relevantReceipts.length; return <article key={comment.id} className={cn("max-w-[88%]", own && "ml-auto")}><div className={cn("rounded-lg px-3 py-2.5", own ? "bg-brand text-brand-foreground" : "bg-surface-subtle")}><p className="whitespace-pre-wrap break-words text-sm leading-5">{comment.body}</p></div><div className={cn("mt-1 flex items-center gap-1 px-1 text-xs text-muted-foreground", own && "justify-end text-right")}><span>{comment.author.name} - {new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(comment.createdAt))}</span>{own && relevantReceipts.length ? <span className={cn("flex items-center gap-1", allRead && "text-blue-600 dark:text-blue-300")} title={`${readCount} of ${relevantReceipts.length} read`}><CheckCheck className="h-3.5 w-3.5" />{readCount}/{relevantReceipts.length}</span> : null}</div></article>; }) : <div className="py-14 text-center"><MessageCircleMore className="mx-auto h-5 w-5 text-muted-foreground" /><p className="mt-2 text-sm text-muted-foreground">Ask for clarification here.</p></div>}</div><MentionComposer taskId={task.id} members={task.team.members.filter((member) => member.id !== currentUserId)} /></div>;
+function Discussion({
+  task,
+  currentUserId,
+  uploading,
+  fileError,
+  onUploadFiles,
+}: {
+  task: TaskDetail;
+  currentUserId: string;
+  uploading: boolean;
+  fileError: string;
+  onUploadFiles: (files: File[] | FileList | null) => Promise<void>;
+}) {
+  const timeline = [
+    ...task.comments.map((comment) => ({ type: "comment" as const, createdAt: comment.createdAt, item: comment })),
+    ...task.attachments.map((file) => ({ type: "media" as const, createdAt: file.createdAt, item: file })),
+  ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  return (
+    <div className="flex min-h-[18rem] flex-col sm:min-h-[22rem]">
+      <div className="flex-1 space-y-4 p-4 sm:p-5">
+        {timeline.length ? timeline.map((entry) => {
+          if (entry.type === "media") return <DiscussionMedia key={`media-${entry.item.id}`} file={entry.item} currentUserId={currentUserId} />;
+          const comment = entry.item;
+          const own = comment.author.id === currentUserId;
+          const attentionReceipts = comment.receipts.filter(({ requiresAttention }) => requiresAttention);
+          const relevantReceipts = attentionReceipts.length ? attentionReceipts : comment.receipts;
+          const readCount = relevantReceipts.filter(({ readAt }) => readAt).length;
+          const allRead = relevantReceipts.length > 0 && readCount === relevantReceipts.length;
+          return (
+            <article key={comment.id} className={cn("max-w-[88%]", own && "ml-auto")}>
+              <div className={cn("rounded-lg px-3 py-2.5", own ? "bg-brand text-brand-foreground" : "bg-surface-subtle")}>
+                <p className="whitespace-pre-wrap break-words text-sm leading-5">{comment.body}</p>
+              </div>
+              <div className={cn("mt-1 flex items-center gap-1 px-1 text-xs text-muted-foreground", own && "justify-end text-right")}>
+                <span>{comment.author.name} - {formatDateTime(comment.createdAt)}</span>
+                {own && relevantReceipts.length ? <span className={cn("flex items-center gap-1", allRead && "text-blue-600 dark:text-blue-300")} title={`${readCount} of ${relevantReceipts.length} read`}><CheckCheck className="h-3.5 w-3.5" />{readCount}/{relevantReceipts.length}</span> : null}
+              </div>
+            </article>
+          );
+        }) : <div className="py-14 text-center"><MessageCircleMore className="mx-auto h-5 w-5 text-muted-foreground" /><p className="mt-2 text-sm text-muted-foreground">Ask for clarification here.</p></div>}
+      </div>
+      <MentionComposer taskId={task.id} members={task.team.members.filter((member) => member.id !== currentUserId)} attachmentsEnabled={task.team.attachmentsEnabled} uploading={uploading} fileError={fileError} onUploadFiles={onUploadFiles} />
+    </div>
+  );
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
+}
+
+function mediaKind(file: TaskDetail["attachments"][number]) {
+  if (file.mimeType.startsWith("image/")) return "image";
+  if (file.mimeType.startsWith("video/")) return "video";
+  return "file";
+}
+
+function MediaIcon({ file }: { file: TaskDetail["attachments"][number] }) {
+  const kind = mediaKind(file);
+  if (kind === "image") return <ImageIcon className="h-4 w-4 shrink-0 text-brand" />;
+  if (kind === "video") return <FileVideo className="h-4 w-4 shrink-0 text-brand" />;
+  return <Files className="h-4 w-4 shrink-0 text-brand" />;
+}
+
+function DiscussionMedia({ file, currentUserId }: { file: TaskDetail["attachments"][number]; currentUserId: string }) {
+  const own = file.uploader.id === currentUserId;
+  const kind = mediaKind(file);
+  return (
+    <article className={cn("max-w-[88%]", own && "ml-auto")}>
+      <div className={cn("overflow-hidden rounded-lg border border-border bg-surface-subtle", own && "bg-brand/10")}>
+        {kind === "image" ? (
+          <a href={`/api/attachments/${file.id}`} aria-label={`Open ${file.originalName}`}>
+            <img src={`/api/attachments/${file.id}?preview=1`} alt={file.originalName} className="max-h-64 w-full object-cover" loading="lazy" />
+          </a>
+        ) : kind === "video" ? (
+          <video src={`/api/attachments/${file.id}?preview=1`} controls preload="metadata" className="max-h-64 w-full bg-black" />
+        ) : (
+          <a href={`/api/attachments/${file.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-surface-subtle">
+            <MediaIcon file={file} />
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium">{file.originalName}</span>
+              <span className="block text-xs text-muted-foreground">{sizeLabel(file.size)}</span>
+            </span>
+          </a>
+        )}
+        {kind !== "file" ? <div className="px-3 py-2"><p className="truncate text-sm font-medium">{file.originalName}</p><p className="text-xs text-muted-foreground">{sizeLabel(file.size)}</p></div> : null}
+      </div>
+      <div className={cn("mt-1 px-1 text-xs text-muted-foreground", own && "text-right")}>{file.uploader.name} - {formatDateTime(file.createdAt)}</div>
+    </article>
+  );
+}
+
+function MediaListItem({ file, currentUserId, currentUserRole, onRemove }: { file: TaskDetail["attachments"][number]; currentUserId: string; currentUserRole: TaskDetail["team"]["currentUserRole"]; onRemove: (id: string) => Promise<void> }) {
+  const canDelete = file.uploader.id === currentUserId || currentUserRole === "OWNER";
+  const image = file.mimeType.startsWith("image/");
+  return (
+    <div className="flex min-h-14 items-center gap-3 px-3 py-2.5">
+      <MediaIcon file={file} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{file.originalName}</p>
+        <p className="truncate text-xs text-muted-foreground">{sizeLabel(file.size)} - {file.uploader.name} - {formatDateTime(file.createdAt)}</p>
+      </div>
+      {image ? <ImagePreview attachmentId={file.id} name={file.originalName} /> : null}
+      <a href={`/api/attachments/${file.id}`} className={cn(buttonVariants({ variant: "quiet", size: "icon" }), "h-9 w-9")} aria-label={`Download ${file.originalName}`}><Download /></a>
+      {canDelete ? <button type="button" onClick={() => void onRemove(file.id)} className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-danger/10 hover:text-danger" aria-label={`Remove ${file.originalName}`}><Trash2 className="h-4 w-4" /></button> : null}
+    </div>
+  );
 }
 
 function ImagePreview({ attachmentId, name }: { attachmentId: string; name: string }) {
@@ -235,13 +354,28 @@ function ImagePreview({ attachmentId, name }: { attachmentId: string; name: stri
 
 type MentionOption = { id: string; name: string; email: string };
 
-function MentionComposer({ taskId, members }: { taskId: string; members: TaskDetail["team"]["members"] }) {
+function MentionComposer({
+  taskId,
+  members,
+  attachmentsEnabled,
+  uploading,
+  fileError,
+  onUploadFiles,
+}: {
+  taskId: string;
+  members: TaskDetail["team"]["members"];
+  attachmentsEnabled: boolean;
+  uploading: boolean;
+  fileError: string;
+  onUploadFiles: (files: File[] | FileList | null) => Promise<void>;
+}) {
   const [state, action, pending] = useActionState(addTaskCommentAction, {});
   const [text, setText] = useState("");
   const [selected, setSelected] = useState<MentionOption[]>([]);
   const [cursor, setCursor] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const context = useMemo(() => { const before = text.slice(0, cursor); const at = before.lastIndexOf("@"); if (at < 0 || (at > 0 && !/\s/.test(before[at - 1]))) return null; const query = before.slice(at + 1); if (query.includes("\n")) return null; return { at, query }; }, [cursor, text]);
   const suggestions = useMemo(() => {
     if (!context) return [];
@@ -295,6 +429,14 @@ function MentionComposer({ taskId, members }: { taskId: string; members: TaskDet
       ) : null}
 
       <div className="flex items-end gap-2">
+        {attachmentsEnabled ? (
+          <>
+            <input ref={attachmentInputRef} type="file" multiple className="hidden" accept={ACCEPTED_ATTACHMENT_TYPES} onChange={(event) => { void onUploadFiles(event.target.files); event.currentTarget.value = ""; }} />
+            <Button type="button" size="icon" variant="secondary" disabled={uploading} aria-label="Attach media or files" title="Attach media or files" onClick={() => attachmentInputRef.current?.click()}>
+              {uploading ? <FileUp /> : <Paperclip />}
+            </Button>
+          </>
+        ) : null}
         <textarea
           ref={textareaRef}
           name="body"
@@ -334,6 +476,7 @@ function MentionComposer({ taskId, members }: { taskId: string; members: TaskDet
           <Send />
         </Button>
       </div>
+      {fileError ? <p className="mt-2 text-xs text-danger">{fileError}</p> : null}
       {state.error ? <p className="mt-2 text-xs text-danger">{state.error}</p> : null}
     </form>
   );

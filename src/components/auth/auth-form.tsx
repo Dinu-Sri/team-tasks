@@ -18,11 +18,13 @@ export function AuthForm({
   action,
   defaultEmail,
   notice,
+  onModeChange,
 }: {
   mode: "login" | "signup";
   action: AuthAction;
   defaultEmail?: string;
   notice?: string;
+  onModeChange?: (mode: "login" | "signup") => void;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const [showPassword, setShowPassword] = useState(false);
@@ -35,10 +37,10 @@ export function AuthForm({
         <AuthLogo />
       </div>
       <div className="mb-4 flex rounded-full border border-border bg-surface p-1 shadow-sm">
-        <AuthTab href="/login" active={!signup}>
+        <AuthTab href="/login" active={!signup} onSelect={onModeChange ? () => onModeChange("login") : undefined}>
           Sign In
         </AuthTab>
-        <AuthTab href="/login?mode=signup" active={signup}>
+        <AuthTab href="/login?mode=signup" active={signup} onSelect={onModeChange ? () => onModeChange("signup") : undefined}>
           Sign Up
         </AuthTab>
       </div>
@@ -127,15 +129,21 @@ export function AuthForm({
   );
 }
 
-function AuthTab({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
+function AuthTab({ href, active, children, onSelect }: { href: string; active: boolean; children: ReactNode; onSelect?: () => void }) {
+  const className = cn(
+    "flex h-10 flex-1 items-center justify-center rounded-full px-4 text-sm font-medium transition-colors",
+    active ? "bg-brand text-brand-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-subtle hover:text-foreground",
+  );
+  if (onSelect) {
+    return (
+      <button type="button" onClick={onSelect} className={className}>
+        {children}
+      </button>
+    );
+  }
+
   return (
-    <Link
-      href={href}
-      className={cn(
-        "flex h-10 flex-1 items-center justify-center rounded-full px-4 text-sm font-medium transition-colors",
-        active ? "bg-brand text-brand-foreground shadow-sm" : "text-muted-foreground hover:bg-surface-subtle hover:text-foreground",
-      )}
-    >
+    <Link href={href} className={className}>
       {children}
     </Link>
   );

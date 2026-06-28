@@ -2,6 +2,7 @@ import { ArrowRight, Ban, Bell, CheckCircle2, Circle, ClipboardList, CreditCard,
 import Image from "next/image";
 import Link from "next/link";
 
+import { AuthModalButton } from "@/components/auth/auth-modal";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -69,12 +70,15 @@ export function PublicHome() {
               One simple list. Start alone, invite people when it becomes a project. <strong className="text-foreground font-bold">No boards. No training.</strong>
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 lg:items-start">
-              <Link href="/signup" className={cn(buttonVariants({ size: "lg" }), "px-8 font-semibold text-base")}>
+              <AuthModalButton mode="signup" className={cn(buttonVariants({ size: "lg" }), "px-8 font-semibold text-base")}>
                 Start free <ArrowRight />
                 <span className="ml-3 inline-flex items-center gap-1.5 border-l border-brand-foreground/25 pl-3 text-xs font-normal opacity-90">
                   <CreditCard className="h-3.5 w-3.5" />
                   No credit card needed
                 </span>
+              </AuthModalButton>
+              <Link href="/demo" className={cn(buttonVariants({ variant: "secondary", size: "lg" }), "px-8 font-semibold text-base")}>
+                Check live demo free
               </Link>
             </div>
           </div>
@@ -142,7 +146,10 @@ export function PublicHome() {
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">Features</p>
               <h2 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">Everything points to done.</h2>
             </div>
-            <Link href="/pricing" className={cn(buttonVariants({ variant: "secondary" }))}>Free plan &rarr;</Link>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/demo" className={cn(buttonVariants({ variant: "secondary" }))}>Live demo &rarr;</Link>
+              <Link href="/pricing" className={cn(buttonVariants({ variant: "secondary" }))}>Free plan &rarr;</Link>
+            </div>
           </div>
           <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {features.map(({ icon: Icon, title, text }) => (

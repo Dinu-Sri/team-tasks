@@ -87,16 +87,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           selectedWorkspaceId={access.restricted ? workspaces[0]?.id ?? "__all__" : "__all__"}
           allowAllWorkspaces={!access.restricted}
           organizationBrand={organizationBrand}
+          sideMenuAccess={{
+            isSuperAdmin: isSuperAdmin(user.email),
+            restrictedOrganizationMember: access.restricted,
+            hasOrganizationAdmin,
+            hasBillingAccess,
+          }}
         />
         <KeyboardShortcutsProvider />
-        <DashboardShell
-          isSuperAdmin={isSuperAdmin(user.email)}
-          restrictedOrganizationMember={access.restricted}
-          hasOrganizationAdmin={hasOrganizationAdmin}
-          hasBillingAccess={hasBillingAccess}
-        >
-          {children}
-        </DashboardShell>
+        <DashboardShell>{children}</DashboardShell>
       </main>
     </OnboardingProvider>
   );

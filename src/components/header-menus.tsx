@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Bell, Flame, LayoutDashboard, ListTodo, LogOut, ShieldCheck, Sparkles, UsersRound, X } from "lucide-react";
+import { ArrowRight, Bell, Flame, ListTodo, LogOut, ShieldCheck, Sparkles, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
@@ -301,10 +301,6 @@ export function ProfileMenu({ name, email, image }: { name: string; email: strin
               <X className="h-4 w-4" />
             </button>
           </div>
-          <Link role="menuitem" href="/dashboard/teams" onClick={menu.close} className="flex min-h-12 items-center gap-3 px-4 py-3 text-sm hover:bg-surface-subtle">
-            <LayoutDashboard className="h-4 w-4 shrink-0 text-muted-foreground" />
-            Dashboard
-          </Link>
           <form action={logoutAction} className="border-t border-border">
             <button role="menuitem" type="submit" className="flex min-h-12 w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-surface-subtle">
               <LogOut className="h-4 w-4 shrink-0 text-muted-foreground" />

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
+import { AuthModalButton } from "@/components/auth/auth-modal";
 import { ThemeButton } from "@/components/theme-button";
 import { buttonVariants } from "@/components/ui/button";
 import { marketingNav } from "@/lib/marketing/site";
@@ -29,12 +30,12 @@ export function MarketingHeader() {
         </nav>
         <div className="flex items-center gap-2">
           <ThemeButton />
-          <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "default" }), "hidden lg:inline-flex font-bold uppercase tracking-[0.12em] text-xs xl:text-sm")}>
+          <AuthModalButton mode="login" className={cn(buttonVariants({ variant: "ghost", size: "default" }), "hidden lg:inline-flex font-bold uppercase tracking-[0.12em] text-xs xl:text-sm")}>
             Sign in
-          </Link>
-          <Link href="/signup" className={cn(buttonVariants({ size: "default" }), "font-bold hidden lg:inline-flex")}>
+          </AuthModalButton>
+          <AuthModalButton mode="signup" className={cn(buttonVariants({ size: "default" }), "font-bold hidden lg:inline-flex")}>
             Start free
-          </Link>
+          </AuthModalButton>
           {/* Mobile hamburger */}
           <button
             type="button"
@@ -60,20 +61,20 @@ export function MarketingHeader() {
                 {item.label}
               </Link>
             ))}
-            <Link
-              href="/login"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center h-11 rounded-lg px-4 text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground hover:bg-surface-subtle"
+            <AuthModalButton
+              mode="login"
+              onOpen={() => setMobileOpen(false)}
+              className="flex h-11 w-full items-center rounded-lg px-4 text-sm font-bold uppercase tracking-[0.12em] text-muted-foreground hover:bg-surface-subtle"
             >
               Sign in
-            </Link>
-            <Link
-              href="/signup"
-              onClick={() => setMobileOpen(false)}
-              className="mt-2 flex items-center justify-center h-11 rounded-full bg-brand px-4 text-sm font-bold text-brand-foreground hover:bg-brand/90"
+            </AuthModalButton>
+            <AuthModalButton
+              mode="signup"
+              onOpen={() => setMobileOpen(false)}
+              className="mt-2 flex h-11 w-full items-center justify-center rounded-full bg-brand px-4 text-sm font-bold text-brand-foreground hover:bg-brand/90"
             >
               Start free
-            </Link>
+            </AuthModalButton>
           </nav>
         </div>
       ) : null}

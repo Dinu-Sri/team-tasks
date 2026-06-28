@@ -1,66 +1,10 @@
 "use client";
 
-import { BellDot, Building2, CheckCheck, CreditCard, HardDrive, Shield, SlidersHorizontal, Users } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { cn } from "@/lib/utils";
-
-const coreItems = [
-  { href: "/dashboard/teams", label: "Teams", icon: Users },
-  { href: "/dashboard/activity", label: "Activity", icon: BellDot },
-  { href: "/dashboard/features", label: "Settings", icon: SlidersHorizontal },
-  { href: "/dashboard/archive", label: "Finished", icon: CheckCheck },
-  { href: "/dashboard/storage", label: "Storage", icon: HardDrive },
-];
-
-export function DashboardShell({
-  children,
-  isSuperAdmin = false,
-  restrictedOrganizationMember = false,
-  hasOrganizationAdmin = false,
-  hasBillingAccess = false,
-}: {
-  children: ReactNode;
-  isSuperAdmin?: boolean;
-  restrictedOrganizationMember?: boolean;
-  hasOrganizationAdmin?: boolean;
-  hasBillingAccess?: boolean;
-}) {
-  const pathname = usePathname();
-  const visibleCoreItems = restrictedOrganizationMember ? coreItems.filter((item) => item.href === "/dashboard/teams" || item.href === "/dashboard/archive" || item.href === "/dashboard/storage") : coreItems;
-  const items = [
-    ...visibleCoreItems,
-    ...(hasOrganizationAdmin ? [{ href: "/dashboard/organization", label: "Organization", icon: Building2 }] : []),
-    ...(hasBillingAccess ? [{ href: "/dashboard/billing", label: "Billing", icon: CreditCard }] : []),
-    ...(isSuperAdmin ? [{ href: "/dashboard/admin", label: "Admin", icon: Shield }] : []),
-  ];
-
+export function DashboardShell({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto grid w-full max-w-6xl gap-4 px-3 py-4 sm:px-6 sm:py-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8">
-      <aside className="min-w-0 lg:sticky lg:top-20 lg:h-fit lg:flex lg:flex-col lg:justify-between">
-        <nav className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible" aria-label="Dashboard" id="onborda-dashboard-nav">
-          {items.map((item) => {
-            const active = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                id={`onborda-dashboard${item.href.replace(/\//g, "-")}`}
-                className={cn(
-                  "flex h-11 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-medium transition-colors lg:w-full",
-                  active ? "bg-foreground text-background" : "text-muted-foreground hover:bg-surface-subtle hover:text-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
+    <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-6 sm:py-6 lg:pl-64">
       <div className="min-w-0">{children}</div>
     </div>
   );

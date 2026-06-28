@@ -10,8 +10,8 @@ export const siteConfig = {
 };
 
 export const marketingNav = [
+  { href: "/demo", label: "Live Demo" },
   { href: "/features", label: "Features" },
-  { href: "/use-cases", label: "Use cases" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
@@ -19,6 +19,7 @@ export const marketingNav = [
 
 export const publicMarketingRoutes = [
   { path: "/", priority: 1, changeFrequency: "weekly" as const },
+  { path: "/demo", priority: 0.9, changeFrequency: "weekly" as const },
   { path: "/features", priority: 0.85, changeFrequency: "monthly" as const },
   { path: "/use-cases", priority: 0.9, changeFrequency: "weekly" as const },
   { path: "/pricing", priority: 0.8, changeFrequency: "monthly" as const },

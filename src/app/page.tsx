@@ -3,7 +3,7 @@ import { PublicHome } from "@/components/marketing/public-home";
 import { OnboardingProvider } from "@/components/onboarding-provider";
 import { PersonalTasks } from "@/components/tasks/personal-tasks";
 import type { WorkspaceOption } from "@/components/workspace-selector";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, isSuperAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getHeaderData } from "@/lib/header-data";
 import { personalTourSteps } from "@/lib/onboarding-tours";
@@ -192,6 +192,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
   // Only owners can inspect member task carousels, but owners and admins can create/assign tasks.
   const canManageCurrentWorkspace = workspaceRole === "OWNER" || workspaceRole === "ADMIN";
   const canViewMemberTasks = workspaceRole === "OWNER" && memberTaskGroups.length > 0;
+  const hasOrganizationAdmin = memberships.some((membership) => membership.team.organizationDomains.length > 0 && (membership.role === "OWNER" || membership.role === "ADMIN"));
+  const hasBillingAccess = !access.restricted && memberships.some((membership) => membership.role === "OWNER" || membership.role === "ADMIN");
 
   return (
     <OnboardingProvider
@@ -209,6 +211,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
           selectedWorkspaceId={activeWorkspace ?? "__all__"}
           allowAllWorkspaces={!access.restricted}
           organizationBrand={organizationBrand}
+          sideMenuAccess={{
+            isSuperAdmin: isSuperAdmin(user.email),
+            restrictedOrganizationMember: access.restricted,
+            hasOrganizationAdmin,
+            hasBillingAccess,
+          }}
         />
         <PersonalTasks
           tasks={tasks.map(serializeTask)}

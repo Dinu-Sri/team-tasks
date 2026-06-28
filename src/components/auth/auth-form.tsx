@@ -19,12 +19,14 @@ export function AuthForm({
   defaultEmail,
   notice,
   onModeChange,
+  showLogo = true,
 }: {
   mode: "login" | "signup";
   action: AuthAction;
   defaultEmail?: string;
   notice?: string;
   onModeChange?: (mode: "login" | "signup") => void;
+  showLogo?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const [showPassword, setShowPassword] = useState(false);
@@ -33,9 +35,11 @@ export function AuthForm({
 
   return (
     <section className="w-full max-w-[448px]">
-      <div className="text-center">
-        <AuthLogo />
-      </div>
+      {showLogo ? (
+        <div className="text-center">
+          <AuthLogo />
+        </div>
+      ) : null}
       <div className="mb-4 flex rounded-full border border-border bg-surface p-1 shadow-sm">
         <AuthTab href="/login" active={!signup} onSelect={onModeChange ? () => onModeChange("login") : undefined}>
           Sign In

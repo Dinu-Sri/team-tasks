@@ -94,7 +94,10 @@ export function AppSideMenu({
     <>
       <button
         type="button"
-        className="fixed left-0 top-24 z-[60] hidden h-12 w-10 items-center justify-center rounded-r-full border border-l-0 border-brand/20 bg-brand text-brand-foreground shadow-soft transition-colors hover:bg-brand/90 lg:flex"
+        className={cn(
+          "fixed left-0 top-24 z-[60] hidden h-20 w-10 items-center justify-center rounded-r-2xl border border-l-0 border-brand/20 bg-brand text-brand-foreground shadow-soft transition-all duration-300 hover:bg-brand/90 lg:flex",
+          open ? "pointer-events-none -translate-x-12 opacity-0" : "translate-x-0 opacity-100",
+        )}
         aria-label="Open app menu"
         onMouseEnter={() => setHovering(true)}
         onFocus={() => setManuallyOpen(true)}

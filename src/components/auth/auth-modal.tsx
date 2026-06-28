@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { loginAction, signupAction } from "@/app/actions/auth";
 import { AuthForm } from "@/components/auth/auth-form";
@@ -20,6 +21,11 @@ export function AuthModal({
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (open) setMode(initialMode);
@@ -39,10 +45,10 @@ export function AuthModal({
     };
   }, [onClose, open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-8 backdrop-blur-sm sm:py-10" role="dialog" aria-modal="true" aria-label={mode === "signup" ? "Sign up" : "Sign in"}>
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/75 px-4 py-8 backdrop-blur-sm sm:py-10" role="dialog" aria-modal="true" aria-label={mode === "signup" ? "Sign up" : "Sign in"}>
       <div className="relative w-full max-w-[480px] rounded-xl bg-background p-3 shadow-soft sm:max-h-[calc(100svh-3rem)] sm:overflow-y-auto">
         <button
           type="button"
@@ -52,9 +58,10 @@ export function AuthModal({
         >
           <X className="h-4 w-4" />
         </button>
-        <AuthForm key={mode} mode={mode} action={mode === "signup" ? signupAction : loginAction} onModeChange={setMode} />
+        <AuthForm key={mode} mode={mode} action={mode === "signup" ? signupAction : loginAction} onModeChange={setMode} showLogo={false} />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,12 +79,29 @@ const initialGroups: DemoGroup[] = [
 export function LiveDemo() {
   const [groups, setGroups] = useState(initialGroups);
   const [activeGroupId, setActiveGroupId] = useState(initialGroups[0].id);
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<"tasks" | "team" | "settings" | "media">("tasks");
   const [newTask, setNewTask] = useState("");
+  const groupMenuRef = useRef<HTMLDivElement>(null);
   const activeGroup = groups.find((group) => group.id === activeGroupId) ?? groups[0];
   const openTasks = activeGroup.tasks.filter((task) => !task.done);
   const finishedTasks = activeGroup.tasks.filter((task) => task.done);
   const mediaCount = activeGroup.tasks.reduce((total, task) => total + task.files, 0);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (!groupMenuRef.current?.contains(event.target as Node)) setGroupMenuOpen(false);
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setGroupMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   function toggleTask(groupId: string, taskId: string) {
     setGroups((current) =>
@@ -133,10 +150,44 @@ export function LiveDemo() {
             </span>
           </div>
           <div className="order-3 flex w-full justify-center sm:order-none sm:flex-1">
-            <button type="button" className="flex h-10 items-center gap-2 rounded-full border border-border px-3 text-sm font-medium">
+            <div ref={groupMenuRef} className="relative w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setGroupMenuOpen((value) => !value)}
+                className="flex h-10 w-full items-center justify-center gap-2 rounded-full border border-border px-3 text-sm font-medium transition-colors hover:bg-surface-subtle sm:w-auto"
+                aria-expanded={groupMenuOpen}
+                aria-haspopup="listbox"
+              >
               {activeGroup.name}
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </button>
+              </button>
+              {groupMenuOpen ? (
+                <div role="listbox" className="fixed left-3 right-3 top-[4.5rem] z-50 overflow-hidden rounded-lg border border-border bg-surface shadow-soft sm:absolute sm:left-0 sm:right-auto sm:top-full sm:mt-1.5 sm:w-60">
+                  <div className="max-h-[min(60vh,18rem)] overflow-y-auto py-1">
+                    {groups.map((group) => {
+                      const selected = group.id === activeGroup.id;
+                      return (
+                        <button
+                          key={group.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          onClick={() => {
+                            setActiveGroupId(group.id);
+                            setGroupMenuOpen(false);
+                          }}
+                          className={cn("flex w-full items-center gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-surface-subtle", selected ? "font-semibold" : "")}
+                        >
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-semibold text-brand">{group.name[0]}</span>
+                          <span className="flex-1 text-left">{group.name}</span>
+                          {selected ? <Check className="h-4 w-4 text-brand" /> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
           <div className="ml-auto flex items-center gap-1">
             <span className="hidden rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground sm:inline-flex">Sample data only</span>
@@ -148,22 +199,6 @@ export function LiveDemo() {
       </div>
 
       <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-6 sm:py-6">
-        <div className="mb-4 flex flex-wrap gap-2">
-          {groups.map((group) => (
-            <button
-              key={group.id}
-              type="button"
-              onClick={() => setActiveGroupId(group.id)}
-              className={cn(
-                "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                group.id === activeGroup.id ? "border-brand bg-brand text-brand-foreground" : "border-border bg-surface hover:bg-surface-subtle",
-              )}
-            >
-              {group.name}
-            </button>
-          ))}
-        </div>
-
         <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
           <div className="grid min-h-[calc(100svh-10rem)] lg:grid-cols-[14rem_minmax(0,1fr)]">
             <nav className="flex gap-1 overflow-x-auto border-b border-border p-3 lg:flex-col lg:border-b-0 lg:border-r">

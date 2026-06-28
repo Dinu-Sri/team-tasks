@@ -1,6 +1,6 @@
 import { MessageCircleMore } from "lucide-react";
-import Link from "next/link";
 
+import { ActivityDiscussionList } from "@/components/dashboard/activity-discussion-list";
 import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
 import { requireUser } from "@/lib/auth";
 import { getDashboardWorkspaceContext } from "@/lib/dashboard-workspace";
@@ -9,7 +9,7 @@ import { redirectIfRestrictedOrganizationMember } from "@/lib/workspace-access";
 
 type DashboardMembership = {
   teamId: string;
-  role: "OWNER" | "MEMBER";
+  role: "OWNER" | "ADMIN" | "MEMBER";
   team: { featureSettings: { commentsEnabled: boolean } | null };
 };
 
@@ -54,6 +54,80 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
     }),
   ]) as [number, ActivityComment[]] : [0, []];
 
+  const taskIds = Array.from(new Set(comments.map((comment) => comment.taskId)));
+  const detailTasks = taskIds.length ? await db.task.findMany({
+    where: { id: { in: taskIds }, teamId: { in: commentTeamIds }, team: { memberships: { some: { userId: user.id, status: "ACTIVE" } } } },
+    include: {
+      team: {
+        include: {
+          featureSettings: true,
+          memberships: { where: { status: "ACTIVE" }, include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } },
+        },
+      },
+      comments: {
+        include: {
+          author: { select: { id: true, name: true } },
+          receipts: { include: { user: { select: { id: true, name: true } } }, orderBy: { createdAt: "asc" } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+      attachments: { include: { uploader: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" } },
+    },
+  }) : [];
+
+  const detailTasksForClient = detailTasks.map((task) => {
+    const currentMembership = task.team.memberships.find((membership) => membership.userId === user.id);
+    return {
+      id: task.id,
+      title: task.title,
+      note: task.note,
+      creatorId: task.creatorId,
+      team: {
+        id: task.team.id,
+        name: task.team.name,
+        commentsEnabled: task.team.featureSettings?.commentsEnabled ?? false,
+        attachmentsEnabled: task.team.featureSettings?.attachmentsEnabled ?? false,
+        attachmentLimitMb: task.team.featureSettings?.attachmentLimitMb ?? 5,
+        currentUserRole: (currentMembership?.role === "OWNER" || currentMembership?.role === "ADMIN" ? "OWNER" : "MEMBER") as "OWNER" | "MEMBER",
+        members: task.team.memberships.map(({ user: member }) => member),
+      },
+      comments: task.comments.map((comment) => ({
+        id: comment.id,
+        body: comment.body,
+        createdAt: comment.createdAt.toISOString(),
+        author: comment.author,
+        receipts: comment.receipts.map((receipt) => ({
+          id: receipt.id,
+          userId: receipt.userId,
+          requiresAttention: receipt.requiresAttention,
+          readAt: receipt.readAt?.toISOString() ?? null,
+          user: receipt.user,
+        })),
+      })),
+      attachments: task.attachments.map((attachment) => ({
+        id: attachment.id,
+        originalName: attachment.originalName,
+        mimeType: attachment.mimeType,
+        size: attachment.size,
+        createdAt: attachment.createdAt.toISOString(),
+        uploader: attachment.uploader,
+      })),
+      unreadCommentCount: task.comments.filter((comment) => comment.receipts.some((receipt) => receipt.userId === user.id && !receipt.readAt)).length,
+      hasMentionAttention: task.comments.some((comment) => comment.receipts.some((receipt) => receipt.userId === user.id && !receipt.readAt && receipt.requiresAttention)),
+    };
+  });
+
+  const commentsForClient = comments.map((comment) => ({
+    id: comment.id,
+    taskId: comment.taskId,
+    body: comment.body,
+    createdAt: comment.createdAt.toISOString(),
+    authorName: comment.author.name,
+    taskTitle: comment.task.title,
+    teamName: comment.task.team.name,
+    mentionedNames: comment.receipts.map(({ user: mentioned }) => mentioned.name),
+  }));
+
   const hasActivityTools = commentTeamIds.length > 0;
 
   return (
@@ -71,18 +145,7 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
             <h2 className="text-sm font-semibold">Discussion</h2>
           </div>
           {commentTeamIds.length ? comments.length ? (
-            <div className="divide-y divide-border">
-              {comments.map((comment) => (
-                <Link key={comment.id} href={`/?task=${comment.taskId}`} className="block px-4 py-4 hover:bg-surface-subtle">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold">{comment.author.name} - {comment.task.title}</p>
-                    <span className="shrink-0 text-xs text-muted-foreground">{new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(comment.createdAt)}</span>
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{comment.body}</p>
-                  <p className="mt-2 text-xs text-muted-foreground">{comment.task.team.name}{comment.receipts.length ? ` - mentioned ${comment.receipts.map(({ user: mentioned }) => mentioned.name).join(", ")}` : ""}</p>
-                </Link>
-              ))}
-            </div>
+            <ActivityDiscussionList comments={commentsForClient} tasks={detailTasksForClient} currentUserId={user.id} />
           ) : <p className="px-4 py-16 text-center text-sm text-muted-foreground">No comments yet.</p> : (
             <p className="px-4 py-16 text-center text-sm text-muted-foreground">Comments are off for your teams.</p>
           )}

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   Bell,
   Check,
   CheckCheck,
@@ -12,6 +13,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
@@ -114,52 +116,56 @@ export function LiveDemo() {
   }
 
   return (
-    <section className="border-b border-border/60 bg-background">
-      <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-        <div className="flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <Badge variant="secondary" className="mb-3">Live Demo</Badge>
-            <h1 className="text-3xl font-bold leading-tight sm:text-4xl">Try Tuduvia before creating an account.</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Switch groups, add tasks, finish work, and inspect team settings with safe sample data.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {groups.map((group) => (
-              <button
-                key={group.id}
-                type="button"
-                onClick={() => setActiveGroupId(group.id)}
-                className={cn(
-                  "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
-                  group.id === activeGroup.id ? "border-brand bg-brand text-brand-foreground" : "border-border bg-surface hover:bg-surface-subtle",
-                )}
-              >
-                {group.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-6 overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
-          <div className="flex min-h-16 flex-wrap items-center gap-3 border-b border-border px-4 py-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand text-brand-foreground">
+    <section className="min-h-screen bg-background">
+      <div className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur-lg">
+        <div className="flex min-h-16 w-full flex-wrap items-center gap-3 px-3 py-2 sm:h-16 sm:flex-nowrap sm:px-6 sm:py-0">
+          <Link href="/" className="flex h-10 items-center gap-2 rounded-full border border-border px-3 text-sm font-medium hover:bg-surface-subtle">
+            <ArrowLeft className="h-4 w-4" />
+            Back to website
+          </Link>
+          <div className="flex min-w-0 items-center gap-2 font-semibold">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground">
               <ListTodo className="h-4 w-4" />
             </span>
-            <div className="min-w-0">
-              <p className="font-semibold">Tasks</p>
-              <p className="truncate text-xs text-muted-foreground">{activeGroup.name}</p>
-            </div>
-            <button type="button" className="ml-auto flex h-10 items-center gap-2 rounded-full border border-border px-3 text-sm font-medium">
+            <span>
+              <span className="block leading-4">Tasks</span>
+              <span className="block max-w-32 truncate text-[11px] font-medium leading-3 text-muted-foreground">Demo mode</span>
+            </span>
+          </div>
+          <div className="order-3 flex w-full justify-center sm:order-none sm:flex-1">
+            <button type="button" className="flex h-10 items-center gap-2 rounded-full border border-border px-3 text-sm font-medium">
               {activeGroup.name}
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
+          </div>
+          <div className="ml-auto flex items-center gap-1">
+            <span className="hidden rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground sm:inline-flex">Sample data only</span>
             <span className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground">
               <Bell className="h-4 w-4" />
             </span>
           </div>
+        </div>
+      </div>
 
-          <div className="grid min-h-[560px] lg:grid-cols-[14rem_minmax(0,1fr)]">
+      <div className="mx-auto w-full max-w-6xl px-3 py-4 sm:px-6 sm:py-6">
+        <div className="mb-4 flex flex-wrap gap-2">
+          {groups.map((group) => (
+            <button
+              key={group.id}
+              type="button"
+              onClick={() => setActiveGroupId(group.id)}
+              className={cn(
+                "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                group.id === activeGroup.id ? "border-brand bg-brand text-brand-foreground" : "border-border bg-surface hover:bg-surface-subtle",
+              )}
+            >
+              {group.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-soft">
+          <div className="grid min-h-[calc(100svh-10rem)] lg:grid-cols-[14rem_minmax(0,1fr)]">
             <nav className="flex gap-1 overflow-x-auto border-b border-border p-3 lg:flex-col lg:border-b-0 lg:border-r">
               <DemoNavButton active={activePanel === "tasks"} onClick={() => setActivePanel("tasks")} icon={<ListTodo className="h-4 w-4" />} label="Tasks" count={openTasks.length} />
               <DemoNavButton active={activePanel === "team"} onClick={() => setActivePanel("team")} icon={<Users className="h-4 w-4" />} label="Team" count={activeGroup.members.length} />

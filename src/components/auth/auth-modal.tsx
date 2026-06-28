@@ -42,8 +42,8 @@ export function AuthModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-foreground/30 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label={mode === "signup" ? "Sign up" : "Sign in"}>
-      <div className="relative max-h-[calc(100svh-2rem)] w-full max-w-[480px] overflow-y-auto rounded-xl bg-background p-3 shadow-soft">
+    <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/70 px-4 py-8 backdrop-blur-sm sm:py-10" role="dialog" aria-modal="true" aria-label={mode === "signup" ? "Sign up" : "Sign in"}>
+      <div className="relative w-full max-w-[480px] rounded-xl bg-background p-3 shadow-soft sm:max-h-[calc(100svh-3rem)] sm:overflow-y-auto">
         <button
           type="button"
           onClick={onClose}

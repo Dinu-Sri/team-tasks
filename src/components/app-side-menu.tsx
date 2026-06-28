@@ -2,18 +2,18 @@
 
 import {
   BellDot,
+  Building2,
   CheckCheck,
   CreditCard,
   HardDrive,
   Home,
-  MonitorPlay,
-  Building2,
+  PanelLeftOpen,
   Shield,
   SlidersHorizontal,
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -35,6 +35,7 @@ export function AppSideMenu({
   className?: string;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const onTaskHome = pathname === "/";
   const [hovering, setHovering] = useState(false);
   const [manuallyOpen, setManuallyOpen] = useState(false);
@@ -63,9 +64,16 @@ export function AppSideMenu({
       ...(access?.hasOrganizationAdmin ? [{ href: "/dashboard/organization", label: "Organization", icon: Building2 }] : []),
       ...(access?.hasBillingAccess ? [{ href: "/dashboard/billing", label: "Billing", icon: CreditCard }] : []),
       ...(access?.isSuperAdmin ? [{ href: "/dashboard/admin", label: "Admin", icon: Shield }] : []),
-      { href: "/demo", label: "Live Demo", icon: MonitorPlay },
     ];
   }, [access?.hasBillingAccess, access?.isSuperAdmin, access?.restrictedOrganizationMember]);
+
+  function itemHref(href: string) {
+    const workspace = searchParams.get("workspace");
+    if (!workspace) return href;
+    const params = new URLSearchParams();
+    params.set("workspace", workspace);
+    return `${href}?${params.toString()}`;
+  }
 
   useEffect(() => {
     if (!onTaskHome || hovering) {
@@ -86,15 +94,17 @@ export function AppSideMenu({
     <>
       <button
         type="button"
-        className="fixed left-0 top-24 z-50 hidden h-24 w-4 rounded-r-full bg-brand/15 transition-colors hover:bg-brand/30 lg:block"
+        className="fixed left-0 top-24 z-[60] hidden h-12 w-10 items-center justify-center rounded-r-full border border-l-0 border-brand/20 bg-brand text-brand-foreground shadow-soft transition-colors hover:bg-brand/90 lg:flex"
         aria-label="Open app menu"
         onMouseEnter={() => setHovering(true)}
         onFocus={() => setManuallyOpen(true)}
         onClick={() => setManuallyOpen((value) => !value)}
-      />
+      >
+        <PanelLeftOpen className="h-4 w-4" />
+      </button>
       <aside
         className={cn(
-          "fixed bottom-0 left-0 top-16 z-50 w-60 border-r border-border bg-surface/95 px-3 py-4 shadow-soft backdrop-blur-lg transition-transform duration-300",
+          "fixed bottom-0 left-0 top-16 z-50 w-60 border-r border-t border-border bg-surface/95 px-3 py-4 shadow-soft backdrop-blur-lg transition-transform duration-300",
           open ? "translate-x-0" : "-translate-x-[15.5rem]",
           className,
         )}
@@ -111,7 +121,7 @@ export function AppSideMenu({
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={itemHref(item.href)}
                 className={cn(
                   "flex min-h-11 items-center gap-3 rounded-full px-3 text-sm font-medium transition-colors",
                   active ? "bg-foreground text-background" : "text-muted-foreground hover:bg-surface-subtle hover:text-foreground",

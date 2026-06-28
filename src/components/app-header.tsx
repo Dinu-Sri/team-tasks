@@ -66,7 +66,7 @@ export function AppHeader({
         <TabIndicator level={ledLevel} />
         <RealtimeRefresh />
         <MomentumCelebrationListener />
-        <div className="mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center gap-x-2 gap-y-2 px-3 py-2 sm:h-16 sm:flex-nowrap sm:px-6 sm:py-0">
+        <div className="flex min-h-16 w-full flex-wrap items-center gap-x-2 gap-y-2 px-3 py-2 sm:h-16 sm:flex-nowrap sm:px-6 sm:py-0">
           <div className="min-w-0 flex-1 sm:w-[160px] sm:flex-none">
             <Link href="/" onClick={() => window.dispatchEvent(new CustomEvent(MEMBER_TASK_VIEW_EVENT, { detail: false }))} className="flex items-center gap-2.5 font-semibold" id="onborda-header">
               <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", showOrganizationIcon && organizationLogoSrc ? "border border-border bg-white text-foreground" : "bg-brand text-brand-foreground")}>

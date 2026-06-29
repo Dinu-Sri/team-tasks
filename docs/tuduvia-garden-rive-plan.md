@@ -28,7 +28,7 @@ Status: implementation target for the first pass.
 - Add `PlantRiveWidget` as a client-only visual widget.
 - Load one test `.riv` plant asset from `/public/assets/garden/rive/`.
 - Render the plant in the bottom-right corner only when the environment flag is enabled.
-- Temporarily simulate the test asset's `level` input by looping stages 1, 2, and 3 every 3 seconds.
+- Map the test asset's `level` input to browser-local time of day: morning, daytime, and night.
 - Use a transparent widget shell and do not create database changes.
 - Prepare naming, folders, and code shape for later state-machine control.
 
@@ -146,7 +146,7 @@ weather
 isGrowing
 ```
 
-The Phase 1 marketplace test asset uses the `plant` state machine with a numeric input named `level`. Until production plant files are designed, the app loops `level = 1`, `level = 2`, and `level = 3` every 3 seconds to validate runtime control.
+The Phase 1 marketplace test asset uses the `plant` state machine with a numeric input named `level`. Until production plant files are designed, the app maps local browser time to `level`: 5:00-11:59 is morning level 1, 12:00-17:59 is daytime level 2, and 18:00-4:59 is night level 3. The client refreshes the mapping every minute.
 
 ## Code Structure
 

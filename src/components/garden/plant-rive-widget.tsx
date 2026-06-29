@@ -8,7 +8,18 @@ import { cn } from "@/lib/utils";
 const DEFAULT_RIVE_SRC = "/assets/garden/rive/plant_daisy_stage_01_v1.riv";
 const PLANT_STATE_MACHINE = "plant";
 const PLANT_LEVEL_INPUT = "level";
-const SIMULATED_LEVELS = [1, 2, 3] as const;
+const GARDEN_TIME_LEVELS = {
+  morning: 1,
+  day: 2,
+  night: 3,
+} as const;
+
+function levelForLocalTime(date = new Date()) {
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 12) return GARDEN_TIME_LEVELS.morning;
+  if (hour >= 12 && hour < 18) return GARDEN_TIME_LEVELS.day;
+  return GARDEN_TIME_LEVELS.night;
+}
 
 type GardenRiveConfig = {
   enabled: boolean;
@@ -50,7 +61,7 @@ export function PlantRiveWidget({
   src?: string;
   className?: string;
 }) {
-  const [simulatedLevelIndex, setSimulatedLevelIndex] = useState(0);
+  const [timeLevel, setTimeLevel] = useState(() => levelForLocalTime());
   const { rive, RiveComponent } = useRive({
     src,
     stateMachines: PLANT_STATE_MACHINE,
@@ -60,21 +71,20 @@ export function PlantRiveWidget({
       alignment: Alignment.Center,
     }),
   });
-  const levelInput = useStateMachineInput(rive, PLANT_STATE_MACHINE, PLANT_LEVEL_INPUT, SIMULATED_LEVELS[0]);
-  const simulatedLevel = SIMULATED_LEVELS[simulatedLevelIndex];
+  const levelInput = useStateMachineInput(rive, PLANT_STATE_MACHINE, PLANT_LEVEL_INPUT, timeLevel);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setSimulatedLevelIndex((current) => (current + 1) % SIMULATED_LEVELS.length);
-    }, 3000);
+      setTimeLevel(levelForLocalTime());
+    }, 60000);
 
     return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
     if (!levelInput) return;
-    levelInput.value = simulatedLevel;
-  }, [levelInput, simulatedLevel]);
+    levelInput.value = timeLevel;
+  }, [levelInput, timeLevel]);
 
   return (
     <div

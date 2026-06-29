@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_RIVE_SRC = "/assets/garden/rive/plant_daisy_stage_01_v1.riv";
-const PLANT_STATE_MACHINE = "State Machine 1";
+const PLANT_STATE_MACHINE = "plant";
 const PLANT_LEVEL_INPUT = "level";
 const SIMULATED_LEVELS = [1, 2, 3] as const;
 

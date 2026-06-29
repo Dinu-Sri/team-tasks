@@ -146,7 +146,7 @@ weather
 isGrowing
 ```
 
-The Phase 1 marketplace test asset uses a numeric input named `level`. Until production plant files are designed, the app loops `level = 1`, `level = 2`, and `level = 3` every 3 seconds to validate runtime control.
+The Phase 1 marketplace test asset uses the `plant` state machine with a numeric input named `level`. Until production plant files are designed, the app loops `level = 1`, `level = 2`, and `level = 3` every 3 seconds to validate runtime control.
 
 ## Code Structure
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { PlantRiveWidget } from "@/components/garden/plant-rive-widget";
 import { pageMetadata } from "@/lib/seo/schema";
 import "./globals.css";
 
@@ -47,6 +48,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gardenRiveEnabled = process.env.NEXT_PUBLIC_TUDUVIA_GARDEN_RIVE_ENABLED === "true" || process.env.TUDUVIA_GARDEN_RIVE_ENABLED === "true";
+  const gardenRiveSrc = process.env.NEXT_PUBLIC_TUDUVIA_GARDEN_RIVE_SRC || "/assets/garden/rive/plant_daisy_stage_01_v1.riv";
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -54,6 +58,7 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
+        {gardenRiveEnabled ? <PlantRiveWidget src={gardenRiveSrc} /> : null}
       </body>
     </html>
   );

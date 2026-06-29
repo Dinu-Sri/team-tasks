@@ -28,6 +28,7 @@ Status: implementation target for the first pass.
 - Add `PlantRiveWidget` as a client-only visual widget.
 - Load one test `.riv` plant asset from `/public/assets/garden/rive/`.
 - Render the plant in the bottom-right corner only when the environment flag is enabled.
+- Temporarily simulate the test asset's `level` input by looping stages 1, 2, and 3 every 3 seconds.
 - Use a transparent widget shell and do not create database changes.
 - Prepare naming, folders, and code shape for later state-machine control.
 
@@ -144,6 +145,8 @@ timeOfDay
 weather
 isGrowing
 ```
+
+The Phase 1 marketplace test asset uses a numeric input named `level`. Until production plant files are designed, the app loops `level = 1`, `level = 2`, and `level = 3` every 3 seconds to validate runtime control.
 
 ## Code Structure
 

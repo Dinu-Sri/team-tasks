@@ -5,14 +5,16 @@ export const revalidate = 0;
 
 const DEFAULT_RIVE_SRC = "/assets/garden/rive/plant_daisy_stage_01_v1.riv";
 
-function enabled(value: string | undefined) {
-  return value?.trim().toLowerCase() === "true";
+function normalizedFlag(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === "true" || normalized === "false" ? normalized : null;
 }
 
 export async function GET() {
-  const isEnabled =
-    enabled(process.env.TUDUVIA_GARDEN_RIVE_ENABLED) ||
-    enabled(process.env.NEXT_PUBLIC_TUDUVIA_GARDEN_RIVE_ENABLED);
+  const serverFlag = normalizedFlag(process.env.TUDUVIA_GARDEN_RIVE_ENABLED);
+  const publicFlag = normalizedFlag(process.env.NEXT_PUBLIC_TUDUVIA_GARDEN_RIVE_ENABLED);
+  const explicitFlag = serverFlag ?? publicFlag;
+  const isEnabled = explicitFlag ? explicitFlag === "true" : process.env.NODE_ENV === "production";
 
   return NextResponse.json(
     {

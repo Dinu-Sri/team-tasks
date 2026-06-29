@@ -86,7 +86,8 @@ NEXT_PUBLIC_TUDUVIA_GARDEN_RIVE_SRC=/assets/garden/rive/plant_daisy_stage_01_v1.
 Rules:
 
 - The feature is enabled when either `NEXT_PUBLIC_TUDUVIA_GARDEN_RIVE_ENABLED` or `TUDUVIA_GARDEN_RIVE_ENABLED` is exactly `true`.
-- Default is off.
+- The feature is disabled when either flag is explicitly `false`.
+- If no flag reaches the container, production defaults to enabled for the Phase 1 rollout.
 - `NEXT_PUBLIC_TUDUVIA_GARDEN_RIVE_SRC` can point to another public `.riv` asset later.
 - The app uses `/api/garden/rive-config` to read the live container environment at runtime, so Portainer flag changes require a container restart but not a rebuild.
 
@@ -152,7 +153,7 @@ Phase 1 component:
 src/components/garden/plant-rive-widget.tsx
 ```
 
-The root app layout mounts a small client-side runtime gate. The gate fetches `/api/garden/rive-config`, and only then renders the widget if the live environment enables it. The widget itself stays client-side because Rive needs browser canvas APIs.
+The root app layout mounts a small client-side runtime gate. The gate fetches `/api/garden/rive-config`, and only then renders the widget if runtime config enables it. In production, missing flags default to enabled for Phase 1; explicit `false` disables the widget. The widget itself stays client-side because Rive needs browser canvas APIs.
 
 Future garden logic should be split into:
 

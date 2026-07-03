@@ -2,10 +2,12 @@
 
 import { ArrowRight, Bell, Flame, ListTodo, LogOut, ShieldCheck, Sparkles, UsersRound, X } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { logoutAction } from "@/app/actions/auth";
 import { markNotificationsReadAction } from "@/app/actions/notifications";
+import { buildAppMenuItems, type AppSideMenuAccess } from "@/components/app-side-menu";
 import { MomentumBadgeIcon } from "@/components/momentum/momentum-badge";
 import { Avatar } from "@/components/ui/avatar";
 import type { HeaderNotification } from "@/lib/header-data";
@@ -266,9 +268,29 @@ export function NotificationMenu({
   );
 }
 
-export function ProfileMenu({ name, email, image }: { name: string; email: string; image?: string | null }) {
+export function ProfileMenu({
+  name,
+  email,
+  image,
+  sideMenuAccess,
+}: {
+  name: string;
+  email: string;
+  image?: string | null;
+  sideMenuAccess?: AppSideMenuAccess;
+}) {
   const menu = useHeaderMenu("profile");
+  const searchParams = useSearchParams();
   const initials = name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  const mobileItems = buildAppMenuItems(sideMenuAccess);
+
+  function mobileItemHref(href: string) {
+    const workspace = searchParams.get("workspace");
+    if (!workspace) return href;
+    const params = new URLSearchParams();
+    params.set("workspace", workspace);
+    return `${href}?${params.toString()}`;
+  }
 
   return (
     <div ref={menu.rootRef} className="relative">
@@ -300,6 +322,26 @@ export function ProfileMenu({ name, email, image }: { name: string; email: strin
             <button type="button" onClick={menu.close} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle sm:hidden" aria-label="Close account menu">
               <X className="h-4 w-4" />
             </button>
+          </div>
+          <div className="border-b border-border p-2 sm:hidden">
+            <p className="px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Navigation</p>
+            <div className="grid grid-cols-2 gap-1">
+              {mobileItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    role="menuitem"
+                    href={mobileItemHref(item.href)}
+                    onClick={menu.close}
+                    className="flex min-h-11 items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-subtle hover:text-foreground"
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
           <form action={logoutAction} className="border-t border-border">
             <button role="menuitem" type="submit" className="flex min-h-12 w-full items-center gap-3 px-4 py-3 text-left text-sm hover:bg-surface-subtle">

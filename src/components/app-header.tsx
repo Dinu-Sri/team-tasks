@@ -96,7 +96,7 @@ export function AppHeader({
             <MomentumMenu momentum={momentum} />
             <NotificationMenu notifications={notifications} notificationCount={notificationCount} />
             <ThemeButton />
-            <ProfileMenu name={user.name} email={user.email} image={user.image} />
+            <ProfileMenu name={user.name} email={user.email} image={user.image} sideMenuAccess={sideMenuAccess} />
           </div>
         </div>
       </header>

@@ -11,6 +11,7 @@ import {
   Shield,
   SlidersHorizontal,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -25,7 +26,38 @@ export type AppSideMenuAccess = {
   hasBillingAccess?: boolean;
 };
 
+export type AppMenuItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
 const AUTO_CLOSE_MS = 2800;
+
+export function buildAppMenuItems(access?: AppSideMenuAccess): AppMenuItem[] {
+  const restricted = Boolean(access?.restrictedOrganizationMember);
+  const coreItems = restricted
+    ? [
+        { href: "/dashboard/teams", label: "Teams", icon: Users },
+        { href: "/dashboard/archive", label: "Finished", icon: CheckCheck },
+        { href: "/dashboard/storage", label: "Storage", icon: HardDrive },
+      ]
+    : [
+        { href: "/dashboard/teams", label: "Teams", icon: Users },
+        { href: "/dashboard/activity", label: "Activity", icon: BellDot },
+        { href: "/dashboard/features", label: "Settings", icon: SlidersHorizontal },
+        { href: "/dashboard/archive", label: "Finished", icon: CheckCheck },
+        { href: "/dashboard/storage", label: "Storage", icon: HardDrive },
+      ];
+
+  return [
+    { href: "/", label: "Tasks", icon: Home },
+    ...coreItems,
+    ...(access?.hasOrganizationAdmin ? [{ href: "/dashboard/organization", label: "Organization", icon: Building2 }] : []),
+    ...(access?.hasBillingAccess ? [{ href: "/dashboard/billing", label: "Billing", icon: CreditCard }] : []),
+    ...(access?.isSuperAdmin ? [{ href: "/dashboard/admin", label: "Admin", icon: Shield }] : []),
+  ];
+}
 
 export function AppSideMenu({
   access,
@@ -42,30 +74,10 @@ export function AppSideMenu({
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const open = hovering || manuallyOpen || !onTaskHome;
 
-  const items = useMemo(() => {
-    const restricted = Boolean(access?.restrictedOrganizationMember);
-    const coreItems = restricted
-      ? [
-          { href: "/dashboard/teams", label: "Teams", icon: Users },
-          { href: "/dashboard/archive", label: "Finished", icon: CheckCheck },
-          { href: "/dashboard/storage", label: "Storage", icon: HardDrive },
-        ]
-      : [
-          { href: "/dashboard/teams", label: "Teams", icon: Users },
-          { href: "/dashboard/activity", label: "Activity", icon: BellDot },
-          { href: "/dashboard/features", label: "Settings", icon: SlidersHorizontal },
-          { href: "/dashboard/archive", label: "Finished", icon: CheckCheck },
-          { href: "/dashboard/storage", label: "Storage", icon: HardDrive },
-        ];
-
-    return [
-      { href: "/", label: "Tasks", icon: Home },
-      ...coreItems,
-      ...(access?.hasOrganizationAdmin ? [{ href: "/dashboard/organization", label: "Organization", icon: Building2 }] : []),
-      ...(access?.hasBillingAccess ? [{ href: "/dashboard/billing", label: "Billing", icon: CreditCard }] : []),
-      ...(access?.isSuperAdmin ? [{ href: "/dashboard/admin", label: "Admin", icon: Shield }] : []),
-    ];
-  }, [access?.hasBillingAccess, access?.isSuperAdmin, access?.restrictedOrganizationMember]);
+  const items = useMemo(
+    () => buildAppMenuItems(access),
+    [access?.hasBillingAccess, access?.hasOrganizationAdmin, access?.isSuperAdmin, access?.restrictedOrganizationMember],
+  );
 
   function itemHref(href: string) {
     const workspace = searchParams.get("workspace");

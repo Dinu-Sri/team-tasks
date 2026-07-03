@@ -10,8 +10,13 @@ pipeline {
   parameters {
     booleanParam(name: 'RUN_DOCKER_BUILD', defaultValue: true, description: 'Build the Tuduvia Docker image after checks pass.')
     booleanParam(name: 'PUSH_IMAGE', defaultValue: false, description: 'Push the image to GHCR. Requires ghcr-token Jenkins credentials.')
+    booleanParam(name: 'DEPLOY_STAGING', defaultValue: true, description: 'Redeploy the Tuduvia staging stack after the image is pushed.')
     string(name: 'IMAGE_NAME', defaultValue: 'ghcr.io/dinu-sri/team-tasks-app', description: 'Docker image repository.')
     string(name: 'GHCR_CREDENTIALS_ID', defaultValue: 'ghcr-token', description: 'Jenkins credentials ID for GHCR.')
+    string(name: 'PORTAINER_URL', defaultValue: 'https://109.199.125.98:9443', description: 'Portainer base URL for staging redeploy.')
+    string(name: 'PORTAINER_CREDENTIALS_ID', defaultValue: 'portainer-api-token', description: 'Jenkins secret text credential ID for the Portainer API token.')
+    string(name: 'STAGING_STACK_ID', defaultValue: '68', description: 'Portainer stack ID for tuduvia-staging.')
+    string(name: 'STAGING_ENDPOINT_ID', defaultValue: '3', description: 'Portainer endpoint/environment ID for tuduvia-staging.')
   }
 
   environment {
@@ -72,9 +77,23 @@ pipeline {
       }
     }
 
-    stage('Staging Deploy Placeholder') {
+    stage('Deploy Staging') {
+      when {
+        expression { return params.RUN_DOCKER_BUILD && params.PUSH_IMAGE && params.DEPLOY_STAGING }
+      }
       steps {
-        echo 'Next phase: deploy IMAGE_TAG to stage.tuduvia.com after staging stack is ready.'
+        withCredentials([string(credentialsId: params.PORTAINER_CREDENTIALS_ID, variable: 'PORTAINER_API_TOKEN')]) {
+          sh '''
+            docker run --rm \
+              -e PORTAINER_API_TOKEN="$PORTAINER_API_TOKEN" \
+              curlimages/curl:8.10.1 \
+              -k -fsS -X PUT \
+              -H "X-API-Key: $PORTAINER_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data '{"pullImage":true,"prune":false}' \
+              "$PORTAINER_URL/api/stacks/$STAGING_STACK_ID/git/redeploy?endpointId=$STAGING_ENDPOINT_ID"
+          '''
+        }
       }
     }
 

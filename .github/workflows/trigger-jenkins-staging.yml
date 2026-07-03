@@ -1,0 +1,53 @@
+name: Trigger Jenkins staging deploy
+
+on:
+  workflow_run:
+    workflows:
+      - Build Docker image
+    types:
+      - completed
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  trigger-jenkins:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Jenkins staging pipeline
+        env:
+          JENKINS_URL: ${{ secrets.JENKINS_URL }}
+          JENKINS_USER: ${{ secrets.JENKINS_USER }}
+          JENKINS_API_TOKEN: ${{ secrets.JENKINS_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${JENKINS_URL:-}" ] || [ -z "${JENKINS_USER:-}" ] || [ -z "${JENKINS_API_TOKEN:-}" ]; then
+            echo "Missing one or more Jenkins secrets: JENKINS_URL, JENKINS_USER, JENKINS_API_TOKEN."
+            exit 1
+          fi
+
+          JENKINS_URL="${JENKINS_URL%/}"
+          CRUMB_JSON="$(curl -fsS -u "$JENKINS_USER:$JENKINS_API_TOKEN" "$JENKINS_URL/crumbIssuer/api/json")"
+          CRUMB_FIELD="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["crumbRequestField"])' <<< "$CRUMB_JSON")"
+          CRUMB_VALUE="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["crumb"])' <<< "$CRUMB_JSON")"
+
+          curl -fsS -X POST \
+            -u "$JENKINS_USER:$JENKINS_API_TOKEN" \
+            -H "$CRUMB_FIELD: $CRUMB_VALUE" \
+            --data-urlencode "RUN_DOCKER_BUILD=true" \
+            --data-urlencode "PUSH_IMAGE=true" \
+            --data-urlencode "DEPLOY_STAGING=true" \
+            --data-urlencode "IMAGE_NAME=ghcr.io/dinu-sri/team-tasks-app" \
+            --data-urlencode "GHCR_CREDENTIALS_ID=ghcr-token" \
+            --data-urlencode "PORTAINER_URL=https://109.199.125.98:9443" \
+            --data-urlencode "PORTAINER_CREDENTIALS_ID=portainer-api-token" \
+            --data-urlencode "STAGING_STACK_ID=68" \
+            --data-urlencode "STAGING_ENDPOINT_ID=3" \
+            "$JENKINS_URL/job/tuduvia-deploy-production/buildWithParameters"
+
+          echo "Jenkins staging pipeline trigger sent."

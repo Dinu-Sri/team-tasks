@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 
 import { db } from "@/lib/db";
+import { backfillVerifiedDomainMemberships } from "@/lib/organization-domains";
 
 export function domainTokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -21,5 +22,6 @@ export async function verifyOrganizationDomainToken(token: string) {
     include: { team: true },
   });
   await db.verification.deleteMany({ where: { value: domain.id, identifier: { startsWith: "organization-domain:" } } });
+  await backfillVerifiedDomainMemberships(domain.id);
   return domain;
 }

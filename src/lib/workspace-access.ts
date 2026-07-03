@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
+import { syncVerifiedEmailDomainMembership } from "@/lib/organization-domains";
 
 export type ActiveMembership = {
   teamId: string;
@@ -23,6 +24,8 @@ export function visibleMembershipFilter(memberships: ActiveMembership[]) {
 }
 
 export async function getActiveMembershipAccess(userId: string) {
+  await syncVerifiedEmailDomainMembership(userId);
+
   const memberships = await db.membership.findMany({
     where: { userId, status: "ACTIVE" },
     select: { teamId: true, role: true, source: true },

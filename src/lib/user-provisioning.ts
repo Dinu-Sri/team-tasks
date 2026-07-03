@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { autoJoinVerifiedEmailDomain, findVerifiedAutoJoinDomainRule } from "@/lib/organization-domains";
 
 export async function provisionUserWorkspace(user: { id: string; name: string }) {
   await db.momentumProfile.upsert({
@@ -6,6 +7,18 @@ export async function provisionUserWorkspace(user: { id: string; name: string })
     update: {},
     create: { userId: user.id },
   });
+
+  const currentUser = await db.user.findUnique({
+    where: { id: user.id },
+    select: { id: true, email: true, emailVerified: true },
+  });
+
+  if (currentUser && await findVerifiedAutoJoinDomainRule(currentUser)) {
+    await autoJoinVerifiedEmailDomain(currentUser);
+    return;
+  }
+
+  if (currentUser && !currentUser.emailVerified) return;
 
   const existingMembership = await db.membership.findFirst({
     where: { userId: user.id, status: "ACTIVE" },

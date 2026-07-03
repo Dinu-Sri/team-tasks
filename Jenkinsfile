@@ -9,7 +9,7 @@ pipeline {
 
   parameters {
     booleanParam(name: 'RUN_DOCKER_BUILD', defaultValue: true, description: 'Build the Tuduvia Docker image after checks pass.')
-    booleanParam(name: 'PUSH_IMAGE', defaultValue: false, description: 'Push the image to GHCR. Requires ghcr-token Jenkins credentials.')
+    booleanParam(name: 'PUSH_IMAGE', defaultValue: true, description: 'Push the image to GHCR. Requires ghcr-token Jenkins credentials.')
     booleanParam(name: 'DEPLOY_STAGING', defaultValue: true, description: 'Redeploy the Tuduvia staging stack after the image is pushed.')
     string(name: 'IMAGE_NAME', defaultValue: 'ghcr.io/dinu-sri/team-tasks-app', description: 'Docker image repository.')
     string(name: 'GHCR_CREDENTIALS_ID', defaultValue: 'ghcr-token', description: 'Jenkins credentials ID for GHCR.')
@@ -83,16 +83,22 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: params.PORTAINER_CREDENTIALS_ID, variable: 'PORTAINER_API_TOKEN')]) {
-          sh '''
-            docker run --rm \
-              -e PORTAINER_API_TOKEN="$PORTAINER_API_TOKEN" \
-              curlimages/curl:8.10.1 \
-              -k -fsS -X PUT \
-              -H "X-API-Key: $PORTAINER_API_TOKEN" \
-              -H "Content-Type: application/json" \
-              --data '{"pullImage":true,"prune":false}' \
-              "$PORTAINER_URL/api/stacks/$STAGING_STACK_ID/git/redeploy?endpointId=$STAGING_ENDPOINT_ID"
-          '''
+          withEnv([
+            "PORTAINER_URL=${params.PORTAINER_URL}",
+            "STAGING_STACK_ID=${params.STAGING_STACK_ID}",
+            "STAGING_ENDPOINT_ID=${params.STAGING_ENDPOINT_ID}"
+          ]) {
+            sh '''
+              docker run --rm \
+                -e PORTAINER_API_TOKEN="$PORTAINER_API_TOKEN" \
+                curlimages/curl:8.10.1 \
+                -k -fsS -X PUT \
+                -H "X-API-Key: $PORTAINER_API_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data '{"pullImage":true,"prune":false}' \
+                "$PORTAINER_URL/api/stacks/$STAGING_STACK_ID/git/redeploy?endpointId=$STAGING_ENDPOINT_ID"
+            '''
+          }
         }
       }
     }

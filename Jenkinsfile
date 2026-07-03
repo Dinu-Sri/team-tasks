@@ -34,8 +34,8 @@ pipeline {
       steps {
         sh '''
           docker run --rm \
-            -v "$WORKSPACE:/workspace" \
-            -w /workspace \
+            --volumes-from jenkins \
+            -w "$WORKSPACE" \
             -e NEXT_TELEMETRY_DISABLED=1 \
             "$NODE_IMAGE" \
             sh -lc "corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm run typecheck"

@@ -38,7 +38,7 @@ pipeline {
             -w /workspace \
             -e NEXT_TELEMETRY_DISABLED=1 \
             "$NODE_IMAGE" \
-            sh -lc "corepack enable && pnpm install --frozen-lockfile && pnpm run typecheck"
+            sh -lc "corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm run typecheck"
         '''
       }
     }

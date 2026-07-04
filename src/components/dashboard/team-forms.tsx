@@ -11,9 +11,9 @@ export function CreateTeamForm() {
   const [state, action, pending] = useActionState(createTeamAction, {});
   return (
     <form action={action} className="space-y-2">
-      <div className="grid gap-2 min-[420px]:grid-cols-[1fr_auto]">
+      <div className="grid gap-2">
         <Input name="name" placeholder="Team name" required />
-        <Button className="w-full min-[420px]:w-auto" disabled={pending}><Plus />Create team</Button>
+        <Button className="w-full" disabled={pending}><Plus />Create team</Button>
       </div>
       <FormMessage state={state} />
     </form>
@@ -25,9 +25,9 @@ export function InviteForm({ teamId }: { teamId: string }) {
   return (
     <form action={action} className="space-y-2">
       <input type="hidden" name="teamId" value={teamId} />
-      <div className="grid gap-2 min-[420px]:grid-cols-[1fr_auto]">
+      <div className="grid gap-2">
         <Input name="email" type="email" placeholder="Email address" required />
-        <Button className="w-full min-[420px]:w-auto" variant="secondary" disabled={pending}><Send />Send invite</Button>
+        <Button className="w-full" variant="secondary" disabled={pending}><Send />Send invite</Button>
       </div>
       <FormMessage state={state} />
     </form>

@@ -22,6 +22,7 @@ If a control does not help one of those answers, remove it from the main screen 
 - Use empty states with one clear next step.
 - Keep labels short and plain.
 - Avoid project-management language when normal words work.
+- In narrow dashboard boxes, stack form fields and buttons vertically so inputs can use the full section width.
 
 ## Visual Style
 
@@ -111,12 +112,21 @@ Features screen:
 - Box 3: organization access, only if relevant
 - Avoid showing technical configuration before the user asks.
 
+Activity screen:
+
+- Box 1: page summary
+- Box 2: compact recent-comment cards
+- Use a small page size so the first view is scannable.
+- Avoid long feed rows unless the screen is meant to be a full reader.
+- Open full discussion detail only after the user selects a card.
+
 Archive screen:
 
-- Box 1: search and date filter
-- Box 2: finished tasks
-- Box 3: empty state
-- Avoid mixing analytics, storage, and task actions into the archive list.
+- Box 1: simple filter
+- Box 2: quick status or empty-state summary
+- Box 3: compact finished-task cards
+- Use card grids instead of month-long lists when the user needs a quick overview.
+- Avoid mixing analytics, storage, and task actions into the finished list.
 
 ## Decision Test
 

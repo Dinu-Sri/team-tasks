@@ -1,11 +1,14 @@
 import { MessageCircleMore } from "lucide-react";
 
 import { ActivityDiscussionList } from "@/components/dashboard/activity-discussion-list";
-import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
+import { DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
+import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/auth";
 import { getDashboardWorkspaceContext } from "@/lib/dashboard-workspace";
 import { db } from "@/lib/db";
 import { redirectIfRestrictedOrganizationMember } from "@/lib/workspace-access";
+
+const ACTIVITY_PAGE_SIZE = 6;
 
 type DashboardMembership = {
   teamId: string;
@@ -49,8 +52,8 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
         receipts: { where: { requiresAttention: true }, include: { user: { select: { name: true } } } },
       },
       orderBy: { createdAt: "desc" },
-      skip: (page - 1) * DASHBOARD_PAGE_SIZE,
-      take: DASHBOARD_PAGE_SIZE,
+      skip: (page - 1) * ACTIVITY_PAGE_SIZE,
+      take: ACTIVITY_PAGE_SIZE,
     }),
   ]) as [number, ActivityComment[]] : [0, []];
 
@@ -132,6 +135,14 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-normal">Activity</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Recent team comments in one quick view.</p>
+        </div>
+        <Badge variant="secondary">{totalComments.toLocaleString()} comment{totalComments === 1 ? "" : "s"}</Badge>
+      </div>
+
       {!hasActivityTools ? (
         <section className="rounded-lg border border-border bg-surface px-4 py-16 text-center">
           <MessageCircleMore className="mx-auto h-6 w-6 text-muted-foreground" />
@@ -139,17 +150,25 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Recent comments from your visible teams will appear here.</p>
         </section>
       ) : (
-        <section className="overflow-hidden rounded-lg border border-border bg-surface">
-          <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-            <MessageCircleMore className="h-4 w-4 text-brand" />
-            <h2 className="text-sm font-semibold">Discussion</h2>
+        <section className="rounded-lg border border-border bg-surface p-4">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand">
+                <MessageCircleMore className="h-4 w-4" />
+              </span>
+              <div>
+                <h2 className="text-base font-semibold">Discussion</h2>
+                <p className="text-sm text-muted-foreground">Open a card to see the full task.</p>
+              </div>
+            </div>
+            <Badge variant="secondary">{comments.length} shown</Badge>
           </div>
           {commentTeamIds.length ? comments.length ? (
             <ActivityDiscussionList comments={commentsForClient} tasks={detailTasksForClient} currentUserId={user.id} />
           ) : <p className="px-4 py-16 text-center text-sm text-muted-foreground">No comments yet.</p> : (
             <p className="px-4 py-16 text-center text-sm text-muted-foreground">Comments are off for your teams.</p>
           )}
-          <DashboardPagination basePath="/dashboard/activity" searchParams={query} page={page} total={totalComments} />
+          <DashboardPagination basePath="/dashboard/activity" searchParams={query} page={page} total={totalComments} pageSize={ACTIVITY_PAGE_SIZE} />
         </section>
       )}
     </div>

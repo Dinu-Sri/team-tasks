@@ -29,20 +29,23 @@ export function ActivityDiscussionList({
 
   return (
     <>
-      <div className="divide-y divide-border">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {comments.map((comment) => (
           <button
             key={comment.id}
             type="button"
             onClick={() => setSelectedTaskId(comment.taskId)}
-            className="block w-full px-4 py-4 text-left hover:bg-surface-subtle"
+            className="flex min-h-36 w-full flex-col justify-between rounded-lg border border-border bg-background p-4 text-left transition-colors hover:border-brand/45 hover:bg-surface-subtle"
           >
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-sm font-semibold">{comment.authorName} - {comment.taskTitle}</p>
-              <span className="shrink-0 text-xs text-muted-foreground">{new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(comment.createdAt))}</span>
+            <div className="min-w-0">
+              <p className="line-clamp-2 text-sm font-semibold leading-5">{comment.taskTitle}</p>
+              <p className="mt-1 truncate text-xs text-muted-foreground">{comment.authorName}</p>
+              <p className="mt-3 line-clamp-2 text-sm leading-5 text-muted-foreground">{comment.body}</p>
             </div>
-            <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">{comment.body}</p>
-            <p className="mt-2 text-xs text-muted-foreground">{comment.teamName}{comment.mentionedNames.length ? ` - mentioned ${comment.mentionedNames.join(", ")}` : ""}</p>
+            <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+              <span className="truncate">{comment.teamName}{comment.mentionedNames.length ? ` - mentioned ${comment.mentionedNames.join(", ")}` : ""}</span>
+              <span className="shrink-0">{new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(comment.createdAt))}</span>
+            </div>
           </button>
         ))}
       </div>

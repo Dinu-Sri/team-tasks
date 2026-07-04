@@ -27,15 +27,17 @@ export function DashboardPagination({
   searchParams,
   page,
   total,
+  pageSize = DASHBOARD_PAGE_SIZE,
   pageParam = "page",
 }: {
   basePath: string;
   searchParams: Record<string, string | undefined>;
   page: number;
   total: number;
+  pageSize?: number;
   pageParam?: string;
 }) {
-  const totalPages = Math.max(1, Math.ceil(total / DASHBOARD_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   if (totalPages <= 1) return null;
 
   return (

@@ -68,7 +68,7 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
       ))}
 
       {!selectedMode ? (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
           <section className="rounded-lg border border-border bg-surface p-4">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
@@ -77,7 +77,7 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
               </div>
             </div>
             {memberships.length ? (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
                 {memberships.map(({ team, role }) => (
                   <Link key={team.id} href={`/dashboard/teams?workspace=${encodeURIComponent(team.id)}`} className="group flex min-h-32 flex-col justify-between rounded-lg border border-border bg-background p-4 transition-colors hover:border-brand/45 hover:bg-surface-subtle">
                     <div className="flex items-start justify-between gap-3">
@@ -117,7 +117,7 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
       ) : memberships.map(({ team, role }) => {
         const owner = role === "OWNER";
         return (
-          <div key={team.id} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div key={team.id} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
             <section className="rounded-lg border border-border bg-surface p-4">
               <div className="flex flex-col gap-3 border-b border-border pb-4 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
@@ -135,7 +135,7 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
                   <h3 className="text-sm font-semibold">Team members</h3>
                   <Badge variant="secondary">{team.memberships.length}</Badge>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
                   {team.memberships.map((member) => (
                     <div key={member.userId} className="flex min-h-16 items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-sm font-semibold text-brand">

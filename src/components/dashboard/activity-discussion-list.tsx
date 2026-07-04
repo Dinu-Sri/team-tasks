@@ -29,7 +29,7 @@ export function ActivityDiscussionList({
 
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
         {comments.map((comment) => (
           <button
             key={comment.id}

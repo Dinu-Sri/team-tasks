@@ -68,18 +68,9 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
         <Badge variant="secondary">{totalCompletedTasks.toLocaleString()} finished</Badge>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
-        <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[22rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)]">
+        <div>
           <FinishedTaskFilters members={filterMembers} selectedMemberId={selectedMemberId} />
-          <section className="rounded-lg border border-border bg-surface p-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-success/10 text-success">
-              <CheckCheck className="h-5 w-5" />
-            </div>
-            <h2 className="mt-4 text-base font-semibold">Quick view</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {selectedMemberId === "__all__" ? "Showing everyone you can see." : "Showing one member's finished work."}
-            </p>
-          </section>
         </div>
 
         <section className="rounded-lg border border-border bg-surface p-4">
@@ -97,7 +88,7 @@ export default async function ArchivePage({ searchParams }: { searchParams: Prom
           </div>
 
           {completedTasks.length ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
               {completedTasks.map((task) => (
                 <article
                   id={`task-${task.id}`}

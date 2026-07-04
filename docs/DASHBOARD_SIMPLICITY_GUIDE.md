@@ -23,6 +23,8 @@ If a control does not help one of those answers, remove it from the main screen 
 - Keep labels short and plain.
 - Avoid project-management language when normal words work.
 - In narrow dashboard boxes, stack form fields and buttons vertically so inputs can use the full section width.
+- Use the available dashboard canvas; do not center operational screens in a narrow lane when there is useful horizontal space.
+- Use auto-fit card grids so one or two items expand naturally instead of sitting as tiny cards in a wide box.
 
 ## Visual Style
 
@@ -123,9 +125,9 @@ Activity screen:
 Archive screen:
 
 - Box 1: simple filter
-- Box 2: quick status or empty-state summary
-- Box 3: compact finished-task cards
+- Box 2: compact finished-task cards
 - Use card grids instead of month-long lists when the user needs a quick overview.
+- Do not add summary boxes unless they help the user act immediately.
 - Avoid mixing analytics, storage, and task actions into the finished list.
 
 ## Decision Test

@@ -119,7 +119,7 @@ export function AppSideMenu({
       </button>
       <aside
         className={cn(
-          "fixed bottom-0 left-0 top-16 z-50 w-60 border-r border-t border-border bg-surface/95 px-3 py-4 shadow-soft backdrop-blur-lg transition-transform duration-300",
+          "fixed bottom-0 left-0 top-16 z-50 hidden w-60 border-r border-t border-border bg-surface/95 px-3 py-4 shadow-soft backdrop-blur-lg transition-transform duration-300 lg:block",
           open ? "translate-x-0" : "-translate-x-[15.5rem]",
           className,
         )}

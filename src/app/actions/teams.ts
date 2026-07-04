@@ -37,6 +37,7 @@ export async function createTeamAction(_: TeamState, formData: FormData): Promis
   await publishRealtimeEvent([user.id], "team.created");
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/teams");
   return { success: "Team created." };
 }
 
@@ -99,6 +100,7 @@ export async function inviteMemberAction(_: TeamState, formData: FormData): Prom
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/teams");
   await refreshWorkspaceUsage(teamId);
   return {
     success: registered

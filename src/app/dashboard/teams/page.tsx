@@ -1,17 +1,14 @@
-import { CheckCircle2, Crown, LogOut, Trophy, UserMinus, Users } from "lucide-react";
+import { ArrowRight, Mail, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 
-import { acceptInviteAction, leaveTeamAction, removeMemberAction, updateMemberRoleAction } from "@/app/actions/teams";
-import { transferOwnershipSubmitAction } from "@/app/actions/tasks";
-import { ConfirmSubmitButton } from "@/components/dashboard/confirm-submit-button";
+import { acceptInviteAction } from "@/app/actions/teams";
 import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
-import { AssignTaskForm, CreateTeamForm, InviteForm } from "@/components/dashboard/team-forms";
+import { CreateTeamForm, InviteForm } from "@/components/dashboard/team-forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth";
 import { ALL_WORKSPACES, getDashboardWorkspaceContext } from "@/lib/dashboard-workspace";
 import { db } from "@/lib/db";
-import { getTeamQuestSummaries } from "@/lib/momentum";
 
 export default async function TeamsBoardPage({ searchParams }: { searchParams: Promise<{ workspace?: string; page?: string }> }) {
   const user = await requireUser();
@@ -32,7 +29,6 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
         team: {
           include: {
             memberships: { where: { status: "ACTIVE" }, include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } },
-            tasks: { where: { status: "OPEN" }, select: { id: true, assignees: { select: { userId: true } } } },
             invites: { where: { status: "PENDING" }, select: { id: true, email: true } },
           },
         },
@@ -47,90 +43,138 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
       orderBy: { createdAt: "desc" },
     }),
   ]);
-  const questMap = await getTeamQuestSummaries(memberships.map(({ teamId }) => teamId));
 
   return (
     <div className="space-y-5" id="onborda-teams-board">
-      {!workspace.restricted ? <div className="w-full sm:ml-auto sm:w-80"><CreateTeamForm /></div> : null}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-normal">Teams</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Create a team, invite people, and see who belongs here.</p>
+        </div>
+        <Badge variant="secondary">{totalMemberships.toLocaleString()} team{totalMemberships === 1 ? "" : "s"}</Badge>
+      </div>
 
       {invitations.map((invite) => (
-        <div key={invite.id} className="flex flex-col gap-3 rounded-lg border border-brand/30 bg-brand/5 p-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
-          <div className="min-w-0"><p className="text-sm font-medium">Join {invite.team.name}</p><p className="text-xs text-muted-foreground">Invited by {invite.invitedBy.name}</p></div>
+        <div key={invite.id} className="flex flex-col gap-3 rounded-lg border border-brand/30 bg-brand/5 p-4 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand"><Mail className="h-4 w-4" /></span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">Join {invite.team.name}</p>
+              <p className="text-xs text-muted-foreground">Invited by {invite.invitedBy.name}</p>
+            </div>
+          </div>
           <form action={acceptInviteAction}><input type="hidden" name="token" value={invite.token} /><Button className="w-full min-[420px]:w-auto" size="sm">Accept</Button></form>
         </div>
       ))}
 
-      <section className="space-y-3">
-        {!selectedMode ? memberships.map(({ team, role }) => (
-          <Link key={team.id} href={`/dashboard/teams?workspace=${encodeURIComponent(team.id)}`} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 hover:bg-surface-subtle">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-subtle"><Users className="h-4 w-4" /></span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{team.name}</p>
-                <p className="text-xs text-muted-foreground">{team.memberships.length} people - {team.tasks.length} open</p>
+      {!selectedMode ? (
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <section className="rounded-lg border border-border bg-surface p-4">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold">Choose a team</h2>
+                <p className="text-sm text-muted-foreground">Open a team to invite people.</p>
               </div>
             </div>
-            <Badge className="shrink-0" variant={role === "OWNER" ? "default" : "secondary"}>{role.toLowerCase()}</Badge>
-          </Link>
-        )) : memberships.map(({ team, role }) => {
-          const owner = role === "OWNER";
-          const quest = questMap.get(team.id);
-          const openByMember = new Map<string, number>();
-          team.tasks.forEach((task) => task.assignees.forEach(({ userId }) => openByMember.set(userId, (openByMember.get(userId) ?? 0) + 1)));
-          return (
-            <details key={team.id} className="group rounded-lg border border-border bg-surface" open={memberships.length === 1}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-3.5 sm:px-4">
-                <div className="flex min-w-0 items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-subtle"><Users className="h-4 w-4" /></span><div className="min-w-0"><p className="truncate text-sm font-semibold">{team.name}</p><p className="text-xs text-muted-foreground">{team.memberships.length} people - {team.tasks.length} open</p></div></div>
-                <Badge className="shrink-0" variant={owner ? "default" : "secondary"}>{role.toLowerCase()}</Badge>
-              </summary>
-
-              <div className="space-y-5 border-t border-border p-3 sm:p-4">
-                {quest ? <div className="rounded-lg bg-surface-subtle p-3"><div className="flex items-center justify-between gap-3 text-sm"><span className="flex items-center gap-2 font-medium"><Trophy className="h-4 w-4 text-amber-600 dark:text-amber-300" />Team Quest</span><span className="text-xs text-muted-foreground">{quest.progress}/{quest.target}</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-amber-500" style={{ width: `${Math.min(100, (quest.progress / quest.target) * 100)}%` }} /></div></div> : null}
-
-                <div>
-                  <p className="mb-2 text-xs font-medium uppercase text-muted-foreground">People</p>
-                  <div className="divide-y divide-border rounded-lg border border-border">
-                    {team.memberships.map((member) => (
-                      <div key={member.userId} className="flex min-h-14 flex-col gap-3 px-3 py-2.5 min-[520px]:flex-row min-[520px]:items-center">
-                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{member.user.name}{member.userId === user.id ? " (you)" : ""}</p><p className="truncate text-xs text-muted-foreground">{member.role === "OWNER" ? "Owner" : member.role === "ADMIN" ? "Admin" : `${openByMember.get(member.userId) ?? 0} open tasks`}</p></div>
-                        {owner && member.role !== "OWNER" ? (
-                          <div className="flex flex-wrap items-center gap-1 self-stretch min-[520px]:self-auto">
-                            <form action={updateMemberRoleAction}>
-                              <input type="hidden" name="teamId" value={team.id} />
-                              <input type="hidden" name="memberId" value={member.userId} />
-                              <input type="hidden" name="role" value={member.role === "ADMIN" ? "MEMBER" : "ADMIN"} />
-                              <Button type="submit" size="sm" variant="quiet" className="whitespace-normal">{member.role === "ADMIN" ? "Make member" : "Make admin"}</Button>
-                            </form>
-                            <form action={transferOwnershipSubmitAction}>
-                              <input type="hidden" name="teamId" value={team.id} />
-                              <input type="hidden" name="newOwnerId" value={member.userId} />
-                              <ConfirmSubmitButton
-                                type="submit"
-                                size="icon"
-                                variant="quiet"
-                                message={`Transfer ownership of ${team.name} to ${member.user.name}?\n\nYou will become a regular member.`}
-                                aria-label={`Transfer ownership to ${member.user.name}`}
-                                title="Transfer ownership"
-                              >
-                                <Crown className="h-4 w-4" />
-                              </ConfirmSubmitButton>
-                            </form>
-                            <form action={removeMemberAction}><input type="hidden" name="teamId" value={team.id} /><input type="hidden" name="memberId" value={member.userId} /><ConfirmSubmitButton type="submit" size="icon" variant="quiet" message={`Remove ${member.user.name} from ${team.name}?`} aria-label={`Remove ${member.user.name}`} title="Remove member"><UserMinus /></ConfirmSubmitButton></form>
-                          </div>
-                        ) : null}
+            {memberships.length ? (
+              <div className="grid gap-3 md:grid-cols-2">
+                {memberships.map(({ team, role }) => (
+                  <Link key={team.id} href={`/dashboard/teams?workspace=${encodeURIComponent(team.id)}`} className="group flex min-h-32 flex-col justify-between rounded-lg border border-border bg-background p-4 transition-colors hover:border-brand/45 hover:bg-surface-subtle">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-brand"><Users className="h-5 w-5" /></span>
+                      <Badge className="shrink-0" variant={role === "OWNER" ? "default" : "secondary"}>{role.toLowerCase()}</Badge>
+                    </div>
+                    <div className="mt-5 min-w-0">
+                      <p className="truncate text-sm font-semibold">{team.name}</p>
+                      <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                        <span>{team.memberships.length} member{team.memberships.length === 1 ? "" : "s"}</span>
+                        <span className="inline-flex items-center gap-1 text-foreground">Open <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" /></span>
                       </div>
-                    ))}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-border px-4 py-16 text-center">
+                <Users className="mx-auto h-6 w-6 text-muted-foreground" />
+                <p className="mt-3 text-sm font-medium">No teams yet.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Create one to start inviting people.</p>
+              </div>
+            )}
+          </section>
+
+          {!workspace.restricted ? (
+            <section className="rounded-lg border border-border bg-surface p-4">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-brand/10 text-brand">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <h2 className="text-base font-semibold">Create a team</h2>
+              <p className="mb-4 mt-1 text-sm text-muted-foreground">Name it, then invite people.</p>
+              <CreateTeamForm />
+            </section>
+          ) : null}
+        </div>
+      ) : memberships.map(({ team, role }) => {
+        const owner = role === "OWNER";
+        return (
+          <div key={team.id} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <section className="rounded-lg border border-border bg-surface p-4">
+              <div className="flex flex-col gap-3 border-b border-border pb-4 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-brand"><Users className="h-5 w-5" /></span>
+                  <div className="min-w-0">
+                    <h2 className="truncate text-base font-semibold">{team.name}</h2>
+                    <p className="text-sm text-muted-foreground">{team.memberships.length} member{team.memberships.length === 1 ? "" : "s"}</p>
                   </div>
                 </div>
-
-                {owner ? <><div><p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Assign work</p><AssignTaskForm teamId={team.id} members={team.memberships.map(({ user: member }) => member)} /></div><div><p className="mb-2 text-xs font-medium uppercase text-muted-foreground">Invite someone</p><InviteForm teamId={team.id} />{team.invites.length ? <p className="mt-2 text-xs text-muted-foreground">{team.invites.length} pending invitation(s)</p> : null}</div></> : (
-                  <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle2 className="h-4 w-4" />You are a member of this team.</p><form action={leaveTeamAction}><input type="hidden" name="teamId" value={team.id} /><ConfirmSubmitButton type="submit" variant="quiet" size="sm" message={`Leave ${team.name}? Your open assignments in this team will be removed.`}><LogOut />Leave team</ConfirmSubmitButton></form></div>
-                )}
+                <Badge className="self-start min-[520px]:self-auto" variant={owner ? "default" : "secondary"}>{role.toLowerCase()}</Badge>
               </div>
-            </details>
-          );
-        })}
-      </section>
+
+              <div className="pt-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold">Team members</h3>
+                  <Badge variant="secondary">{team.memberships.length}</Badge>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {team.memberships.map((member) => (
+                    <div key={member.userId} className="flex min-h-16 items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-sm font-semibold text-brand">
+                        {member.user.name.slice(0, 1).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{member.user.name}{member.userId === user.id ? " (you)" : ""}</p>
+                        <p className="truncate text-xs text-muted-foreground">{member.role === "OWNER" ? "Owner" : member.role === "ADMIN" ? "Admin" : "Member"}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <div className="space-y-4">
+              {owner ? (
+                <section className="rounded-lg border border-border bg-surface p-4">
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-brand/10 text-brand">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <h2 className="text-base font-semibold">Invite someone</h2>
+                  <p className="mb-4 mt-1 text-sm text-muted-foreground">Send one email invite at a time.</p>
+                  <InviteForm teamId={team.id} />
+                  {team.invites.length ? <p className="mt-3 text-xs text-muted-foreground">{team.invites.length} pending invitation{team.invites.length === 1 ? "" : "s"}</p> : null}
+                </section>
+              ) : null}
+
+              {!workspace.restricted ? (
+                <section className="rounded-lg border border-border bg-surface p-4">
+                  <h2 className="text-base font-semibold">Create another team</h2>
+                  <p className="mb-4 mt-1 text-sm text-muted-foreground">For a new project or group.</p>
+                  <CreateTeamForm />
+                </section>
+              ) : null}
+            </div>
+          </div>
+        );
+      })}
 
       {!selectedMode ? <DashboardPagination basePath="/dashboard/teams" searchParams={query} page={page} total={totalMemberships} /> : null}
     </div>

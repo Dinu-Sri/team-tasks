@@ -341,10 +341,10 @@ model Task {
 
 model TeamFeatureSettings {
   teamId                  String   @id
-  commentsEnabled         Boolean  @default(false)
-  attachmentsEnabled      Boolean  @default(false)
-  memberTaskViewEnabled   Boolean  @default(false)
-  finishedTaskViewEnabled Boolean  @default(false)
+  commentsEnabled         Boolean  @default(true)
+  attachmentsEnabled      Boolean  @default(true)
+  memberTaskViewEnabled   Boolean  @default(true)
+  finishedTaskViewEnabled Boolean  @default(true)
   attachmentLimitMb       Int      @default(5)
   team                    Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdAt               DateTime @default(now())

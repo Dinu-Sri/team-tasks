@@ -102,17 +102,19 @@ Create team
 
 Storage screen:
 
-- Box 1: filters
-- Box 2: files
-- Box 3: empty state or delete summary
+- Box 1: simple filters
+- Box 2: compact file cards
+- Put download/delete actions inside each file card.
+- Avoid table rows and admin summaries unless the user needs to compare many files at once.
 - Avoid showing advanced file metadata unless needed.
 
 Features screen:
 
-- Box 1: current team
-- Box 2: simple feature toggles
-- Box 3: organization access, only if relevant
-- Avoid showing technical configuration before the user asks.
+- Box 1: four simple team-tool toggles
+- Box 2: organization access, separated from ordinary team tools
+- Collaboration tools are on by default: comments and mentions, file attachments, member task view, and finished task review.
+- Avoid technical configuration before the user asks.
+- Do not describe enabled tools as optional unless the user is clearly managing advanced behavior.
 
 Activity screen:
 

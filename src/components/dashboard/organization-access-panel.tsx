@@ -53,24 +53,38 @@ export function OrganizationAccessPanel({
     );
   }
 
+  const hasOrganizationAccess = domains.length > 0 || pendingMembers.length > 0;
+
   return (
     <section className="rounded-lg border border-border bg-surface">
       <div className="border-b border-border px-4 py-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="h-4 w-4 text-brand" />Organization access</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Claim a verified organization domain so matching users can join this workspace with minimum clicks.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Optional domain access for schools, companies, and larger groups.</p>
       </div>
       <div className="space-y-5 p-4">
-        <ClaimDomainForm teamId={teamId} />
-        {domains.length ? (
-          <div className="space-y-3">
-            {domains.map((domain) => (
-              <DomainSettingsForm key={domain.id} teamName={teamName} domain={domain} />
-            ))}
-          </div>
+        {hasOrganizationAccess ? (
+          <>
+            <ClaimDomainForm teamId={teamId} />
+            {domains.length ? (
+              <div className="space-y-3">
+                {domains.map((domain) => (
+                  <DomainSettingsForm key={domain.id} teamName={teamName} domain={domain} />
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg bg-surface-subtle p-3 text-sm text-muted-foreground">No organization domain is connected to this workspace yet.</p>
+            )}
+            <PendingDomainMembers teamId={teamId} pendingMembers={pendingMembers} />
+          </>
         ) : (
-          <p className="rounded-lg bg-surface-subtle p-3 text-sm text-muted-foreground">No organization domain is connected to this workspace yet.</p>
+          <details className="rounded-lg border border-border bg-background p-3">
+            <summary className="cursor-pointer text-sm font-semibold">Add organization domain</summary>
+            <p className="mt-2 text-sm text-muted-foreground">Let people with the same email domain request or join this workspace.</p>
+            <div className="mt-3">
+              <ClaimDomainForm teamId={teamId} />
+            </div>
+          </details>
         )}
-        <PendingDomainMembers teamId={teamId} pendingMembers={pendingMembers} />
       </div>
     </section>
   );

@@ -1,4 +1,4 @@
-import { LockKeyhole } from "lucide-react";
+import { LockKeyhole, Settings2 } from "lucide-react";
 
 import { FeatureSettingsForm } from "@/components/dashboard/feature-settings-form";
 import { OrganizationAccessPanel } from "@/components/dashboard/organization-access-panel";
@@ -54,7 +54,7 @@ export default async function FeaturesPage({ searchParams }: { searchParams: Pro
     ? memberships.find(({ team }) => team.id === workspace.selectedWorkspaceId)
     : memberships.find((membership) => membership.role === "OWNER" || membership.role === "ADMIN") ?? memberships[0];
   const selectedTeamId = selectedMembership?.team.id ?? "";
-  const settings: TeamSettings = selectedMembership?.team.featureSettings ?? { commentsEnabled: false, attachmentsEnabled: false, memberTaskViewEnabled: false, finishedTaskViewEnabled: false, attachmentLimitMb: 5 };
+  const settings: TeamSettings = selectedMembership?.team.featureSettings ?? { commentsEnabled: true, attachmentsEnabled: true, memberTaskViewEnabled: true, finishedTaskViewEnabled: true, attachmentLimitMb: 5 };
   const activeCount = [settings.commentsEnabled, settings.attachmentsEnabled, settings.memberTaskViewEnabled, settings.finishedTaskViewEnabled].filter(Boolean).length;
   const role = selectedMembership?.role ?? "MEMBER";
   const domainIds = selectedMembership?.team.organizationDomains.map(({ id }) => id) ?? [];
@@ -68,24 +68,33 @@ export default async function FeaturesPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-normal">Settings</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Choose what this team can use.</p>
+        </div>
+        {selectedMembership ? <Badge variant="secondary">{selectedMembership.team.name}</Badge> : null}
+      </div>
+
       {selectedMembership ? (
         <>
-          <section className="rounded-lg border border-border bg-surface">
-            <div className="flex flex-col gap-3 border-b border-border px-4 py-3 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
-              <div className="min-w-0">
-                <h2 className="truncate text-sm font-semibold">{selectedMembership.team.name}</h2>
-                <p className="text-xs text-muted-foreground">{activeCount ? `${activeCount} optional tool${activeCount === 1 ? "" : "s"} on` : "Simple task list mode"}</p>
+          <section className="rounded-lg border border-border bg-surface p-4">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand">
+                  <Settings2 className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="truncate text-base font-semibold">Team tools</h2>
+                  <p className="text-sm text-muted-foreground">Everything is on by default. Turn off only what this team does not need.</p>
+                </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <Badge variant={settings.commentsEnabled ? "default" : "secondary"}>Discussion {settings.commentsEnabled ? "on" : "off"}</Badge>
-                <Badge variant={settings.attachmentsEnabled ? "default" : "secondary"}>Files {settings.attachmentsEnabled ? `${settings.attachmentLimitMb} MB` : "off"}</Badge>
-                <Badge variant={settings.memberTaskViewEnabled || settings.finishedTaskViewEnabled ? "default" : "secondary"}>Owner review {settings.memberTaskViewEnabled || settings.finishedTaskViewEnabled ? "on" : "off"}</Badge>
+                <Badge variant={activeCount === 4 ? "default" : "secondary"}>{activeCount}/4 on</Badge>
                 <Badge variant={role === "OWNER" ? "default" : "secondary"}>{role.toLowerCase()}</Badge>
               </div>
             </div>
-            <div className="p-4">
-              {role === "OWNER" ? <FeatureSettingsForm teamId={selectedTeamId} {...settings} /> : <div className="flex gap-3 text-sm text-muted-foreground"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" /><p>The team owner manages these settings. You can still use any tools that are already on for this team.</p></div>}
-            </div>
+            {role === "OWNER" ? <FeatureSettingsForm teamId={selectedTeamId} {...settings} /> : <div className="flex gap-3 rounded-lg border border-border bg-background p-4 text-sm text-muted-foreground"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" /><p>The team owner manages these settings. You can still use any tools that are already on for this team.</p></div>}
           </section>
           <OrganizationAccessPanel
             teamId={selectedTeamId}

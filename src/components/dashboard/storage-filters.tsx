@@ -114,8 +114,8 @@ export function StorageFilters({
 
   return (
     <section className="w-full max-w-full overflow-visible rounded-lg border border-border bg-surface p-3 sm:p-4" aria-label="Storage filters" aria-busy={isPending}>
-      <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <label className="grid min-w-0 gap-1.5 sm:col-span-2 lg:col-span-1">
+      <div className="grid min-w-0 gap-3">
+        <label className="grid min-w-0 gap-1.5">
           <span className={filterLabelClass}>Search</span>
           <span className="relative">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

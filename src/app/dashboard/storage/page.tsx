@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { Download, ExternalLink, Files, HardDrive } from "lucide-react";
 import Link from "next/link";
 
-import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
+import { DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
 import { StorageFilters } from "@/components/dashboard/storage-filters";
 import { StorageDeleteButton } from "@/components/dashboard/storage-delete-button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
 type SortKey = "newest" | "oldest" | "largest" | "smallest" | "name";
+const STORAGE_PAGE_SIZE = 6;
 type StorageAttachment = Prisma.TaskAttachmentGetPayload<{
   include: {
     uploader: { select: { id: true; name: true; email: true } };
@@ -103,74 +104,89 @@ export default async function StoragePage({ searchParams }: { searchParams: Prom
         },
       },
       orderBy,
-      skip: (page - 1) * DASHBOARD_PAGE_SIZE,
-      take: DASHBOARD_PAGE_SIZE,
+      skip: (page - 1) * STORAGE_PAGE_SIZE,
+      take: STORAGE_PAGE_SIZE,
     }),
   ]) as [number, StorageAttachment[]] : [0, []];
 
   const totalBytes = attachments.reduce((sum, file) => sum + file.size, 0);
   const ownFiles = attachments.filter((file) => file.uploader.id === user.id).length;
-  const canDeleteCount = attachments.filter((file) => file.uploader.id === user.id || roleByTeam.get(file.task.teamId) === "OWNER").length;
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary">{totalAttachments.toLocaleString()} files</Badge>
-          <Badge variant="secondary">{sizeLabel(totalBytes)}</Badge>
-          <Badge variant="secondary">{ownFiles.toLocaleString()} uploaded by you</Badge>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-normal">Storage</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Files attached to your visible tasks.</p>
+        </div>
+        <div className="flex flex-wrap gap-2 sm:justify-end">
+          <Badge variant="secondary">{totalAttachments.toLocaleString()} file{totalAttachments === 1 ? "" : "s"}</Badge>
+          <Badge variant="secondary">{sizeLabel(totalBytes)} shown</Badge>
+          <Badge variant="secondary">{ownFiles.toLocaleString()} by you</Badge>
         </div>
       </div>
 
-      <StorageFilters
-        uploaders={uploaders.map((uploader) => ({ id: uploader.id, name: uploader.name }))}
-        values={{
-          q,
-          uploader: selectedUploaderId,
-          from: query.from ?? "",
-          to: query.to ?? "",
-          sort,
-        }}
-      />
+      <div className="grid gap-4 xl:grid-cols-[24rem_minmax(0,1fr)]">
+        <StorageFilters
+          uploaders={uploaders.map((uploader) => ({ id: uploader.id, name: uploader.name }))}
+          values={{
+            q,
+            uploader: selectedUploaderId,
+            from: query.from ?? "",
+            to: query.to ?? "",
+            sort,
+          }}
+        />
 
-      <section className="overflow-hidden rounded-lg border border-border bg-surface">
-        <div className="flex flex-col gap-2 border-b border-border px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span>{canDeleteCount.toLocaleString()} file(s) can be deleted by you.</span>
-          <span>Files stay linked to their task until deleted.</span>
+      <section className="rounded-lg border border-border bg-surface p-4">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand">
+              <Files className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="text-base font-semibold">Files</h2>
+              <p className="text-sm text-muted-foreground">Open the task or download the file.</p>
+            </div>
+          </div>
+          <Badge variant="secondary">{attachments.length} shown</Badge>
         </div>
+
         {attachments.length ? (
-          <div className="divide-y divide-border">
+          <div className="grid gap-3 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
             {attachments.map((file) => {
               const teamName = file.task.team.organizationName ?? file.task.team.name;
               const taskHref = `/?workspace=${encodeURIComponent(file.task.teamId)}&task=${encodeURIComponent(file.task.id)}`;
               const canDelete = file.uploader.id === user.id || roleByTeam.get(file.task.teamId) === "OWNER";
               return (
-                <article key={file.id} className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-                  <div className="flex min-w-0 gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-subtle">
-                      <Files className="h-4 w-4 text-brand" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{file.originalName}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {teamName} - {file.uploader.name} - {sizeLabel(file.size)} - {new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(file.createdAt)}
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                        <Link href={taskHref} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-muted-foreground hover:text-foreground">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          {file.task.title}
-                        </Link>
-                        <span className="rounded-full border border-border px-2.5 py-1 text-muted-foreground">
-                          Discussion: {file.task._count.comments} comment{file.task._count.comments === 1 ? "" : "s"}
-                        </span>
+                <article key={file.id} className="flex min-h-44 flex-col justify-between rounded-lg border border-border bg-background p-4">
+                  <div className="min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-brand">
+                        <Files className="h-4 w-4" />
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <a href={`/api/attachments/${file.id}`} className={cn(buttonVariants({ variant: "quiet", size: "icon" }))} aria-label={`Download ${file.originalName}`} title={`Download ${file.originalName}`}>
+                          <Download className="h-4 w-4" />
+                        </a>
+                        {canDelete ? <StorageDeleteButton attachmentId={file.id} name={file.originalName} /> : null}
                       </div>
                     </div>
+                    <p className="mt-4 line-clamp-2 text-sm font-semibold leading-5">{file.originalName}</p>
+                    <p className="mt-2 truncate text-xs text-muted-foreground">{teamName} - {file.uploader.name}</p>
                   </div>
-                  <div className="flex items-center justify-end gap-1">
-                    <a href={`/api/attachments/${file.id}`} className={cn(buttonVariants({ variant: "quiet", size: "icon" }))} aria-label={`Download ${file.originalName}`} title={`Download ${file.originalName}`}>
-                      <Download className="h-4 w-4" />
-                    </a>
-                    {canDelete ? <StorageDeleteButton attachmentId={file.id} name={file.originalName} /> : null}
+                  <div className="mt-4 space-y-3">
+                    <Link href={taskHref} className="inline-flex max-w-full items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground">
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{file.task.title}</span>
+                    </Link>
+                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                      <span>{sizeLabel(file.size)}</span>
+                      <span>{new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(file.createdAt)}</span>
+                    </div>
+                    <span className="inline-flex rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                      {file.task._count.comments} comment{file.task._count.comments === 1 ? "" : "s"}
+                    </span>
                   </div>
                 </article>
               );
@@ -188,8 +204,10 @@ export default async function StoragePage({ searchParams }: { searchParams: Prom
           searchParams={query}
           page={page}
           total={totalAttachments}
+          pageSize={STORAGE_PAGE_SIZE}
         />
       </section>
+      </div>
     </div>
   );
 }

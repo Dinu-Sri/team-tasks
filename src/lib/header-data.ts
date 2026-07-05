@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { getMomentumSummary } from "@/lib/momentum";
 
 export type LedLevel = "clear" | "notification" | "due-today" | "overdue" | "attention";
 
@@ -20,7 +19,7 @@ export async function getHeaderData(userId: string) {
   const endOfToday = new Date(now);
   endOfToday.setHours(23, 59, 59, 999);
 
-  const [stored, storedUnreadCount, dueTasks, attentionCount, momentum] = await Promise.all([
+  const [stored, storedUnreadCount, dueTasks, attentionCount] = await Promise.all([
     db.notification.findMany({
       where: { recipientId: userId },
       orderBy: { createdAt: "desc" },
@@ -52,7 +51,6 @@ export async function getHeaderData(userId: string) {
         },
       },
     }),
-    getMomentumSummary(userId),
   ]);
 
   const liveNotifications: HeaderNotification[] = dueTasks.map((task) => ({
@@ -89,7 +87,6 @@ export async function getHeaderData(userId: string) {
   return {
     notifications: [...liveNotifications, ...storedNotifications].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10),
     notificationCount: storedUnreadCount,
-    momentum,
     ledLevel,
   };
 }

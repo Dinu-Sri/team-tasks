@@ -4,7 +4,6 @@ import { Check, Circle, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import { toggleTaskAction } from "@/app/actions/tasks";
-import { MOMENTUM_CELEBRATION_EVENT } from "@/components/momentum/momentum-celebration";
 
 const UNDO_GRACE_MS = 4000;
 
@@ -32,7 +31,6 @@ export function CompleteTaskButton({ taskId, title, onCompleted }: { taskId: str
           undoRef.current = setTimeout(() => setJustCompleted(false), UNDO_GRACE_MS);
           onCompleted?.();
         }
-        window.dispatchEvent(new CustomEvent(MOMENTUM_CELEBRATION_EVENT, { detail: result }));
       } finally {
         setActivated(false);
       }

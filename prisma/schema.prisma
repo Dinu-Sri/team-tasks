@@ -8,34 +8,30 @@ datasource db {
 }
 
 model User {
-  id                  String                @id @default(cuid())
-  email               String                @unique
-  emailVerified       Boolean               @default(false)
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  emailVerified       Boolean              @default(false)
   name                String
   image               String?
-  passwordHash        String                @default("")
+  passwordHash        String               @default("")
   authAccounts        Account[]
   sessions            Session[]
   memberships         Membership[]
-  createdTasks        Task[]                @relation("CreatedTasks")
-  completedTasks      Task[]                @relation("CompletedTasks")
-  editedTasks         Task[]                @relation("EditedTasks")
+  createdTasks        Task[]               @relation("CreatedTasks")
+  completedTasks      Task[]               @relation("CompletedTasks")
+  editedTasks         Task[]               @relation("EditedTasks")
   assignments         TaskMember[]
-  sentInvites         Invite[]              @relation("InviteSender")
-  invitations         Invite[]              @relation("InvitedUser")
+  sentInvites         Invite[]             @relation("InviteSender")
+  invitations         Invite[]             @relation("InvitedUser")
   notifications       Notification[]
-  momentumProfile     MomentumProfile?
-  momentumDays        MomentumDay[]
-  achievements        MomentumAchievement[]
-  questContributions  QuestContribution[]
   productEvents       ProductEvent[]
   comments            TaskComment[]
   commentMentions     CommentMention[]
   commentReceipts     CommentReceipt[]
   uploadedAttachments TaskAttachment[]
   onboardingProgress  OnboardingProgress[]
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model OnboardingProgress {
@@ -61,7 +57,6 @@ model Team {
   organizationDomains OrganizationDomain[]
   tasks               Task[]
   invites             Invite[]
-  quests              TeamQuest[]
   productEvents       ProductEvent[]
   featureSettings     TeamFeatureSettings?
   billingSubscription BillingSubscription?
@@ -309,32 +304,29 @@ model OrganizationDomain {
 }
 
 model Task {
-  id                 String              @id @default(cuid())
-  title              String
-  note               String?
-  status             TaskStatus          @default(OPEN)
-  priority           Priority            @default(NORMAL)
-  dueAt              DateTime?
-  completedAt        DateTime?
-  completedById      String?
-  momentumAwardedAt  DateTime?
-  creatorId          String
-  teamId             String
-  editNote           String?
-  editedById         String?
-  editedAt           DateTime?
-  creator            User                @relation("CreatedTasks", fields: [creatorId], references: [id])
-  completedBy        User?               @relation("CompletedTasks", fields: [completedById], references: [id], onDelete: SetNull)
-  editedBy           User?               @relation("EditedTasks", fields: [editedById], references: [id], onDelete: SetNull)
-  team               Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  assignees          TaskMember[]
-  momentumDays       MomentumDay[]
-  questContributions QuestContribution[]
-  comments           TaskComment[]
-  attachments        TaskAttachment[]
-  replyForMention    CommentMention?     @relation("ReplyTask")
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  id              String           @id @default(cuid())
+  title           String
+  note            String?
+  status          TaskStatus       @default(OPEN)
+  priority        Priority         @default(NORMAL)
+  dueAt           DateTime?
+  completedAt     DateTime?
+  completedById   String?
+  creatorId       String
+  teamId          String
+  editNote        String?
+  editedById      String?
+  editedAt        DateTime?
+  creator         User             @relation("CreatedTasks", fields: [creatorId], references: [id])
+  completedBy     User?            @relation("CompletedTasks", fields: [completedById], references: [id], onDelete: SetNull)
+  editedBy        User?            @relation("EditedTasks", fields: [editedById], references: [id], onDelete: SetNull)
+  team            Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  assignees       TaskMember[]
+  comments        TaskComment[]
+  attachments     TaskAttachment[]
+  replyForMention CommentMention?  @relation("ReplyTask")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([teamId, status, dueAt])
 }
@@ -460,87 +452,6 @@ model Notification {
   @@index([recipientId, readAt, createdAt])
 }
 
-model MomentumProfile {
-  userId           String   @id
-  enabled          Boolean  @default(true)
-  timeZone         String   @default("UTC")
-  workDays         String   @default("1,2,3,4,5")
-  reminderHour     Int      @default(16)
-  remindersEnabled Boolean  @default(true)
-  currentStreak    Int      @default(0)
-  longestStreak    Int      @default(0)
-  totalWins        Int      @default(0)
-  shieldCount      Int      @default(0)
-  shieldsEarned    Int      @default(0)
-  lastWinDate      String?
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
-
-model MomentumDay {
-  id           String            @id @default(cuid())
-  userId       String
-  localDate    String
-  status       MomentumDayStatus
-  sourceTaskId String?
-  eligibleAt   DateTime          @default(now())
-  resolvedAt   DateTime?
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sourceTask   Task?             @relation(fields: [sourceTaskId], references: [id], onDelete: SetNull)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-
-  @@unique([userId, localDate])
-  @@index([userId, status, localDate])
-}
-
-model MomentumAchievement {
-  id             String    @id @default(cuid())
-  userId         String
-  badge          BadgeTier
-  streakAtUnlock Int
-  unlockedAt     DateTime  @default(now())
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, badge])
-  @@index([userId, unlockedAt])
-}
-
-model TeamQuest {
-  id            String              @id @default(cuid())
-  teamId        String
-  weekKey       String
-  title         String
-  targetWins    Int
-  status        TeamQuestStatus     @default(ACTIVE)
-  startAt       DateTime
-  endAt         DateTime
-  completedAt   DateTime?
-  team          Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  contributions QuestContribution[]
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-
-  @@unique([teamId, weekKey])
-  @@index([teamId, status, startAt])
-}
-
-model QuestContribution {
-  id           String    @id @default(cuid())
-  questId      String
-  userId       String
-  localDate    String
-  sourceTaskId String?
-  quest        TeamQuest @relation(fields: [questId], references: [id], onDelete: Cascade)
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sourceTask   Task?     @relation(fields: [sourceTaskId], references: [id], onDelete: SetNull)
-  createdAt    DateTime  @default(now())
-
-  @@unique([questId, userId, localDate])
-  @@index([questId, createdAt])
-}
-
 model ProductEvent {
   id         String   @id @default(cuid())
   name       String
@@ -593,32 +504,8 @@ enum NotificationKind {
   GENERAL
   TASK
   INVITE
-  MOMENTUM
-  QUEST
   COMMENT
   TEAM
-}
-
-enum MomentumDayStatus {
-  PENDING
-  WIN
-  SHIELDED
-  MISSED
-}
-
-enum BadgeTier {
-  SPARK
-  RHYTHM
-  FLOW
-  DRIVE
-  PEAK
-  LEGACY
-}
-
-enum TeamQuestStatus {
-  ACTIVE
-  COMPLETED
-  EXPIRED
 }
 
 enum BillingProvider {

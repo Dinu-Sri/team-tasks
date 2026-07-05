@@ -16,8 +16,6 @@ export type RealtimeEvent = {
     | "invite.accepted"
     | "team.created"
     | "notification.updated"
-    | "momentum.updated"
-    | "quest.updated"
     | "feature.updated"
     | "comment.created"
     | "comment.read"

@@ -25,7 +25,7 @@ export const useCases: UseCase[] = [
     workflow: ["Add the thing you need to remember.", "Give it a due date or priority when it matters.", "Mark it done, or undo it if you tapped too fast."],
     scenarioTitle: "A normal week without the mental noise",
     scenario: "A personal user adds bills, errands, calls, appointments, and small work reminders into one calm Tuduvia list. In the morning they check what matters today. At night they clear completed items without sorting boards, labels, or views.",
-    features: ["One clear personal task list", "Due dates and priority", "Simple completion and undo", "Momentum for light motivation", "Works well on mobile"],
+    features: ["One clear personal task list", "Due dates and priority", "Simple completion and undo", "Fast daily review", "Works well on mobile"],
     faq: [
       { question: "Is Tuduvia too much for one person?", answer: "No. Tuduvia starts as a simple personal list. Team features stay out of the way until you invite someone." },
       { question: "Do I need to set up projects first?", answer: "No. You can create your first task immediately and organize later only if you need to." },
@@ -115,7 +115,7 @@ export const useCases: UseCase[] = [
     workflow: ["Add tasks for study, work, content, or plans.", "Group people only when a task becomes shared.", "Finish quickly from phone or desktop."],
     scenarioTitle: "A simple list for a fast week",
     scenario: "A Gen Z user tracks study tasks, a side hustle idea, gym reminders, and a weekend plan with friends. When the plan needs help, they create a temporary team and assign what each friend should handle.",
-    features: ["Fast mobile use", "Temporary teams", "Momentum", "Priority", "Simple sign up"],
+    features: ["Fast mobile use", "Temporary teams", "Priority", "Simple sign up"],
     faq: [
       { question: "Is Tuduvia only for business teams?", answer: "No. It is just as useful for personal lists, school work, side projects, and friend plans." },
       { question: "Does it force a method?", answer: "No. Tuduvia keeps the method simple: write, assign if needed, finish." },
@@ -295,7 +295,7 @@ export const useCases: UseCase[] = [
     workflow: ["Add ideas as tasks.", "Break production into simple next actions.", "Invite helpers for editing, posting, or review when needed."],
     scenarioTitle: "A content week that gets finished",
     scenario: "A creator adds tasks for topic ideas, script notes, filming, thumbnail work, editing, captions, and posting. Tuduvia keeps the next action visible without forcing a board pipeline.",
-    features: ["Personal ideas list", "Due dates", "Files", "Temporary helpers", "Momentum"],
+    features: ["Personal ideas list", "Due dates", "Files", "Temporary helpers", "Simple completion"],
     faq: [
       { question: "Is Tuduvia a content calendar?", answer: "It is a simple task list. Use it when the main need is getting content steps done." },
       { question: "Can a small content team use it?", answer: "Yes. Invite team members and assign tasks when production becomes collaborative." },

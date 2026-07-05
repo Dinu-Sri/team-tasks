@@ -34,7 +34,7 @@ export const personalTourSteps: Step[] = [
   {
     icon: "🔔",
     title: "Notifications & More",
-    content: "Check notifications, your momentum score, and switch themes from the top-right icons. When you're ready, head to the Dashboard for team features.",
+    content: "Check notifications and switch themes from the top-right icons. When you're ready, head to the Dashboard for team features.",
     selector: "#onborda-header-actions",
     side: "bottom",
     showControls: false,

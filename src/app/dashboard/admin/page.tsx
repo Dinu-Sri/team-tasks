@@ -100,7 +100,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </header>
 
       <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm text-muted-foreground">
-        <AlertTriangle className="inline h-4 w-4 text-warning" /> Deleting a user removes ALL their data permanently: tasks, comments, files, memberships, momentum, and notifications. This cannot be undone.
+        <AlertTriangle className="inline h-4 w-4 text-warning" /> Deleting a user removes ALL their data permanently: tasks, comments, files, memberships, and notifications. This cannot be undone.
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">
@@ -162,7 +162,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                             type="submit"
                             size="sm"
                             variant="quiet"
-                            message={`PERMANENTLY DELETE ${user.name} (${user.email})?\n\nThis will remove ALL their data: ${user._count.memberships} teams, ${user._count.assignments} tasks, ${user._count.uploadedAttachments} files, comments, and momentum. This CANNOT be undone.`}
+                            message={`PERMANENTLY DELETE ${user.name} (${user.email})?\n\nThis will remove ALL their data: ${user._count.memberships} teams, ${user._count.assignments} tasks, ${user._count.uploadedAttachments} files, and comments. This CANNOT be undone.`}
                             title="Delete user"
                           >
                             <Trash2 className="h-4 w-4 text-danger" />

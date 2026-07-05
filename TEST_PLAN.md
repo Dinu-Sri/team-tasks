@@ -23,7 +23,7 @@ This document covers every feature, user flow, edge case, and missing capability
 
 | ID | Test | Priority |
 |----|------|----------|
-| AUTH-01 | Valid signup creates user + team + momentum profile + welcome task | P0 |
+| AUTH-01 | Valid signup creates user + team + welcome task | P0 |
 | AUTH-02 | Welcome demo task appears in task list after signup | P0 |
 | AUTH-03 | Session cookie set with 30-day maxAge after signup | P1 |
 | AUTH-04 | Name validation: reject < 2 characters | P2 |
@@ -46,7 +46,6 @@ This document covers every feature, user flow, edge case, and missing capability
 | AUTH-21 | Back button after logout shows login page | P2 |
 | AUTH-22 | Unauthenticated access to `/` redirects to login | P0 |
 | AUTH-23 | Unauthenticated access to `/dashboard` redirects to login | P0 |
-| AUTH-24 | Unauthenticated access to `/momentum` redirects to login | P1 |
 | AUTH-25 | Session cookie is httpOnly | P2 |
 | AUTH-26 | Session cookie has secure flag on HTTPS | P2 |
 
@@ -113,11 +112,8 @@ This document covers every feature, user flow, edge case, and missing capability
 | TASK-21 | Completed task appears in archive | P1 |
 | TASK-22 | Task creator notified on completion | P1 |
 | TASK-23 | Cannot complete task not assigned to user | P1 |
-| TASK-24 | Momentum awarded on first completion | P0 |
 | TASK-25 | Reopen task marks status OPEN | P0 |
 | TASK-26 | Reopened task appears back in active list | P1 |
-| TASK-27 | Momentum revoked on reopen | P1 |
-| TASK-28 | Shield logic applies when reopening past-day task | P2 |
 | TASK-29 | Realtime event fires on reopen | P1 |
 | TASK-30 | Click task opens detail panel | P0 |
 | TASK-31 | Close panel removes from view | P1 |
@@ -176,10 +172,6 @@ This document covers every feature, user flow, edge case, and missing capability
 | NOTIF-01 | Task assignment notification appears | P0 |
 | NOTIF-02 | Task completion notification sent to creator | P1 |
 | NOTIF-03 | Invite notification appears for registered user | P1 |
-| NOTIF-04 | Badge unlock notification appears | P1 |
-| NOTIF-05 | Shield earned notification appears | P2 |
-| NOTIF-06 | Streak reset notification appears | P2 |
-| NOTIF-07 | Quest completion notification for all team members | P1 |
 | NOTIF-08 | Feature change notification to team members | P2 |
 | NOTIF-09 | Mark all notifications read clears counter | P0 |
 | NOTIF-10 | Notification bell shows correct unread count | P0 |
@@ -187,45 +179,7 @@ This document covers every feature, user flow, edge case, and missing capability
 | NOTIF-12 | Due/overdue tasks appear as live notifications | P1 |
 | NOTIF-13 | Deduplication prevents duplicate notification display | P2 |
 
-## 7) Momentum / Gamification
-
-| ID | Test | Priority |
-|----|------|----------|
-| MOM-01 | Complete task on workday awards daily win | P0 |
-| MOM-02 | Complete task on weekend/no workday → no win | P1 |
-| MOM-03 | Second completion same day → no second win | P1 |
-| MOM-04 | Win increments currentStreak | P1 |
-| MOM-05 | Win updates totalWins | P2 |
-| MOM-06 | Win updates lastWinDate | P2 |
-| MOM-07 | SPARK badge unlocked at streak ≥ 1 | P1 |
-| MOM-08 | RHYTHM badge unlocked at streak ≥ 3 | P1 |
-| MOM-09 | FLOW badge unlocked at streak ≥ 7 | P1 |
-| MOM-10 | DRIVE badge unlocked at streak ≥ 14 | P2 |
-| MOM-11 | PEAK badge unlocked at streak ≥ 30 | P2 |
-| MOM-12 | LEGACY badge unlocked at streak ≥ 100 | P2 |
-| MOM-13 | Badge persists after streak reset | P1 |
-| MOM-14 | Celebration animation appears on badge unlock | P1 |
-| MOM-15 | Shield granted after 3rd daily win | P1 |
-| MOM-16 | Additional shield every 7 wins after | P2 |
-| MOM-17 | Shield count caps at 2 | P2 |
-| MOM-18 | Missed workday with shield → day SHIELDED, streak preserved | P1 |
-| MOM-19 | Missed workday without shield → day MISSED, streak resets | P1 |
-| MOM-20 | Weekly quest created for team | P1 |
-| MOM-21 | Task completions contribute to quest | P1 |
-| MOM-22 | Quest target = 3 × memberCount (clamped 5-30) | P2 |
-| MOM-23 | Quest completion notifies all team members | P1 |
-| MOM-24 | Expired quest does not generate notifications | P2 |
-| MOM-25 | Update timezone → changes day calculation | P2 |
-| MOM-26 | Disable momentum → no wins on completion | P2 |
-| MOM-27 | Change work days → new days used for future wins | P2 |
-| MOM-28 | Reminder hour clamped 8-20 | P2 |
-| MOM-29 | Invalid timezone rejected | P2 |
-| MOM-30 | At least 1 workday required | P2 |
-| MOM-31 | Momentum page shows current streak, longest, total wins, shields | P1 |
-| MOM-32 | Shows current badge and next badge progress | P1 |
-| MOM-33 | Shows week view with day statuses | P2 |
-
-## 8) Realtime Updates
+## 7) Realtime Updates
 
 | ID | Test | Priority |
 |----|------|----------|
@@ -238,7 +192,7 @@ This document covers every feature, user flow, edge case, and missing capability
 | RT-07 | Heartbeat keeps connection alive | P2 |
 | RT-08 | Connection closes on page unload | P2 |
 
-## 9) Onboarding
+## 8) Onboarding
 
 | ID | Test | Priority |
 |----|------|----------|
@@ -253,7 +207,7 @@ This document covers every feature, user flow, edge case, and missing capability
 | ONB-09 | "Done" marks team tour complete | P0 |
 | ONB-10 | Completed team tour not shown on subsequent visits | P0 |
 
-## 10) Theme / Dark Mode
+## 9) Theme / Dark Mode
 
 | ID | Test | Priority |
 |----|------|----------|
@@ -265,7 +219,7 @@ This document covers every feature, user flow, edge case, and missing capability
 | THEME-06 | Theme persists across browser sessions (localStorage) | P2 |
 | THEME-07 | System theme change reflects when no explicit theme saved | P2 |
 
-## 11) Analytics
+## 10) Analytics
 
 | ID | Test | Priority |
 |----|------|----------|
@@ -274,7 +228,7 @@ This document covers every feature, user flow, edge case, and missing capability
 | ANAL-03 | Per-team member workload bars correct | P2 |
 | ANAL-04 | Multiple teams display independently | P2 |
 
-## 12) Feature Settings
+## 11) Feature Settings
 
 | ID | Test | Priority |
 |----|------|----------|
@@ -287,7 +241,7 @@ This document covers every feature, user flow, edge case, and missing capability
 | FEAT-07 | Non-owner blocked from changing features | P1 |
 | FEAT-08 | Team members notified on feature changes | P2 |
 
-## 13) Super Admin
+## 12) Super Admin
 
 | ID | Test | Priority |
 |----|------|----------|
@@ -302,7 +256,7 @@ This document covers every feature, user flow, edge case, and missing capability
 | ADMIN-09 | Admin can view user details (teams, tasks count, last active) | P1 |
 | ADMIN-10 | Admin operations are logged (ProductEvent) | P2 |
 
-## 14) Cross-Cutting
+## 13) Cross-Cutting
 
 | ID | Test | Priority |
 |----|------|----------|
@@ -316,7 +270,7 @@ This document covers every feature, user flow, edge case, and missing capability
 | ERR-03 | Invalid data in forms shows field-level errors | P1 |
 | ERR-04 | Session expiry during action → redirect to login | P2 |
 
-## 15) Missing Capabilities (Future)
+## 14) Missing Capabilities (Future)
 
 | ID | Missing Feature |
 |----|-----------------|

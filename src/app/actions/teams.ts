@@ -26,7 +26,7 @@ export async function createTeamAction(_: TeamState, formData: FormData): Promis
     const team = await tx.team.create({
       data: {
         name,
-        timeZone: (await tx.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } }))?.timeZone ?? "UTC",
+        timeZone: "UTC",
         memberships: { create: { userId: user.id, role: "OWNER" } },
         featureSettings: {
           create: {

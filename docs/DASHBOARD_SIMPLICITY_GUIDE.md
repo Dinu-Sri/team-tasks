@@ -55,7 +55,7 @@ The Team screen should stay focused on three things:
 
 Do not show these on the Team screen:
 
-- Team Quest
+- Gamified progress widgets
 - Assign Work
 - task input
 - due date controls

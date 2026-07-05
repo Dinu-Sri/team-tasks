@@ -55,7 +55,6 @@ Expected containers:
 
 - `team-tasks-app`
 - `team-tasks-postgres`
-- `team-tasks-momentum-scheduler`
 - `team-tasks-tunnel`
 
 Expected persistent volumes:
@@ -75,7 +74,7 @@ Set these in Portainer stack env vars:
 Recommended:
 
 - `AUTH_SECRET`
-- `MOMENTUM_CRON_SECRET`
+- `BILLING_CRON_SECRET` if using the optional billing sync endpoint
 
 Optional email:
 
@@ -110,7 +109,7 @@ PayHere billing:
 - `PAYHERE_APP_ID` and `PAYHERE_APP_SECRET` for Subscription Manager API sync/cancel. Also supported: `PAYHERE_BUSINESS_APP_ID`, `PAYHERE_BUSINESS_APP_SECRET`, `PAYHERE_OAUTH_APP_ID`, `PAYHERE_OAUTH_APP_SECRET`.
 - `PAYHERE_DEFAULT_PHONE` optional fallback phone sent to PayHere when the user profile has no phone number.
 - PayHere notify URL: `https://tuduvia.com/api/billing/payhere/notify`
-- Optional billing sync endpoint: `POST https://tuduvia.com/api/cron/billing` with `Authorization: Bearer <BILLING_CRON_SECRET>`. If `BILLING_CRON_SECRET` is not set, it falls back to `MOMENTUM_CRON_SECRET`.
+- Optional billing sync endpoint: `POST https://tuduvia.com/api/cron/billing` with `Authorization: Bearer <BILLING_CRON_SECRET>`. If `BILLING_CRON_SECRET` is not set, the app derives a stable billing secret from `DB_PASSWORD`.
 
 Email delivery:
 

@@ -55,7 +55,7 @@ OWASP recommends allowlisting types, validating size and authorization, generati
 2. Open the task panel and write a comment.
 3. A tag is optional. An ordinary reply quietly follows the task creator, current assignees, and people who already joined the discussion.
 4. Type `@` to add a teammate outside that audience, or use `@all` when the whole team genuinely needs the update.
-5. Posting creates unread discussion receipts without adding artificial tasks to task counts, archives, or Momentum.
+5. Posting creates unread discussion receipts without adding artificial tasks to task counts or archives.
 6. Assigned recipients see the unread count on their existing task. Non-assigned recipients get a temporary `Discussion updates` row on Home.
 7. A direct mention adds a slow attention ring until the mentioned person opens the discussion.
 8. Opening the discussion records a read receipt, removes the temporary update, and gives the author a compact seen indicator.

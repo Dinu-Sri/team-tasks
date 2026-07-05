@@ -6,16 +6,52 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { checkWorkspaceLimit, refreshWorkspaceUsage } from "@/lib/billing";
 import { db } from "@/lib/db";
-import { awardTaskMomentum, dueDateForSelection, revokeTaskMomentum, type MomentumAward } from "@/lib/momentum";
 import { publishRealtimeEvent } from "@/lib/realtime";
 
 export type TaskToggleResult = {
   completed: boolean;
-  momentum: MomentumAward | null;
-  questCompleted: boolean;
-  adjustedUserIds: string[];
-  adjustedTeamIds: string[];
 };
+
+function localDateKey(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+function shiftDateKey(dateKey: string, days: number) {
+  const date = new Date(`${dateKey}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function zonedDateTimeToUtc(dateKey: string, hour: number, minute: number, timeZone: string) {
+  const candidate = new Date(`${dateKey}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00.000Z`);
+  const localParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(candidate);
+  const value = (type: Intl.DateTimeFormatPartTypes) => localParts.find((part) => part.type === type)?.value ?? "";
+  const localAsUtc = Date.UTC(Number(value("year")), Number(value("month")) - 1, Number(value("day")), Number(value("hour")), Number(value("minute")));
+  const targetAsUtc = Date.UTC(Number(dateKey.slice(0, 4)), Number(dateKey.slice(5, 7)) - 1, Number(dateKey.slice(8, 10)), hour, minute);
+  return new Date(candidate.getTime() + (targetAsUtc - localAsUtc));
+}
+
+function dueDateForSelection(value: string, timeZone: string) {
+  if (value === "none") return null;
+  const offset = value === "tomorrow" ? 1 : value === "week" ? 7 : 0;
+  const dateKey = shiftDateKey(localDateKey(new Date(), timeZone), offset);
+  return zonedDateTimeToUtc(dateKey, 17, 0, timeZone);
+}
 
 export async function createPersonalTaskAction(formData: FormData) {
   const user = await requireUser();
@@ -26,12 +62,11 @@ export async function createPersonalTaskAction(formData: FormData) {
   const priority = formData.get("priority") === "HIGH" ? "HIGH" : "NORMAL";
   if (!title || !teamId) return;
 
-  const [membership, profile, assignee] = await Promise.all([
+  const [membership, assignee] = await Promise.all([
     db.membership.findUnique({
       where: { userId_teamId: { userId: user.id, teamId } },
       include: { team: { select: { name: true, timeZone: true, featureSettings: true } } },
     }),
-    db.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } }),
     db.membership.findUnique({ where: { userId_teamId: { userId: requestedAssigneeId, teamId } }, select: { userId: true, status: true } }),
   ]);
   if (!membership || membership.status !== "ACTIVE" || !assignee || assignee.status !== "ACTIVE") return;
@@ -45,7 +80,7 @@ export async function createPersonalTaskAction(formData: FormData) {
       title,
       teamId,
       creatorId: user.id,
-      dueAt: dueDateForSelection(due, assigningAnotherPerson ? membership.team.timeZone : profile?.timeZone ?? "UTC"),
+      dueAt: dueDateForSelection(due, membership.team.timeZone ?? "UTC"),
       priority,
       assignees: { create: { userId: requestedAssigneeId } },
     },
@@ -133,7 +168,7 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
     where: { taskId_userId: { taskId, userId: user.id } },
     include: { task: { include: { assignees: { select: { userId: true } } } } },
   });
-  if (!assignment) return { completed: false, momentum: null, questCompleted: false, adjustedUserIds: [], adjustedTeamIds: [] };
+  if (!assignment) return { completed: false };
 
   const done = assignment.task.status === "DONE";
   const completedAt = new Date();
@@ -143,41 +178,19 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
         where: { id: taskId, status: "DONE" },
         data: { status: "OPEN", completedAt: null, completedById: null },
       });
-      if (!changed.count) return { completed: false, momentum: null, questCompleted: false, adjustedUserIds: [], adjustedTeamIds: [] };
-      const adjusted = await revokeTaskMomentum(tx, {
-        taskId,
-        teamId: assignment.task.teamId,
-        assigneeIds: assignment.task.assignees.map(({ userId }) => userId),
-        reopenedAt: completedAt,
-      });
-      return { completed: false, momentum: null, questCompleted: false, ...adjusted };
+      if (!changed.count) return { completed: false };
+      return { completed: false };
     }
 
-    const firstMomentumAward = assignment.task.momentumAwardedAt === null;
     const changed = await tx.task.updateMany({
       where: { id: taskId, status: "OPEN" },
       data: {
         status: "DONE",
         completedAt,
         completedById: user.id,
-        momentumAwardedAt: assignment.task.momentumAwardedAt ?? completedAt,
       },
     });
-    if (!changed.count) return { completed: true, momentum: null, questCompleted: false, adjustedUserIds: [], adjustedTeamIds: [] };
-
-    let momentum: MomentumAward | null = null;
-    let questCompleted = false;
-    if (firstMomentumAward) {
-      const award = await awardTaskMomentum(tx, {
-        taskId,
-        teamId: assignment.task.teamId,
-        assigneeIds: assignment.task.assignees.map(({ userId }) => userId),
-        actorId: user.id,
-        completedAt,
-      });
-      momentum = award.actorAward;
-      questCompleted = award.questCompleted;
-    }
+    if (!changed.count) return { completed: true };
 
     if (assignment.task.creatorId !== user.id) {
       await tx.notification.createMany({
@@ -193,31 +206,18 @@ export async function toggleTaskAction(taskId: string): Promise<TaskToggleResult
         skipDuplicates: true,
       });
     }
-    return { completed: true, momentum, questCompleted, adjustedUserIds: [], adjustedTeamIds: [] };
+    return { completed: true };
   });
 
   const realtimeRecipients = new Set([
     ...assignment.task.assignees.map(({ userId }) => userId),
     assignment.task.creatorId,
   ]);
-  if (result.questCompleted) {
-    const teamMembers = await db.membership.findMany({ where: { teamId: assignment.task.teamId, status: "ACTIVE" }, select: { userId: true } });
-    teamMembers.forEach(({ userId }) => realtimeRecipients.add(userId));
-  }
-  result.adjustedUserIds.forEach((userId) => realtimeRecipients.add(userId));
-  if (result.adjustedTeamIds.length) {
-    const adjustedTeamMembers = await db.membership.findMany({
-      where: { teamId: { in: result.adjustedTeamIds }, status: "ACTIVE" },
-      select: { userId: true },
-    });
-    adjustedTeamMembers.forEach(({ userId }) => realtimeRecipients.add(userId));
-  }
-  await publishRealtimeEvent([...realtimeRecipients], result.questCompleted ? "quest.updated" : "task.updated");
+  await publishRealtimeEvent([...realtimeRecipients], "task.updated");
 
   revalidatePath("/");
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
-  revalidatePath("/momentum");
   return result;
 }
 
@@ -237,36 +237,19 @@ export async function reopenTaskAction(taskId: string): Promise<void> {
   const canReopen = isAssignee || task.creatorId === user.id || membership.role === "OWNER" || membership.role === "ADMIN";
   if (!canReopen) return;
 
-  const reopenedAt = new Date();
-  const adjusted = await db.$transaction(async (tx) => {
-    const changed = await tx.task.updateMany({
-      where: { id: taskId, status: "DONE" },
-      data: { status: "OPEN", completedAt: null, completedById: null },
-    });
-    if (!changed.count) return { adjustedUserIds: [], adjustedTeamIds: [] };
-    return revokeTaskMomentum(tx, {
-      taskId,
-      teamId: task.teamId,
-      assigneeIds: task.assignees.map(({ userId }) => userId),
-      reopenedAt,
-    });
+  const changed = await db.task.updateMany({
+    where: { id: taskId, status: "DONE" },
+    data: { status: "OPEN", completedAt: null, completedById: null },
   });
+  if (!changed.count) return;
 
-  const realtimeRecipients = new Set([task.creatorId, ...task.assignees.map(({ userId }) => userId), ...adjusted.adjustedUserIds]);
-  if (adjusted.adjustedTeamIds.length) {
-    const adjustedTeamMembers = await db.membership.findMany({
-      where: { teamId: { in: adjusted.adjustedTeamIds }, status: "ACTIVE" },
-      select: { userId: true },
-    });
-    adjustedTeamMembers.forEach(({ userId }) => realtimeRecipients.add(userId));
-  }
+  const realtimeRecipients = new Set([task.creatorId, ...task.assignees.map(({ userId }) => userId)]);
   await publishRealtimeEvent([...realtimeRecipients], "task.updated");
 
   revalidatePath("/");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/archive");
   revalidatePath("/analytics");
-  revalidatePath("/momentum");
   redirect("/");
 }
 
@@ -295,8 +278,7 @@ export async function updateTaskAction(_: unknown, formData: FormData) {
 
   const updates: Record<string, unknown> = { title, priority: priority === "HIGH" ? "HIGH" : "NORMAL" };
   if (due) {
-    const profile = await db.momentumProfile.findUnique({ where: { userId: user.id }, select: { timeZone: true } });
-    updates.dueAt = dueDateForSelection(due, profile?.timeZone ?? task.team.timeZone ?? "UTC");
+    updates.dueAt = dueDateForSelection(due, task.team.timeZone ?? "UTC");
   }
 
   if (isCreator) {

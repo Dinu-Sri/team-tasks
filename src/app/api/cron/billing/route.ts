@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 function cronSecret() {
-  const explicit = process.env.BILLING_CRON_SECRET?.trim() || process.env.MOMENTUM_CRON_SECRET?.trim();
+  const explicit = process.env.BILLING_CRON_SECRET?.trim();
   if (explicit) return explicit;
   const password = process.env.DB_PASSWORD?.trim();
   if (!password) return "";

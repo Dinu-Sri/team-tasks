@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Bell, Flame, ListTodo, LogOut, ShieldCheck, Sparkles, UsersRound, X } from "lucide-react";
+import { Bell, ListTodo, LogOut, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -8,11 +8,9 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { logoutAction } from "@/app/actions/auth";
 import { markNotificationsReadAction } from "@/app/actions/notifications";
 import { buildAppMenuItems, type AppSideMenuAccess } from "@/components/app-side-menu";
-import { MomentumBadgeIcon } from "@/components/momentum/momentum-badge";
 import { Avatar } from "@/components/ui/avatar";
 import type { HeaderNotification } from "@/lib/header-data";
 import { MEMBER_TASK_VIEW_EVENT } from "@/lib/member-task-view";
-import { BADGE_DEFINITIONS, type MomentumSummary } from "@/lib/momentum-shared";
 
 const MENU_EVENT = "team-tasks-menu-open";
 const IDLE_CLOSE_MS = 7000;
@@ -78,11 +76,6 @@ function useHeaderMenu(id: string) {
 }
 
 const panelClass = "fixed left-3 right-3 top-[var(--header-menu-top,4.25rem)] z-50 overflow-hidden rounded-lg border border-border bg-surface shadow-soft sm:absolute sm:left-auto sm:right-0 sm:top-12";
-const momentumPanelClass = "fixed inset-x-3 bottom-3 z-50 overflow-hidden rounded-lg border border-border bg-surface shadow-soft sm:absolute sm:bottom-auto sm:left-auto sm:right-0 sm:top-12 sm:w-80";
-
-function dayInitial(value: string) {
-  return new Intl.DateTimeFormat("en", { weekday: "narrow", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
-}
 
 export function MemberTaskViewToggle() {
   const [active, setActive] = useState(false);
@@ -110,81 +103,6 @@ export function MemberTaskViewToggle() {
       {active ? <ListTodo className="h-4 w-4" /> : <UsersRound className="h-4 w-4" />}
       <span className="sr-only">{active ? "Show my tasks" : "View member tasks"}</span>
     </button>
-  );
-}
-
-export function MomentumMenu({ momentum }: { momentum: MomentumSummary }) {
-  const menu = useHeaderMenu("momentum");
-  const currentDefinition = BADGE_DEFINITIONS.find((badge) => badge.tier === momentum.currentBadge);
-
-  return (
-    <div ref={menu.rootRef} className="relative">
-      <button
-        type="button"
-        onClick={menu.toggle}
-        aria-expanded={menu.open}
-        aria-haspopup="dialog"
-        className="flex h-9 items-center gap-1 rounded-full px-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950 sm:h-10"
-      >
-        <Flame className={`h-4 w-4 ${momentum.currentStreak > 0 ? "fill-current" : "opacity-55"}`} />
-        <span>{momentum.currentStreak}</span>
-        <span className="sr-only">Momentum</span>
-      </button>
-
-      {menu.open ? (
-        <div
-          role="dialog"
-          aria-label="Momentum"
-          className={momentumPanelClass}
-          onMouseEnter={menu.cancelClose}
-          onMouseLeave={() => menu.scheduleClose(LEAVE_CLOSE_MS)}
-          onPointerDown={() => menu.scheduleClose()}
-          onFocusCapture={menu.cancelClose}
-          onBlurCapture={() => menu.scheduleClose()}
-        >
-          <div className="flex items-center gap-3 border-b border-border p-4">
-            {momentum.currentBadge ? <MomentumBadgeIcon tier={momentum.currentBadge} size="md" /> : <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-subtle text-muted-foreground"><Sparkles className="h-5 w-5" /></span>}
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">{momentum.currentStreak} day Momentum</p>
-              <p className="truncate text-xs text-muted-foreground">{currentDefinition?.name ?? "Finish one task to begin"}</p>
-            </div>
-            <button type="button" onClick={menu.close} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-subtle" aria-label="Close Momentum">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="p-4">
-            <div className="grid grid-cols-7 gap-1.5" aria-label="Recent Momentum days">
-              {momentum.recentDays.map((day) => (
-                <div key={day.date} className="text-center">
-                  <span className="text-[10px] text-muted-foreground">{dayInitial(day.date)}</span>
-                  <span className={`mt-1 flex aspect-square items-center justify-center rounded-full text-[10px] font-semibold ${
-                    day.status === "WIN" ? "bg-success text-white" :
-                    day.status === "SHIELDED" ? "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300" :
-                    day.status === "MISSED" ? "bg-danger/12 text-danger" :
-                    day.status === "PENDING" ? "border border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300" :
-                    "bg-surface-subtle text-muted-foreground"
-                  }`}>
-                    {day.status === "WIN" ? "W" : day.status === "SHIELDED" ? "S" : day.status === "PENDING" ? "P" : ""}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-lg bg-surface-subtle px-3 py-2.5">
-              <span className="flex items-center gap-2 text-sm"><ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-300" />{momentum.shieldCount} Shield{momentum.shieldCount === 1 ? "" : "s"}</span>
-              <span className="text-xs text-muted-foreground">
-                {momentum.nextBadge ? `${momentum.nextBadge.winsNeeded} to ${momentum.nextBadge.name}` : "Top tier"}
-              </span>
-            </div>
-          </div>
-
-          <Link href="/momentum" onClick={menu.close} className="flex min-h-12 items-center justify-between border-t border-border px-4 py-3 text-sm font-medium hover:bg-surface-subtle">
-            Momentum and badges <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        </div>
-      ) : null}
-    </div>
   );
 }
 

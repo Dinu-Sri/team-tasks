@@ -10,7 +10,6 @@ import { useRouter, usePathname } from "next/navigation";
  *   n       – New task (focus/add task) on home page
  *   1       – Go to personal tasks
  *   2       – Go to dashboard
- *   3       – Go to momentum
  *   t       – Go to teams board
  *   a       – Go to activity
  *   p       – Go to progress
@@ -68,10 +67,6 @@ export function useKeyboardShortcuts({
           event.preventDefault();
           router.push("/dashboard");
           break;
-        case "3":
-          event.preventDefault();
-          router.push("/momentum");
-          break;
         case "t":
           event.preventDefault();
           router.push("/dashboard/teams");
@@ -117,7 +112,6 @@ const SHORTCUTS = [
   ["n", "New task (home page)"],
   ["1", "Personal tasks"],
   ["2", "Dashboard"],
-  ["3", "Momentum"],
   ["t", "Teams"],
   ["a", "Activity"],
   ["p", "Progress"],

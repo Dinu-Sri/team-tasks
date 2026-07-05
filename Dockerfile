@@ -39,7 +39,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
-COPY --from=builder /app/momentum-scheduler.mjs ./momentum-scheduler.mjs
 
 USER nextjs
 

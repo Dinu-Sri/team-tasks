@@ -26,27 +26,27 @@ type GardenRiveConfig = {
   src?: string;
 };
 
-function useSmallGardenViewport() {
-  const [smallViewport, setSmallViewport] = useState<boolean | null>(null);
+function useCompactGardenViewport() {
+  const [compactViewport, setCompactViewport] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const query = window.matchMedia("(max-width: 639px)");
-    const update = () => setSmallViewport(query.matches);
+    const query = window.matchMedia("(max-width: 1023px)");
+    const update = () => setCompactViewport(query.matches);
 
     update();
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
 
-  return smallViewport;
+  return compactViewport;
 }
 
 export function PlantRiveRuntimeGate() {
   const [config, setConfig] = useState<GardenRiveConfig | null>(null);
-  const smallViewport = useSmallGardenViewport();
+  const compactViewport = useCompactGardenViewport();
 
   useEffect(() => {
-    if (smallViewport !== false) return;
+    if (compactViewport !== false) return;
     let cancelled = false;
 
     async function loadConfig() {
@@ -64,9 +64,9 @@ export function PlantRiveRuntimeGate() {
     return () => {
       cancelled = true;
     };
-  }, [smallViewport]);
+  }, [compactViewport]);
 
-  if (smallViewport !== false || !config?.enabled) return null;
+  if (compactViewport !== false || !config?.enabled) return null;
 
   return <PlantRiveWidget src={config.src || DEFAULT_RIVE_SRC} />;
 }
@@ -106,7 +106,7 @@ export function PlantRiveWidget({
   return (
     <div
       className={cn(
-        "pointer-events-none fixed bottom-24 right-4 z-[45] hidden h-28 w-28 overflow-hidden bg-transparent sm:bottom-28 sm:right-6 sm:block sm:h-32 sm:w-32",
+        "pointer-events-none fixed bottom-28 right-6 z-[45] hidden h-32 w-32 overflow-hidden bg-transparent lg:block",
         className,
       )}
       aria-hidden="true"

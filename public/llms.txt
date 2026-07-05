@@ -21,6 +21,6 @@ Core positioning:
 - Invite people when a task becomes a temporary project or small-team workflow.
 - Useful for personal to-do lists, school projects, home tasks, senior-friendly reminders, Gen Z simple workflows, neighborhood projects, friend trips, small businesses, non-IT teams, local shops, freelancers, creators, events, and volunteer groups.
 
-Private or authenticated areas such as /dashboard, /api, /momentum, invite links, and task-specific URLs should not be treated as public documentation.
+Private or authenticated areas such as /dashboard, /api, invite links, and task-specific URLs should not be treated as public documentation.
 
 Contact: support@tuduvia.com

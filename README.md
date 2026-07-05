@@ -13,9 +13,6 @@ A calm multi-user task app for small teams where every person sees a simple pers
 - Team creation, multi-person task assignment, invitations, and in-app notifications
 - Optional SMTP invitation email delivery
 - PostgreSQL persistence through Prisma
-- Ethical Momentum retention system with Daily Wins, workday-aware streaks, automatic Shields, durable badge achievements, cooperative Team Quests, realtime celebrations, and configurable reminders
-- Dedicated scheduler container for eligibility snapshots, Shield resolution, reminders, and weekly quests
-- First-party Momentum event records for retention and guardrail analysis
 - Docker and Portainer deployment files
 
 The application stores accounts, teams, invitations, memberships and tasks in PostgreSQL.
@@ -47,4 +44,4 @@ npm run build
 
 See [DEPLOY.md](./DEPLOY.md).
 
-The reusable theory, rules, UX specification, data architecture, experimentation plan, and future roadmap live in [docs/ETHICAL_GAMIFICATION_PLAYBOOK.md](./docs/ETHICAL_GAMIFICATION_PLAYBOOK.md).
+The dashboard simplification rules and examples live in [docs/DASHBOARD_SIMPLICITY_GUIDE.md](./docs/DASHBOARD_SIMPLICITY_GUIDE.md).

@@ -7,22 +7,19 @@ import { useSearchParams } from "next/navigation";
 import type { CSSProperties } from "react";
 
 import { AppSideMenu, type AppSideMenuAccess } from "@/components/app-side-menu";
-import { MemberTaskViewToggle, MomentumMenu, NotificationMenu, ProfileMenu } from "@/components/header-menus";
-import { MomentumCelebrationListener } from "@/components/momentum/momentum-celebration";
+import { MemberTaskViewToggle, NotificationMenu, ProfileMenu } from "@/components/header-menus";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 import { TabIndicator, type LedLevel } from "@/components/tab-indicator";
 import { ThemeButton } from "@/components/theme-button";
 import { WorkspaceSelector, type WorkspaceOption } from "@/components/workspace-selector";
 import type { HeaderNotification } from "@/lib/header-data";
 import { MEMBER_TASK_VIEW_EVENT } from "@/lib/member-task-view";
-import type { MomentumSummary } from "@/lib/momentum-shared";
 import { cn } from "@/lib/utils";
 
 export function AppHeader({
   user,
   notifications,
   notificationCount,
-  momentum,
   ledLevel = "clear",
   memberTaskViewEnabled = false,
   workspaces,
@@ -34,7 +31,6 @@ export function AppHeader({
   user: { name: string; email: string; image?: string | null };
   notifications: HeaderNotification[];
   notificationCount: number;
-  momentum: MomentumSummary;
   ledLevel?: LedLevel;
   memberTaskViewEnabled?: boolean;
   workspaces?: WorkspaceOption[];
@@ -65,7 +61,6 @@ export function AppHeader({
       <header className="sticky top-0 z-40 border-b border-border bg-surface/85 backdrop-blur-lg" style={{ "--header-menu-top": hasWorkspaceSelector ? "6.75rem" : "4.25rem" } as CSSProperties}>
         <TabIndicator level={ledLevel} />
         <RealtimeRefresh />
-        <MomentumCelebrationListener />
         <div className="flex min-h-16 w-full flex-wrap items-center gap-x-2 gap-y-2 px-3 py-2 sm:h-16 sm:flex-nowrap sm:px-6 sm:py-0">
           <div className="min-w-0 flex-1 sm:w-[160px] sm:flex-none">
             <Link href="/" onClick={() => window.dispatchEvent(new CustomEvent(MEMBER_TASK_VIEW_EVENT, { detail: false }))} className="flex items-center gap-2.5 font-semibold" id="onborda-header">
@@ -93,7 +88,6 @@ export function AppHeader({
 
           <div className="ml-auto flex shrink-0 items-center justify-end gap-0.5 sm:gap-1" id="onborda-header-actions">
             {memberTaskViewEnabled ? <MemberTaskViewToggle /> : null}
-            <MomentumMenu momentum={momentum} />
             <NotificationMenu notifications={notifications} notificationCount={notificationCount} />
             <ThemeButton />
             <ProfileMenu name={user.name} email={user.email} image={user.image} sideMenuAccess={sideMenuAccess} />

@@ -5,9 +5,11 @@ import { resolveTxt } from "dns/promises";
 import { revalidatePath } from "next/cache";
 
 import { requireUser } from "@/lib/auth";
+import { refreshWorkspaceUsage } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { sendOrganizationDomainVerificationEmail, sendSystemAlertEmail } from "@/lib/mail";
 import { domainTokenHash } from "@/lib/organization-domain-verification";
+import { publishRealtimeEvent } from "@/lib/realtime";
 
 export type DomainState = { error?: string; success?: string };
 
@@ -203,7 +205,12 @@ export async function approveDomainMemberAction(formData: FormData) {
     subject: "Organization access approved",
     message: `Your request to join ${owner.team.name} in Tuduvia has been approved. You can now open the workspace from your dashboard.`,
   });
+  await publishRealtimeEvent([user.id, userId], "membership.updated");
+  await refreshWorkspaceUsage(teamId);
+  revalidatePath("/");
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/features");
+  revalidatePath("/dashboard/teams");
 }
 
 export async function rejectDomainMemberAction(formData: FormData) {
@@ -237,7 +244,12 @@ export async function rejectDomainMemberAction(formData: FormData) {
     subject: "Organization access not approved",
     message: `Your request to join ${owner.team.name} in Tuduvia was not approved. If you think this is a mistake, contact the workspace owner or Tuduvia support.`,
   });
+  await publishRealtimeEvent([user.id, userId], "membership.updated");
+  await refreshWorkspaceUsage(teamId);
+  revalidatePath("/");
+  revalidatePath("/dashboard");
   revalidatePath("/dashboard/features");
+  revalidatePath("/dashboard/teams");
 }
 
 function normalizeDomain(value: string) {

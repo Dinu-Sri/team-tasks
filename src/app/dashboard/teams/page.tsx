@@ -1,6 +1,7 @@
 import { ArrowRight, Mail, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 
+import { approveDomainMemberAction } from "@/app/actions/organization-domains";
 import { acceptInviteAction } from "@/app/actions/teams";
 import { DASHBOARD_PAGE_SIZE, DashboardPagination, pageFromParam } from "@/components/dashboard/dashboard-pagination";
 import { CreateTeamForm, InviteForm } from "@/components/dashboard/team-forms";
@@ -28,7 +29,7 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
       include: {
         team: {
           include: {
-            memberships: { where: { status: "ACTIVE" }, include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } },
+            memberships: { where: { status: { in: ["ACTIVE", "PENDING"] } }, include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } },
             invites: { where: { status: "PENDING" }, select: { id: true, email: true } },
           },
         },
@@ -78,7 +79,9 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
             </div>
             {memberships.length ? (
               <div className="grid gap-3 md:grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
-                {memberships.map(({ team, role }) => (
+                {memberships.map(({ team, role }) => {
+                  const activeMembers = team.memberships.filter((member) => member.status === "ACTIVE");
+                  return (
                   <Link key={team.id} href={`/dashboard/teams?workspace=${encodeURIComponent(team.id)}`} className="group flex min-h-32 flex-col justify-between rounded-lg border border-border bg-background p-4 transition-colors hover:border-brand/45 hover:bg-surface-subtle">
                     <div className="flex items-start justify-between gap-3">
                       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-brand"><Users className="h-5 w-5" /></span>
@@ -87,12 +90,13 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
                     <div className="mt-5 min-w-0">
                       <p className="truncate text-sm font-semibold">{team.name}</p>
                       <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                        <span>{team.memberships.length} member{team.memberships.length === 1 ? "" : "s"}</span>
+                        <span>{activeMembers.length} member{activeMembers.length === 1 ? "" : "s"}</span>
                         <span className="inline-flex items-center gap-1 text-foreground">Open <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" /></span>
                       </div>
                     </div>
                   </Link>
-                ))}
+                );
+                })}
               </div>
             ) : (
               <div className="rounded-lg border border-dashed border-border px-4 py-16 text-center">
@@ -116,6 +120,8 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
         </div>
       ) : memberships.map(({ team, role }) => {
         const owner = role === "OWNER";
+        const activeMembers = team.memberships.filter((member) => member.status === "ACTIVE");
+        const pendingMembers = team.memberships.filter((member) => member.status === "PENDING");
         return (
           <div key={team.id} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
             <section className="rounded-lg border border-border bg-surface p-4">
@@ -124,7 +130,7 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-brand"><Users className="h-5 w-5" /></span>
                   <div className="min-w-0">
                     <h2 className="truncate text-base font-semibold">{team.name}</h2>
-                    <p className="text-sm text-muted-foreground">{team.memberships.length} member{team.memberships.length === 1 ? "" : "s"}</p>
+                    <p className="text-sm text-muted-foreground">{activeMembers.length} member{activeMembers.length === 1 ? "" : "s"}</p>
                   </div>
                 </div>
                 <Badge className="self-start min-[520px]:self-auto" variant={owner ? "default" : "secondary"}>{role.toLowerCase()}</Badge>
@@ -133,10 +139,10 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
               <div className="pt-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold">Team members</h3>
-                  <Badge variant="secondary">{team.memberships.length}</Badge>
+                  <Badge variant="secondary">{activeMembers.length}</Badge>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]">
-                  {team.memberships.map((member) => (
+                  {activeMembers.map((member) => (
                     <div key={member.userId} className="flex min-h-16 items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-sm font-semibold text-brand">
                         {member.user.name.slice(0, 1).toUpperCase()}
@@ -148,6 +154,37 @@ export default async function TeamsBoardPage({ searchParams }: { searchParams: P
                     </div>
                   ))}
                 </div>
+                {owner && pendingMembers.length ? (
+                  <div className="mt-4 rounded-lg border border-brand/25 bg-brand/5 p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold">Waiting for approval</h3>
+                        <p className="text-xs text-muted-foreground">Approve verified organization members before assigning work.</p>
+                      </div>
+                      <Badge variant="secondary">{pendingMembers.length}</Badge>
+                    </div>
+                    <div className="grid gap-2">
+                      {pendingMembers.map((member) => (
+                        <div key={member.userId} className="flex flex-col gap-3 rounded-lg border border-border bg-background px-3 py-2.5 min-[520px]:flex-row min-[520px]:items-center min-[520px]:justify-between">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-sm font-semibold text-brand">
+                              {member.user.name.slice(0, 1).toUpperCase()}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">{member.user.name}</p>
+                              <p className="truncate text-xs text-muted-foreground">{member.user.email}</p>
+                            </div>
+                          </div>
+                          <form action={approveDomainMemberAction}>
+                            <input type="hidden" name="teamId" value={team.id} />
+                            <input type="hidden" name="userId" value={member.userId} />
+                            <Button className="w-full min-[520px]:w-auto" size="sm">Approve</Button>
+                          </form>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </section>
 

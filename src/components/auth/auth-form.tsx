@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useActionState, useState } from "react";
 
-import { socialSignInAction, type AuthState } from "@/app/actions/auth";
+import { resendVerificationAction, socialSignInAction, type AuthState } from "@/app/actions/auth";
 import { AuthLogo } from "@/components/auth/auth-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,9 +29,11 @@ export function AuthForm({
   showLogo?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const [resendState, resendAction, resendPending] = useActionState(resendVerificationAction, {});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const signup = mode === "signup";
+  const unverifiedEmail = !signup ? state.unverifiedEmail : undefined;
 
   return (
     <section className="w-full max-w-[448px]">
@@ -115,6 +117,18 @@ export function AuthForm({
             {pending ? "Please wait" : signup ? "Create an account" : "Login"}
           </Button>
         </form>
+
+        {unverifiedEmail ? (
+          <form action={resendAction} className="mt-3 rounded-lg border border-border bg-surface-subtle p-3 text-sm">
+            <input type="hidden" name="email" value={unverifiedEmail} />
+            <p className="text-muted-foreground">Did not get the verification email?</p>
+            {resendState.error ? <p className="mt-2 text-xs text-danger">{resendState.error}</p> : null}
+            {resendState.success ? <p className="mt-2 text-xs text-success">{resendState.success}</p> : null}
+            <Button type="submit" className="mt-3 w-full" size="sm" variant="secondary" disabled={resendPending}>
+              {resendPending ? "Sending" : "Send verification email again"}
+            </Button>
+          </form>
+        ) : null}
 
         {!signup ? (
           <div className="mt-4 grid gap-2">

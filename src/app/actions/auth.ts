@@ -13,7 +13,7 @@ import { sendPasswordResetEmail } from "@/lib/mail";
 import { autoJoinVerifiedEmailDomain } from "@/lib/organization-domains";
 import { provisionUserWorkspace } from "@/lib/user-provisioning";
 
-export type AuthState = { error?: string; success?: string };
+export type AuthState = { error?: string; success?: string; unverifiedEmail?: string };
 
 export async function signupAction(_: AuthState, formData: FormData): Promise<AuthState> {
   const firstName = String(formData.get("firstName") ?? "").trim();
@@ -82,11 +82,32 @@ export async function loginAction(_: AuthState, formData: FormData): Promise<Aut
     if (user?.passwordHash.startsWith("__REINSTATED__")) {
       return { error: "This account has been reinstated but requires a password reset. Contact support." };
     }
-    if (user && !user.emailVerified) return { error: "Please verify your email before signing in." };
+    if (user && !user.emailVerified) return { error: "Please verify your email before signing in.", unverifiedEmail: email };
     return { error: "Email or password is incorrect." };
   }
 
   redirect("/");
+}
+
+export async function resendVerificationAction(_: AuthState, formData: FormData): Promise<AuthState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!email.includes("@")) return { error: "Enter the email address you used to sign up." };
+
+  const user = await db.user.findUnique({
+    where: { email },
+    select: { id: true, email: true, emailVerified: true },
+  });
+
+  if (user && !user.emailVerified) {
+    try {
+      await sendDirectEmailVerification(user);
+    } catch (error) {
+      console.error("Verification resend failed", error);
+      return { error: "We could not send that email right now. Try again in a moment.", unverifiedEmail: email };
+    }
+  }
+
+  return { success: "If that account is waiting for verification, we sent a new email." };
 }
 
 export async function logoutAction() {

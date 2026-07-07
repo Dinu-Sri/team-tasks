@@ -68,7 +68,30 @@ export async function inviteMemberAction(_: TeamState, formData: FormData): Prom
       where: { userId_teamId: { userId: registered.id, teamId } },
     });
     if (member?.status === "ACTIVE") return { error: "This person is already in the team." };
-    if (member?.status === "PENDING") return { error: "This person is already waiting for access." };
+    if (member?.status === "PENDING") {
+      await db.$transaction([
+        db.membership.update({
+          where: { id: member.id },
+          data: { status: "ACTIVE" },
+        }),
+        db.notification.create({
+          data: {
+            recipientId: registered.id,
+            teamId,
+            kind: "TEAM",
+            href: "/dashboard/teams",
+            title: "Organization access approved",
+            message: `${user.name} approved your access to ${owner.team.name}.`,
+          },
+        }),
+      ]);
+      await publishRealtimeEvent([user.id, registered.id], "membership.updated");
+      revalidatePath("/");
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/teams");
+      await refreshWorkspaceUsage(teamId);
+      return { success: "Access approved. They can now receive assigned tasks." };
+    }
   }
 
   const token = randomBytes(24).toString("hex");

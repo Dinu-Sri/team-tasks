@@ -158,7 +158,7 @@ async function notifyDomainOwners(teamId: string, userId: string, domain: string
       recipientId: ownerId,
       teamId,
       kind: "TEAM" as const,
-      href: "/dashboard/features",
+      href: `/dashboard/teams?workspace=${teamId}`,
       title: "Organization access request",
       message: `${requester.name} (${requester.email}) wants to join ${team.name} using ${domain}.`,
     })),

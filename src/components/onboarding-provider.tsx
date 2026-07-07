@@ -36,26 +36,24 @@ export function OnboardingProvider({
 
   return (
     <OnbordaProvider>
-      {ready ? (
-        <Onborda
-          steps={[{ tour: tourName, steps }]}
-          showOnborda
-          shadowRgb="55,48,163"
-          shadowOpacity="0.7"
-          cardComponent={OnbordaCard}
-          cardTransition={{ duration: 0.3, type: "tween" }}
-        >
+      <Onborda
+        steps={[{ tour: tourName, steps }]}
+        showOnborda
+        shadowRgb="55,48,163"
+        shadowOpacity="0.7"
+        cardComponent={OnbordaCard}
+        cardTransition={{ duration: 0.3, type: "tween" }}
+      >
+        {ready ? (
           <AutoStartOnboarding
             tourName={tourName}
             userId={userId}
             seenAliases={seenAliases}
             completedInDb={completedInDb}
           />
-          {children}
-        </Onborda>
-      ) : (
-        <>{children}</>
-      )}
+        ) : null}
+        {children}
+      </Onborda>
     </OnbordaProvider>
   );
 }

@@ -46,8 +46,16 @@ function zonedDateTimeToUtc(dateKey: string, hour: number, minute: number, timeZ
   return new Date(candidate.getTime() + (targetAsUtc - localAsUtc));
 }
 
+function isDateKey(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 function dueDateForSelection(value: string, timeZone: string) {
-  if (value === "none") return null;
+  if (value === "none" || value === "") return null;
+  // Custom calendar date (YYYY-MM-DD) from the task form.
+  if (isDateKey(value)) {
+    return zonedDateTimeToUtc(value, 17, 0, timeZone);
+  }
   const offset = value === "tomorrow" ? 1 : value === "week" ? 7 : 0;
   const dateKey = shiftDateKey(localDateKey(new Date(), timeZone), offset);
   return zonedDateTimeToUtc(dateKey, 17, 0, timeZone);

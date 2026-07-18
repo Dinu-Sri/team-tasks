@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { createPersonalTaskAction, toggleTaskAction, updateTaskAction } from "@/app/actions/tasks";
 import { acceptInviteAction } from "@/app/actions/teams";
 import { CompleteTaskButton } from "@/components/tasks/complete-task-button";
+import { DueDateField } from "@/components/tasks/due-date-field";
 import { FloatingActionMenu, CompletedToast } from "@/components/tasks/floating-action-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -199,23 +200,26 @@ export function PersonalTasks({
       </div>
 
       {!memberView && showAdd ? (
-        <form action={createPersonalTaskAction} id="onborda-add-task-form" className="task-view-enter mb-3 grid gap-2 rounded-lg border border-border bg-surface p-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,16rem)_auto_auto]">
-          <Input name="title" placeholder="What needs to be done?" autoFocus required />
-          {isAllWorkspaces ? (
-            <select name="teamId" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm" aria-label="Team" required>
-              {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
-            </select>
+        <form action={createPersonalTaskAction} id="onborda-add-task-form" className="task-view-enter mb-3 space-y-3 rounded-lg border border-border bg-surface p-3">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_minmax(11rem,auto)_auto]">
+            <Input name="title" placeholder="What needs to be done?" autoFocus required className="sm:col-span-2 lg:col-span-1" />
+            {isAllWorkspaces ? (
+              <select name="teamId" value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm sm:col-span-2 lg:col-span-1" aria-label="Team" required>
+                {teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}
+              </select>
+            ) : (
+              <input type="hidden" name="teamId" value={workspaceId ?? selectedTeamId} />
+            )}
+            <DueDateField name="due" defaultValue="today" />
+            <Button className="w-full sm:w-auto" type="submit"><Check />Add</Button>
+          </div>
+          {workspaceTeam?.canAssignMembers ? (
+            <AssigneeCards members={workspaceTeam.members} value={assigneeId} onChange={setAssigneeId} currentUserId={currentUserId} />
+          ) : isAllWorkspaces && selectedTeam?.canAssignMembers ? (
+            <AssigneeCards members={selectedTeam.members} value={assigneeId} onChange={setAssigneeId} currentUserId={currentUserId} />
           ) : (
-            <input type="hidden" name="teamId" value={workspaceId ?? selectedTeamId} />
+            <input type="hidden" name="assigneeId" value={currentUserId} />
           )}
-          {workspaceTeam?.canAssignMembers ? <AssigneePicker members={workspaceTeam.members} value={assigneeId} onChange={setAssigneeId} currentUserId={currentUserId} /> : isAllWorkspaces && selectedTeam?.canAssignMembers ? <AssigneePicker members={selectedTeam.members} value={assigneeId} onChange={setAssigneeId} currentUserId={currentUserId} /> : <input type="hidden" name="assigneeId" value={currentUserId} />}
-          <select name="due" className="h-11 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
-            <option value="today">Today</option>
-            <option value="tomorrow">Tomorrow</option>
-            <option value="week">Next week</option>
-            <option value="none">No date</option>
-          </select>
-          <Button className="w-full sm:col-span-2 lg:col-span-1" type="submit"><Check />Add</Button>
         </form>
       ) : null}
 
@@ -268,14 +272,8 @@ export function PersonalTasks({
                   {editingTaskId === task.id ? (
                     <div className="min-w-0 flex-1 space-y-2">
                       <Input value={editTitle} onChange={(event) => setEditTitle(event.target.value)} className="h-11" autoFocus onKeyDown={(event) => { if (event.key === "Enter") void saveSelfEdit(task.id); if (event.key === "Escape") cancelSelfEdit(); }} />
-                      <div className="grid gap-2 min-[520px]:grid-cols-[1fr_1fr_auto_auto]">
-                        <select value={editDue} onChange={(event) => setEditDue(event.target.value)} className="h-10 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
-                          <option value="">Keep date</option>
-                          <option value="today">Today</option>
-                          <option value="tomorrow">Tomorrow</option>
-                          <option value="week">Next week</option>
-                          <option value="none">No date</option>
-                        </select>
+                      <div className="grid gap-2 min-[520px]:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+                        <DueDateField value={editDue} onChange={setEditDue} emptyLabel="Keep date" selectClassName="h-10" />
                         <select value={editPriority} onChange={(event) => setEditPriority(event.target.value === "HIGH" ? "HIGH" : "NORMAL")} className="h-10 min-w-0 rounded-full border border-border bg-surface px-3 text-sm">
                           <option value="NORMAL">Normal</option>
                           <option value="HIGH">Important</option>
@@ -328,51 +326,66 @@ export function PersonalTasks({
   );
 }
 
-function AssigneePicker({ members, value, onChange, currentUserId }: { members: TeamOption["members"]; value: string; onChange: (value: string) => void; currentUserId: string }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const pickerRef = useRef<HTMLDivElement>(null);
-  const selected = members.find(({ id }) => id === value) ?? members[0];
-  const filteredMembers = members.filter((member) => `${member.name} ${member.id === currentUserId ? "me" : ""}`.toLowerCase().includes(query.toLowerCase()));
+function memberInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+}
 
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, [open]);
+function AssigneeCards({ members, value, onChange, currentUserId }: { members: TeamOption["members"]; value: string; onChange: (value: string) => void; currentUserId: string }) {
+  const selectedId = members.some(({ id }) => id === value) ? value : members[0]?.id ?? currentUserId;
 
   return (
-    <div ref={pickerRef} className="relative min-w-0">
-      <input type="hidden" name="assigneeId" value={selected?.id ?? currentUserId} />
-      <button type="button" onClick={() => setOpen((state) => !state)} className="flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-full border border-border bg-surface px-3 text-left text-sm">
-        <span className="truncate">{selected?.id === currentUserId ? "Me" : selected?.name ?? "Choose member"}</span>
-        <UsersRound className="h-4 w-4 shrink-0 text-muted-foreground" />
-      </button>
-      {open ? (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 min-w-[min(18rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface p-1 shadow-soft">
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search members" className="mb-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" autoFocus />
-          <div className="max-h-56 overflow-y-auto">
-            {filteredMembers.length ? filteredMembers.map((member) => (
-              <button
-                key={member.id}
-                type="button"
-                onClick={() => {
-                  onChange(member.id);
-                  setOpen(false);
-                  setQuery("");
-                }}
-                className={cn("flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-surface-subtle", member.id === selected?.id && "bg-surface-subtle text-brand")}
+    <div className="min-w-0">
+      <input type="hidden" name="assigneeId" value={selectedId} />
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-muted-foreground">Assign to</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {members.find(({ id }) => id === selectedId)?.id === currentUserId
+            ? "Me"
+            : members.find(({ id }) => id === selectedId)?.name ?? "Choose a person"}
+        </p>
+      </div>
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]" role="listbox" aria-label="Team members">
+        {members.map((member) => {
+          const active = member.id === selectedId;
+          const isMe = member.id === currentUserId;
+          const label = isMe ? "Me" : member.name;
+          return (
+            <button
+              key={member.id}
+              type="button"
+              role="option"
+              aria-selected={active}
+              onClick={() => onChange(member.id)}
+              className={cn(
+                "group flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border px-2 py-2.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                active
+                  ? "border-brand bg-brand/10 shadow-sm ring-2 ring-brand/25"
+                  : "border-border bg-background/70 hover:border-brand/35 hover:bg-surface-subtle",
+              )}
+            >
+              <span
+                className={cn(
+                  "relative flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold transition-colors",
+                  active ? "bg-brand text-brand-foreground" : "bg-surface-subtle text-foreground group-hover:bg-brand/15 group-hover:text-brand",
+                )}
               >
-                <span className="truncate">{member.id === currentUserId ? "Me" : member.name}</span>
-                {member.id === selected?.id ? <Check className="h-4 w-4 shrink-0" /> : null}
-              </button>
-            )) : <p className="px-3 py-2 text-sm text-muted-foreground">No members found.</p>}
-          </div>
-        </div>
-      ) : null}
+                {memberInitials(member.name)}
+                {active ? (
+                  <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-brand-foreground ring-2 ring-surface">
+                    <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                  </span>
+                ) : null}
+              </span>
+              <span className={cn("w-full truncate text-[11px] font-medium leading-tight", active ? "text-brand" : "text-foreground")}>
+                {label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

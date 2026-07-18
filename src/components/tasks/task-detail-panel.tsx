@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCheck, Download, Eye, FileUp, Files, FileText, FileVideo, ImageIcon, MessageCircleMore, Paperclip, Pencil, Send, Trash2, X } from "lucide-react";
+import { DueDateField } from "@/components/tasks/due-date-field";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -182,14 +183,8 @@ function EditTaskButton({ task }: { task: TaskDetail }) {
       <div className="fixed left-3 right-3 top-3 z-[140] rounded-lg border border-border bg-surface p-3 shadow-soft sm:static sm:w-80 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
         <div className="flex flex-col gap-2">
           <input value={title} onChange={(e) => setTitle(e.target.value)} className="h-11 w-full rounded-lg border border-border bg-surface px-3 text-base sm:h-auto sm:rounded sm:px-2 sm:py-1 sm:text-sm" placeholder="Task title" />
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-1">
-            <select value={due} onChange={(e) => setDue(e.target.value)} className="h-10 min-w-0 rounded-lg border border-border bg-surface px-2 text-base sm:h-auto sm:rounded sm:px-1.5 sm:py-0.5 sm:text-xs">
-              <option value="">Keep date</option>
-              <option value="today">Today</option>
-              <option value="tomorrow">Tomorrow</option>
-              <option value="week">Next week</option>
-              <option value="none">No date</option>
-            </select>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-1">
+            <DueDateField value={due} onChange={setDue} emptyLabel="Keep date" selectClassName="h-10 rounded-lg px-2 text-base sm:h-auto sm:rounded sm:px-1.5 sm:py-0.5 sm:text-xs" />
             <select value={priority} onChange={(e) => setPriority(e.target.value)} className="h-10 min-w-0 rounded-lg border border-border bg-surface px-2 text-base sm:h-auto sm:rounded sm:px-1.5 sm:py-0.5 sm:text-xs">
               <option value="NORMAL">Normal</option>
               <option value="HIGH">High</option>

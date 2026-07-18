@@ -22,12 +22,14 @@ Developer or Codex pushes to GitHub master
   -> if successful, GitHub Actions workflow: Trigger Jenkins staging deploy
   -> Jenkins job: tuduvia-deploy-production
   -> Jenkins typechecks app inside node:20-alpine
-  -> Jenkins builds ghcr.io/dinu-sri/team-tasks-app:<short-sha>
+  -> Jenkins promotes the GHA image (pull + retag; no long next build by default)
   -> Jenkins pushes ghcr.io/dinu-sri/team-tasks-app:jenkins-latest
   -> Watchtower detects new jenkins-latest image
   -> Watchtower recreates tuduvia-staging
   -> Cloudflare Tunnel serves stage.tuduvia.com
 ```
+
+By default Jenkins does **not** run `docker build` / `next build` on the VPS. That long step was regularly aborted by Jenkins restarts (`Resuming build after Jenkins restart` + durable-task heartbeat / JENKINS-48300), which skipped Push Image and Deploy Staging. GitHub Actions remains the source of truth for the image; Jenkins promotes it to `jenkins-latest` for Watchtower. Set Jenkins parameter `FULL_REBUILD=true` only when you intentionally need a VPS-side rebuild.
 
 Production is intentionally not auto-deployed yet. The production stage remains a placeholder/manual approval point until staging smoke tests and rollback behavior are reliable.
 
@@ -625,11 +627,11 @@ Do not rely on that endpoint for manually created stacks. Use Watchtower, or reb
 
 ### Jenkins build skips Push Image and Deploy Staging
 
-Cause:
+Cause A:
 
 `PUSH_IMAGE` defaulted to `false`, or Jenkins had not refreshed parameters from the latest Jenkinsfile.
 
-Fix:
+Fix A:
 
 Set Jenkinsfile default:
 
@@ -638,6 +640,25 @@ booleanParam(name: 'PUSH_IMAGE', defaultValue: true, ...)
 ```
 
 Run a fresh build from the job page after Jenkinsfile changes. Avoid Replay when testing new Jenkinsfile changes because Replay can reuse older pipeline text.
+
+Cause B (common on this host):
+
+```text
+Resuming build after Jenkins restart
+wrapper script does not seem to be touching the log file
+(JENKINS-48300 durable-task heartbeat)
+Stage "Push Image" skipped due to earlier failure(s)
+```
+
+Jenkins restarted while a long `docker build` / `next build` step was running. The durable shell step loses its heartbeat and fails; later stages are skipped even though GitHub Actions already built the image successfully.
+
+Fix B:
+
+Keep `FULL_REBUILD=false` (default). Jenkins pulls the image GitHub Actions already pushed (`ghcr.io/dinu-sri/team-tasks-app:<full-sha>` or `:latest`) and retags it as `jenkins-latest`. Optionally raise the durable-task heartbeat on the Jenkins JVM:
+
+```text
+-Dorg.jenkinsci.plugins.durabletask.BourneShellScript.HEARTBEAT_CHECK_INTERVAL=86400
+```
 
 ## Verification Checklist
 

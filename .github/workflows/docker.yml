@@ -37,6 +37,7 @@ jobs:
             ghcr.io/dinu-sri/team-tasks:latest
             ghcr.io/dinu-sri/team-tasks-app:latest
             ghcr.io/dinu-sri/team-tasks:${{ github.sha }}
+            ghcr.io/dinu-sri/team-tasks-app:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
